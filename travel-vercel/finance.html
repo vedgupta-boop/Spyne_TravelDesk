@@ -136,6 +136,8 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
 .lg-row b{margin-left:auto;color:var(--navy);font-family:'Space Grotesk',sans-serif;}
 .lg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
 .lg-lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sticky-tools{position:sticky;top:0;z-index:12;background:var(--gray-1);padding:10px 0 12px;margin-bottom:14px;border-bottom:1px solid var(--gray-2);}
+.sticky-tools .bar{margin-bottom:10px;}
 </style>
 </head>
 <body>
@@ -173,20 +175,25 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
 
   <div id="kpis" class="cards"></div>
 
+  <div class="sticky-tools">
   <div class="bar">
     <div class="title">Travel Requests</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <input id="search" placeholder="Search id / name / dept / route" oninput="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;min-width:190px;">
       <select id="f-type" onchange="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">All types</option><option value="local">Local</option><option value="domestic">Domestic</option><option value="international">International</option></select>
       <select id="f-cur" onchange="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">All currencies</option><option>INR</option><option>USD</option></select>
+      <select id="f-breach" onchange="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">Policy: all</option><option value="yes">⚠ Breach only</option><option value="no">Within policy</option></select>
+      <select id="f-adv" onchange="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">Advance: all</option><option value="yes">Advance given</option><option value="no">No advance</option></select>
+      <select id="f-trip" onchange="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">All trips</option><option value="round">Round trip</option><option value="one">One-way</option></select>
       <button class="chip" onclick="downloadCSV()" style="cursor:pointer;">⬇ Download CSV</button>
     </div>
   </div>
-  <div class="filters" id="filters" style="margin-bottom:14px;">
+  <div class="filters" id="filters" style="margin-bottom:0;">
     <span class="chip active" data-f="all" onclick="setFilter('all')">All</span>
     <span class="chip" data-f="pending" onclick="setFilter('pending')">Pending</span>
     <span class="chip" data-f="approved" onclick="setFilter('approved')">Approved</span>
     <span class="chip" data-f="rejected" onclick="setFilter('rejected')">Rejected</span>
+  </div>
   </div>
 
   <div class="panel">
@@ -194,12 +201,9 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
     <div class="tbl-scroll hidden" id="tbl-wrap">
       <table>
         <thead><tr>
-          <th class="r">Sr.</th><th>Request ID</th><th>Employee</th><th>Department</th><th>Travel Purpose</th>
-          <th>Start Date</th><th>End Date</th><th>Submission</th><th class="r">Est. Cost</th>
-          <th class="r">Advance</th><th>Policy Breach</th>
-          <th>HOD Status</th><th>HOD Date</th><th>CEO Status</th><th>CEO Date</th><th>Finance Status</th><th>Finance Date</th>
-          <th>Booking Status</th><th>Booking Date</th><th>PNR / Ticket</th><th>Ticket Upload</th>
-          <th>Forex Status</th><th>Forex Issue</th><th>Final Status</th>
+          <th class="r">Sr.</th><th>Request ID</th><th>Employee</th><th>Department</th>
+          <th>Dates</th><th>Destination</th><th>Travel Purpose</th>
+          <th class="r">Est. Cost</th><th class="r">Advance</th><th>Policy</th><th>Status</th>
         </tr></thead>
         <tbody id="rows"></tbody>
         <tfoot id="foot"></tfoot>
@@ -495,11 +499,18 @@ function setFilter(f){
 function val(id){ var e=document.getElementById(id); return e?(e.value||''):''; }
 function filteredRows(){
   var type=val('f-type'), curf=val('f-cur'), q=val('search').trim().toLowerCase();
+  var breach=val('f-breach'), adv=val('f-adv'), trip=val('f-trip');
   return (DATA.rows||[]).filter(function(r){
     if(FILTER!=='all' && statusClass(r.status)!==FILTER) return false;
     if(type && String(r.type)!==type) return false;
     if(curf && String(r.currency)!==curf) return false;
-    if(q){ var hay=(r.id+' '+r.name+' '+r.dept+' '+r.route+' '+r.type).toLowerCase(); if(hay.indexOf(q)<0) return false; }
+    if(breach==='yes' && !isBroken(r)) return false;
+    if(breach==='no' && isBroken(r)) return false;
+    if(adv==='yes' && !(Number(r.advance)>0)) return false;
+    if(adv==='no' && Number(r.advance)>0) return false;
+    if(trip==='round' && !/round/i.test(r.trip||'')) return false;
+    if(trip==='one' && !/one/i.test(r.trip||'')) return false;
+    if(q){ var hay=(r.id+' '+r.name+' '+r.dept+' '+r.route+' '+r.type+' '+r.purpose).toLowerCase(); if(hay.indexOf(q)<0) return false; }
     return true;
   });
 }
@@ -517,30 +528,28 @@ function render(){
 
   function stPill(v){ var t=String(v||'—'); var c=/reject/i.test(t)?'rejected':(/approv|issued|completed|done|booked/i.test(t)?'approved':(/n\/a/i.test(t)?'':'pending')); return c?'<span class="st '+c+'">'+esc(t)+'</span>':'<span class="muted">'+esc(t)+'</span>'; }
   tbody.innerHTML = rows.map(function(r,i){
+    var dates=esc(r.start)+(r.end&&r.end!=='One-way'?(' → '+esc(r.end)):(r.end==='One-way'?' (one-way)':''));
     return '<tr>'
       +'<td class="r muted">'+(i+1)+'</td>'
       +'<td class="id">'+esc(r.id)+'</td>'
-      +'<td>'+esc(r.name)+(r.pax>1?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">+'+(r.pax-1)+' pax</span>':'')+'</td><td class="muted">'+esc(r.dept)+'</td><td class="muted">'+esc(r.purpose)+'</td>'
-      +'<td class="muted">'+esc(r.start)+'</td><td class="muted">'+esc(r.end)+'</td><td class="muted">'+esc(r.submission)+'</td>'
-      +'<td class="r amt total"><span class="cost-link" onclick="openCost('+i+')" title="View cost breakup">'+esc(r.estimatedCost)+'<span class="caret">▸</span></span></td>'
+      +'<td>'+esc(r.name)+(r.pax>1?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">+'+(r.pax-1)+' pax</span>':'')+'</td>'
+      +'<td class="muted">'+esc(r.dept)+'</td>'
+      +'<td class="muted" style="white-space:nowrap;">'+dates+'</td>'
+      +'<td class="muted">'+esc(r.route)+'</td>'
+      +'<td class="muted">'+esc(r.purpose)+'</td>'
+      +'<td class="r amt total"><span class="cost-link" onclick="openCost('+i+')" title="View full details — costs, workflow status, reconciliation">'+esc(r.estimatedCost)+'<span class="caret">▸</span></span></td>'
       +'<td class="r amt">'+(r.advance>0?fmt(r.currency,r.advance):'<span class="muted">—</span>')+'</td>'
       +'<td>'+breakCell(r,i)+'</td>'
-      +'<td>'+stPill(r.hodStatus)+'</td><td class="muted">'+esc(r.hodDate)+'</td>'
-      +'<td>'+stPill(r.ceoStatus)+'</td><td class="muted">'+esc(r.ceoDate)+'</td>'
-      +'<td>'+stPill(r.financeStatus)+'</td><td class="muted">'+esc(r.financeDate)+'</td>'
-      +'<td>'+stPill(r.bookingStatus)+'</td><td class="muted">'+esc(r.bookingDate)+'</td>'
-      +'<td class="muted">'+esc(r.pnr)+'</td><td class="muted">'+esc(r.ticketUploadDate)+'</td>'
-      +'<td>'+stPill(r.forexStatus)+'</td><td class="muted">'+esc(r.forexIssueDate)+'</td>'
       +'<td>'+stPill(shortStatus(r.finalStatus))+'</td>'
     +'</tr>';
   }).join('');
 
-  // footer: count + estimated total per currency
+  // footer: count + estimated total per currency (11 columns)
   var byCur={};
   rows.forEach(function(r){ if(!byCur[r.currency]) byCur[r.currency]={n:0,total:0,advance:0}; byCur[r.currency].n++; byCur[r.currency].total+=r.total; byCur[r.currency].advance+=(r.advance||0); });
   foot.innerHTML=Object.keys(byCur).map(function(c){
     var b=byCur[c];
-    return '<tr><td colspan="8">Totals ('+c+') — '+b.n+' request(s)</td><td class="r amt total">'+fmt(c,b.total)+'</td><td class="r amt">'+(b.advance>0?fmt(c,b.advance):'')+'</td><td colspan="14"></td></tr>';
+    return '<tr><td colspan="7">Totals ('+c+') — '+b.n+' request(s)</td><td class="r amt total">'+fmt(c,b.total)+'</td><td class="r amt">'+(b.advance>0?fmt(c,b.advance):'')+'</td><td colspan="2"></td></tr>';
   }).join('');
 }
 
@@ -645,9 +654,20 @@ function openCost(i){
       +'<button class="pol-edit" onclick="closeTripFin(\''+esc(r.id)+'\')">🔒 Close trip</button>'
       +'<span id="rbmsg-'+esc(r.id)+'" style="font-size:11px;font-weight:700;"></span></div>';
   }
+  // Workflow status (moved out of the slimmed table — full approval/booking/forex trail).
+  var wf='<div style="margin-top:16px;font-size:11px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;">Workflow status</div>'
+    +'<table class="bd-tbl"><tbody>'
+    +'<tr><td><div class="li">Submitted</div></td><td class="av">'+esc(r.submission||'—')+'</td></tr>'
+    +'<tr><td><div class="li">HOD</div></td><td class="av">'+esc(r.hodStatus||'—')+(r.hodDate?(' · '+esc(r.hodDate)):'')+'</td></tr>'
+    +((r.ceoStatus&&r.ceoStatus!=='N/A')?'<tr><td><div class="li">CEO</div></td><td class="av">'+esc(r.ceoStatus)+(r.ceoDate?(' · '+esc(r.ceoDate)):'')+'</td></tr>':'')
+    +'<tr><td><div class="li">Finance</div></td><td class="av">'+esc(r.financeStatus||'—')+(r.financeDate?(' · '+esc(r.financeDate)):'')+'</td></tr>'
+    +'<tr><td><div class="li">Booking</div></td><td class="av">'+esc(r.bookingStatus||'—')+(r.bookingDate?(' · '+esc(r.bookingDate)):'')+'</td></tr>'
+    +(r.pnr?'<tr><td><div class="li">PNR / Ticket</div></td><td class="av">'+esc(r.pnr)+(r.ticketUploadDate?(' · '+esc(r.ticketUploadDate)):'')+'</td></tr>':'')
+    +((r.forexStatus&&r.forexStatus!=='N/A')?'<tr><td><div class="li">Forex card</div></td><td class="av">'+esc(r.forexStatus)+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</td></tr>':'')
+    +'</tbody></table>';
   var html='<table class="bd-tbl"><tbody>'+rows.join('')
     +'<tr class="tot"><td class="li">Total expenses'+(r.pax>1?' (× '+r.pax+' travellers)':'')+'</td><td class="av">'+fmt(cur,r.total)+'</td></tr></tbody></table>'
-    +advHtml+reconHtml+actHtml+flagHtml
+    +wf+advHtml+reconHtml+actHtml+flagHtml
     +'<div class="bd-note">Figures are computed automatically from the travel policy (hotel caps, meal per-diem, transport &amp; local-conveyance estimates) at the time of submission. Amounts are shown to approvers only — not to the traveller.</div>';
   html = itineraryHtml(r) + html; // flight/hotel routing at the top — where→where before deciding
   document.getElementById('cd-body').innerHTML=html;
