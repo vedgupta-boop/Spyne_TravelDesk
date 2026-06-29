@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · Budget vs Actual</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--violet:#7C3AED;--violet-l:#F3E8FF;--teal:#0F766E;--teal-l:#E6F4F1;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px;}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);cursor:pointer;display:flex;align-items:center;gap:8px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:13px 16px;}
+.kpi .lb{font-size:11px;color:var(--gray-5);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.kpi .num{font-size:20px;font-weight:800;color:var(--navy);margin-top:3px;}
+.kpi .sub{font-size:11px;color:var(--gray-5);margin-top:2px;}
+.kpi.green{background:var(--grn-l);}.kpi.sky{background:var(--sky-l);}.kpi.amber{background:var(--amb-l);}.kpi.red{background:var(--red2-l);}.kpi.violet{background:var(--violet-l);}.kpi.teal{background:var(--teal-l);}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;margin-bottom:18px;}
+.panel-h{padding:12px 16px;font-weight:800;color:var(--navy);border-bottom:1px solid var(--gray-2);font-size:13.5px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;user-select:none;}
+.panel-h.collapsed{border-bottom:none;}
+.chev{font-size:11px;color:var(--gray-5);transition:transform .15s;}
+.collapsed .chev{transform:rotate(-90deg);}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:840px;}
+th{background:var(--gray-1);color:var(--gray-7);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid var(--gray-2);white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid var(--gray-2);}
+td.r,th.r{text-align:right;}
+tr.trip{cursor:pointer;}tr.trip:hover{background:var(--gray-1);}
+.under{color:var(--green);font-weight:700;}.over{color:var(--red2);font-weight:700;}
+.muted{color:var(--gray-5);}
+.itrow td{background:var(--gray-1);font-size:12px;color:var(--gray-7);}
+.loading,.empty{padding:50px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.st{display:inline-block;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700;}
+.st.sub{background:var(--sky-l);color:var(--sky);}.st.cl{background:var(--grn-l);color:var(--green);}.st.pn{background:var(--gray-2);color:var(--gray-7);}
+.st.paid{background:var(--grn-l);color:var(--green);}.st.pend{background:var(--amb-l);color:#B45309;}
+.bars{padding:14px 16px;}
+.brow{display:grid;grid-template-columns:150px 1fr 168px;gap:10px;align-items:center;margin-bottom:9px;font-size:12px;}
+.brow .lab{font-weight:700;color:var(--gray-7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.track{position:relative;height:18px;background:var(--gray-2);border-radius:5px;overflow:hidden;}
+.fill-b{position:absolute;left:0;top:0;height:100%;background:#c7d2fe;}
+.fill-a{position:absolute;left:0;top:0;height:100%;background:var(--violet);opacity:.85;}
+.val{text-align:right;font-variant-numeric:tabular-nums;color:var(--gray-7);}
+.legend{font-size:11px;color:var(--gray-5);padding:0 16px 12px;}
+.legend b{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin:0 3px 0 10px;}
+/* reconciliation cards */
+.rc{padding:14px 16px;border-bottom:1px solid var(--gray-2);}
+.rc:last-child{border-bottom:none;}
+.rc-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:9px;}
+.rc-id{font-weight:800;color:var(--navy);font-size:13px;}
+.rc-sub{font-size:11.5px;color:var(--gray-5);}
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:10px;}
+.rc-cell{background:var(--gray-1);border-radius:8px;padding:8px 11px;}
+.rc-cell .l{font-size:10.5px;color:var(--gray-5);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.rc-cell .v{font-size:14px;font-weight:800;color:var(--navy);margin-top:2px;}
+.vbar{position:relative;height:8px;background:var(--gray-2);border-radius:4px;overflow:hidden;margin-top:6px;}
+.vbar .f{position:absolute;left:0;top:0;height:100%;}
+.exp-tbl{width:100%;min-width:0;font-size:12px;}
+.exp-tbl td{padding:6px 8px;}
+.lnk{color:var(--sky);text-decoration:none;font-weight:700;}.lnk:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Budget vs Actual — per trip &amp; variance analysis (Finance only)</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div id="kpis" class="cards"></div>
+
+  <div class="bar">
+    <div class="title" id="trip-title" onclick="toggleSec('trip-body',this)"><span class="chev">▾</span> Per-trip budget vs actual</div>
+    <div style="display:flex;gap:8px;">
+      <span class="chip active" data-f="actuals" onclick="setFilter('actuals')">With actuals</span>
+      <span class="chip" data-f="over" onclick="setFilter('over')">Over budget</span>
+      <span class="chip" data-f="all" onclick="setFilter('all')">All trips</span>
+    </div>
+  </div>
+  <div id="trip-body">
+    <div id="loading" class="loading">Loading…</div>
+    <div class="panel hidden" id="tbl-wrap">
+      <div class="tbl-scroll"><table>
+        <thead><tr>
+          <th>Request</th><th>Traveller</th><th>Dept</th><th>Route</th>
+          <th class="r">Budget</th><th class="r">Actual</th><th class="r">Variance</th><th>Status</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot id="foot"></tfoot>
+      </table></div>
+    </div>
+    <div id="empty" class="empty hidden">No trips match this filter.</div>
+  </div>
+
+  <div class="panel" id="recon-panel">
+    <div class="panel-h" onclick="toggleSec('recon-body',this)"><span>🔗 Reconciliation vs ExpenseDesk — estimate vs claimed actuals</span><span class="chev">▾</span></div>
+    <div id="recon-body"></div>
+  </div>
+
+  <div class="panel" id="dept-panel">
+    <div class="panel-h" onclick="toggleSec('dept-body',this)"><span>📊 By department — budget vs actual (normalised to ₹)</span><span class="chev">▾</span></div>
+    <div id="dept-body">
+      <div class="bars" id="dept-bars"></div>
+      <div class="legend"><b style="background:#c7d2fe;"></b> Budget <b style="background:#7C3AED;"></b> Actual</div>
+    </div>
+  </div>
+
+  <div class="panel" id="cat-panel">
+    <div class="panel-h" onclick="toggleSec('cat-body',this)"><span>🧾 By category — where budget vs actual diverges (normalised to ₹)</span><span class="chev">▾</span></div>
+    <div id="cat-body">
+      <div class="tbl-scroll"><table style="min-width:520px;">
+        <thead><tr><th>Category</th><th class="r">Budget</th><th class="r">Actual</th><th class="r">Variance</th></tr></thead>
+        <tbody id="cat-rows"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="muted" style="font-size:11px;margin-top:12px;">Variance shows over/under vs the budget set at request time (policy-frozen). Mixed currencies converted to ₹ at the configured FX rate. Visible to Finance only.</div>
+</div>
+
+<script>
+// ExpenseDesk app — used to deep-link each reconciled expense back to its source.
+var EXPENSE_APP='https://expense-vercel-theta.vercel.app';
+var DATA={rows:[]}, CFG=null, FILTER='actuals';
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function inr(n){ return '₹'+Math.round(Number(n||0)).toLocaleString('en-IN'); }
+function money(cur,n){ cur=String(cur||'INR').toUpperCase(); return (cur==='USD'?'$':'₹')+Math.round(Number(n||0)).toLocaleString(cur==='USD'?'en-US':'en-IN'); }
+function fxRate(){ return (CFG&&CFG.fx&&CFG.fx.USD_INR)||92; }
+function toINR(n,cur){ return String(cur||'INR').toUpperCase()==='USD'?Number(n||0)*fxRate():Number(n||0); }
+function pct(part,whole){ return whole>0?Math.round(part/whole*100):0; }
+function toggleSec(bodyId,hdr){ var b=document.getElementById(bodyId); if(!b) return; var h=b.classList.toggle('hidden'); if(hdr) hdr.classList.toggle('collapsed',h); }
+
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  Promise.all([
+    fetch('/api/finance',{credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('finance '+r.status); return r.json(); }),
+    fetch('/api/config',{credentials:'same-origin'}).then(function(r){return r.json();}).catch(function(){return null;})
+  ]).then(function(res){ CFG=res[1]; onData(res[0]); }).catch(onFail);
+}
+function onFail(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); }
+function setFilter(f){ FILTER=f; document.querySelectorAll('.bar .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.f===f); }); render(); }
+
+function tripsWithBudget(){ return (DATA.rows||[]).filter(function(r){ var a=r.actuals||{}; return Number(a.estTotal||0)>0; }); }
+function tripsWithRecon(){ return (DATA.rows||[]).filter(function(r){ return r.recon && Number(r.recon.linked||0)>0; }); }
+function onData(d){
+  DATA=d||{rows:[]};
+  document.getElementById('loading').classList.add('hidden');
+  renderKpis(); render(); renderRecon(); renderDept(); renderCat();
+}
+function statusPill(s){ var cls=s==='Closed'?'cl':(s==='Submitted'?'sub':'pn'); return '<span class="st '+cls+'">'+esc(s||'Pending')+'</span>'; }
+
+function renderKpis(){
+  var t=tripsWithBudget();
+  var budget=0, actual=0, reimb=0, over=0, withAct=0, closed=0;
+  t.forEach(function(r){ var a=r.actuals||{}; budget+=toINR(a.estTotal,r.currency);
+    if(Number(a.actualTotal||0)>0){ withAct++; actual+=toINR(a.actualTotal,r.currency); reimb+=toINR(a.reimbursable,r.currency); if(Number(a.actualTotal)>Number(a.estTotal)) over++; }
+    if(a.status==='Closed') closed++; });
+  var varr=budget-actual; var ovAll=actual>budget;
+  // reconciliation rollup
+  var rEst=0,rAct=0,rPaid=0,rc=tripsWithRecon(); rc.forEach(function(r){ rEst+=Number(r.recon.estimateINR||0); rAct+=Number(r.recon.actualINR||0); rPaid+=Number(r.recon.paidINR||0); });
+  document.getElementById('kpis').innerHTML =
+     '<div class="kpi"><div class="lb">Trips with a budget</div><div class="num">'+t.length+'</div><div class="sub">'+withAct+' have actuals · '+closed+' closed</div></div>'
+    +'<div class="kpi sky"><div class="lb">Total budget</div><div class="num">'+inr(budget)+'</div></div>'
+    +'<div class="kpi violet"><div class="lb">Total actual</div><div class="num">'+inr(actual)+'</div><div class="sub">across '+withAct+' trip'+(withAct===1?'':'s')+' with actuals</div></div>'
+    +'<div class="kpi '+(ovAll?'red':'green')+'"><div class="lb">Net variance</div><div class="num">'+(ovAll?'over ':'under ')+inr(Math.abs(varr))+'</div><div class="sub">'+over+' trip'+(over===1?'':'s')+' over budget</div></div>'
+    +'<div class="kpi amber"><div class="lb">Reimbursement due</div><div class="num">'+inr(reimb)+'</div><div class="sub">employee out-of-pocket</div></div>'
+    +(rc.length?'<div class="kpi teal"><div class="lb">ExpenseDesk claimed</div><div class="num">'+inr(rAct)+'</div><div class="sub">'+inr(rPaid)+' paid · '+inr(Math.max(0,rAct-rPaid))+' pending · '+rc.length+' trip'+(rc.length===1?'':'s')+'</div></div>':'');
+}
+
+function render(){
+  var rowsEl=document.getElementById('rows'), footEl=document.getElementById('foot');
+  var list=tripsWithBudget().filter(function(r){ var a=r.actuals||{};
+    if(FILTER==='actuals') return Number(a.actualTotal||0)>0;
+    if(FILTER==='over') return Number(a.actualTotal||0)>Number(a.estTotal||0);
+    return true; });
+  if(!list.length){ document.getElementById('tbl-wrap').classList.add('hidden'); document.getElementById('empty').classList.remove('hidden'); return; }
+  document.getElementById('empty').classList.add('hidden'); document.getElementById('tbl-wrap').classList.remove('hidden');
+  var tb=0,ta=0;
+  rowsEl.innerHTML = list.map(function(r,i){ var a=r.actuals||{}; var cur=a.currency||r.currency||'INR';
+    var hasA=Number(a.actualTotal||0)>0; var ov=Number(a.actualTotal||0)>Number(a.estTotal||0);
+    tb+=toINR(a.estTotal,r.currency); ta+=toINR(a.actualTotal,r.currency);
+    var vCell=hasA?('<span class="'+(ov?'over':'under')+'">'+(ov?'over ':'under ')+money(cur,Math.abs(a.variance))+'</span>'):'—';
+    var items=(a.items||[]).filter(function(it){return it.estimate>0||it.actual>0;}).map(function(it){ var iv=it.variance<0;
+      return '<tr class="itrow"><td colspan="4">'+esc(it.label)+'</td><td class="r">'+money(cur,it.estimate)+'</td><td class="r">'+(it.actual?money(cur,it.actual):'—')+'</td><td class="r">'+(it.actual?('<span class="'+(iv?'over':'under')+'">'+(iv?'over ':'under ')+money(cur,Math.abs(it.variance))+'</span>'):'—')+'</td><td>'+(it.paidBy==='company'?'company':'own money')+'</td></tr>'; }).join('');
+    return '<tr class="trip" onclick="toggleRow('+i+')"><td>'+esc(r.id)+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.dept||'')+'</td><td>'+esc(r.route||'')+'</td>'
+      +'<td class="r">'+money(cur,a.estTotal)+'</td><td class="r">'+(hasA?money(cur,a.actualTotal):'—')+'</td><td class="r">'+vCell+'</td><td>'+statusPill(a.status)+'</td></tr>'
+      +'<tbody class="det hidden" id="det-'+i+'">'+(items||'<tr class="itrow"><td colspan="8">No line items entered yet.</td></tr>')+'</tbody>';
+  }).join('');
+  var nv=tb-ta, ov=ta>tb;
+  footEl.innerHTML='<tr style="font-weight:800;background:var(--gray-1);"><td colspan="4">Total (₹)</td><td class="r">'+inr(tb)+'</td><td class="r">'+inr(ta)+'</td><td class="r"><span class="'+(ov?'over':'under')+'">'+(ov?'over ':'under ')+inr(Math.abs(nv))+'</span></td><td></td></tr>';
+}
+function toggleRow(i){ var d=document.getElementById('det-'+i); if(d) d.classList.toggle('hidden'); }
+
+function renderRecon(){
+  var list=tripsWithRecon();
+  var body=document.getElementById('recon-body');
+  if(!list.length){ body.innerHTML='<div class="empty" style="padding:34px;">No ExpenseDesk claims linked to any trip yet. Tag an expense with its TRF id in ExpenseDesk to reconcile.</div>'; return; }
+  body.innerHTML = list.map(function(r){ var rc=r.recon||{};
+    var est=Number(rc.estimateINR||0), act=Number(rc.actualINR||0), paid=Number(rc.paidINR||0), pend=Math.max(0,act-paid);
+    var varr=Number(rc.varianceINR!=null?rc.varianceINR:(est-act)), over=varr<0;
+    var vpct=pct(Math.abs(varr),est);
+    var settle=Number(rc.settlementINR||0);
+    var max=Math.max(est,act,1);
+    var items=(rc.items||[]).map(function(it){
+      var pcls=it.paid?'paid':'pend', ptxt=it.paid?'paid':'pending';
+      var label=esc(it.item||it.id||'expense');
+      var link=(it.id||it.item)?'<a class="lnk" href="'+EXPENSE_APP+'/finance?expense='+encodeURIComponent(it.id||it.item)+'" target="_blank" rel="noopener" title="Open in ExpenseDesk">'+label+' ↗</a>':label;
+      return '<tr><td>'+link+'<div class="rc-sub">'+esc(it.vendor||'')+(it.category?' · '+esc(it.category):'')+'</div></td>'
+        +'<td class="r">'+inr(it.amountINR)+'</td><td><span class="st '+pcls+'">'+ptxt+'</span> <span class="rc-sub">'+esc(it.status||'')+'</span></td></tr>'; }).join('');
+    return '<div class="rc">'
+      +'<div class="rc-h"><div><div class="rc-id">'+esc(r.id)+'</div><div class="rc-sub">'+esc(r.name||'')+(r.dept?' · '+esc(r.dept):'')+(r.route?' · '+esc(r.route):'')+' · '+rc.linked+' claim'+(rc.linked>1?'s':'')+'</div></div>'
+        +'<div class="'+(over?'over':'under')+'" style="font-size:13px;">'+(over?'over by ':'under by ')+inr(Math.abs(varr))+' ('+vpct+'%)</div></div>'
+      +'<div class="rc-grid">'
+        +'<div class="rc-cell"><div class="l">Estimate</div><div class="v">'+inr(est)+'</div></div>'
+        +'<div class="rc-cell"><div class="l">Actual claimed</div><div class="v">'+inr(act)+'</div></div>'
+        +'<div class="rc-cell"><div class="l">Paid</div><div class="v" style="color:var(--green);">'+inr(paid)+'</div></div>'
+        +'<div class="rc-cell"><div class="l">Pending Finance</div><div class="v" style="color:#B45309;">'+inr(pend)+'</div></div>'
+        +(settle?'<div class="rc-cell"><div class="l">'+(settle>=0?'Refund to company':'Reimburse traveller')+'</div><div class="v">'+inr(Math.abs(settle))+'</div></div>':'')
+      +'</div>'
+      +'<div class="vbar" title="actual '+inr(act)+' vs estimate '+inr(est)+'"><div class="f" style="width:'+Math.min(100,act/max*100)+'%;background:'+(over?'var(--red2)':'var(--teal)')+';"></div></div>'
+      +'<div class="rc-sub" style="margin:4px 0 8px;">Claimed is '+pct(act,est)+'% of estimate · '+pct(paid,act)+'% of claims paid</div>'
+      +(items?'<div class="tbl-scroll"><table class="exp-tbl"><thead><tr><th>Expense</th><th class="r">Amount ₹</th><th>Status</th></tr></thead><tbody>'+items+'</tbody></table></div>':'')
+    +'</div>'; }).join('');
+}
+
+function renderDept(){
+  var by={};
+  tripsWithBudget().forEach(function(r){ var a=r.actuals||{}; var d=r.dept||'—'; by[d]=by[d]||{b:0,a:0}; by[d].b+=toINR(a.estTotal,r.currency); by[d].a+=toINR(a.actualTotal,r.currency); });
+  var items=Object.keys(by).map(function(d){ return {d:d,b:by[d].b,a:by[d].a}; }).sort(function(x,y){return y.b-x.b;});
+  if(!items.length){ document.getElementById('dept-panel').classList.add('hidden'); return; }
+  var max=Math.max.apply(null,items.map(function(x){return Math.max(x.b,x.a);}).concat([1]));
+  document.getElementById('dept-bars').innerHTML = items.map(function(x){ var ov=x.a>x.b;
+    return '<div class="brow"><div class="lab">'+esc(x.d)+'</div>'
+      +'<div class="track"><div class="fill-b" style="width:'+(x.b/max*100)+'%;"></div><div class="fill-a" style="width:'+(x.a/max*100)+'%;"></div></div>'
+      +'<div class="val">'+inr(x.b)+' → '+inr(x.a)+' <span class="'+(ov?'over':'under')+'">('+(ov?'+':'−')+inr(Math.abs(x.a-x.b))+')</span></div></div>'; }).join('');
+}
+
+function renderCat(){
+  var LABELS={flight:'Flight',hotel:'Hotel',meals:'Meals',local:'Local conveyance',visa:'Visa',baggage:'Baggage',misc:'Misc'};
+  var by={};
+  tripsWithBudget().forEach(function(r){ (r.actuals&&r.actuals.items||[]).forEach(function(it){ var k=it.key||it.label; by[k]=by[k]||{b:0,a:0,label:it.label||LABELS[k]||k}; by[k].b+=toINR(it.estimate,r.currency); by[k].a+=toINR(it.actual,r.currency); }); });
+  var items=Object.keys(by).map(function(k){return by[k];}).filter(function(x){return x.b>0||x.a>0;}).sort(function(x,y){return y.b-x.b;});
+  if(!items.length){ document.getElementById('cat-panel').classList.add('hidden'); return; }
+  document.getElementById('cat-rows').innerHTML = items.map(function(x){ var v=x.b-x.a, ov=x.a>x.b;
+    return '<tr><td>'+esc(x.label)+'</td><td class="r">'+inr(x.b)+'</td><td class="r">'+inr(x.a)+'</td><td class="r"><span class="'+(ov?'over':'under')+'">'+(ov?'over ':'under ')+inr(Math.abs(v))+'</span></td></tr>'; }).join('');
+}
+
+requireView('finance', function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

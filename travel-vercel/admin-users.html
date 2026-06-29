@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · User Management</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--red-d:#B01820;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 20px 60px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:14px;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;margin-bottom:18px;}
+.panel-h{padding:13px 16px;font-weight:800;color:var(--navy);border-bottom:1px solid var(--gray-2);font-size:14px;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:760px;}
+th{background:var(--gray-1);color:var(--gray-7);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid var(--gray-2);white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid var(--gray-2);vertical-align:middle;}
+.muted{color:var(--gray-5);}
+.loading,.empty{padding:50px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.role{display:inline-block;background:var(--sky-l);color:var(--sky);border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700;margin:1px 3px 1px 0;}
+.role.fin{background:#F3E8FF;color:#7C3AED;}.role.adm{background:var(--amb-l);color:#B45309;}.role.req{background:var(--gray-2);color:var(--gray-7);}
+.st{display:inline-block;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:800;}
+.st.ok{background:var(--grn-l);color:var(--green);}.st.off{background:var(--red2-l);color:var(--red2);}.st.inv{background:var(--amb-l);color:#B45309;}
+.act{border:1px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:5px;}
+.act:hover{background:var(--gray-1);}
+.act.danger{color:var(--red2);border-color:#f3c4c4;}.act.go{color:var(--green);border-color:#b6e0c6;}
+.invite{display:flex;gap:10px;flex-wrap:wrap;padding:14px 16px;align-items:flex-end;}
+.invite .f{display:flex;flex-direction:column;gap:4px;}
+.invite label{font-size:11px;font-weight:700;color:var(--gray-7);}
+.invite input{padding:9px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:13px;font-family:inherit;min-width:200px;}
+.invite input:focus{border-color:var(--red);outline:none;}
+.btn-primary{background:var(--red);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+.btn-primary:hover{background:var(--red-d);}
+.linkbox{margin:0 16px 14px;padding:11px 13px;background:var(--sky-l);border:1px solid #bfdbfe;border-radius:9px;font-size:12px;color:var(--gray-7);display:none;}
+.linkbox.show{display:block;}
+.linkbox code{display:block;word-break:break-all;background:#fff;border:1px solid var(--gray-3);border-radius:6px;padding:7px 9px;margin-top:6px;font-size:11.5px;}
+.linkbox .copy{margin-top:7px;}
+.note{font-size:11px;color:var(--gray-5);margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">User management</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div class="title">App accounts</div>
+
+  <div class="panel">
+    <div class="panel-h">➕ Add a user (invite)</div>
+    <div class="invite">
+      <div class="f"><label for="i-name">Full name</label><input id="i-name" placeholder="e.g. Ved Prakash"></div>
+      <div class="f"><label for="i-email">Work email</label><input id="i-email" type="email" placeholder="person@spyne.ai"></div>
+      <button class="btn-primary" id="i-btn" onclick="invite()">Send invite</button>
+    </div>
+    <div class="linkbox" id="i-link"></div>
+    <div class="note" style="padding:0 16px 14px;">The user gets a link (valid 1 hour) to set their own password. Assign their role below.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h" onclick="toggleRoles()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <span>🛡️ Roles &amp; Approvers <span style="font-weight:500;font-size:12px;color:#8A97AA;">— who holds each role / department head. Changes apply immediately (no redeploy).</span></span>
+      <span id="roles-toggle" style="color:#0077CC;font-size:12px;font-weight:700;white-space:nowrap;">Show ▾</span>
+    </div>
+    <div id="roles-body" class="hidden" style="padding:14px 16px;color:#8A97AA;">Loading roles…</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h" onclick="toggleScrap()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <span>🧹 Scrap test requests <span style="font-weight:500;font-size:12px;color:#8A97AA;">— remove junk/test requests from every dashboard. Soft-delete, reversible in the sheet.</span></span>
+      <span id="scrap-toggle" style="color:#0077CC;font-size:12px;font-weight:700;white-space:nowrap;">Show ▾</span>
+    </div>
+    <div id="scrap-body" class="hidden" style="padding:14px 16px;">
+      <div class="note" style="margin-bottom:8px;color:#8A97AA;">Paste request IDs (one per line or comma-separated). ONLY these exact IDs are scrapped — nothing else is touched.</div>
+      <textarea id="scrap-ids" style="width:100%;min-height:130px;padding:10px;border:1px solid #D6DCE8;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;"></textarea>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="scrapTests()">🧹 Scrap listed requests</button>
+        <span id="scrap-st" style="font-size:12px;font-weight:700;"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">Loading users…</div>
+  <div class="panel hidden" id="tbl-wrap">
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Roles</th><th>Status</th><th>Last login</th><th>Actions</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </div>
+  <div id="empty" class="empty hidden">No app accounts yet. Users appear here once they sign up or are invited.<br>(Google sign-in users without a password account won’t be listed.)</div>
+  <div class="linkbox" id="r-link" style="margin:14px 0 0;"></div>
+</div>
+
+<script>
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(s){ if(!s) return '—'; var d=new Date(s); if(isNaN(d)) return esc(s); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function roleChip(r){ var cls=r==='finance'?'fin':(r==='admin'?'adm':(r==='requester'?'req':'')); return '<span class="role '+cls+'">'+esc(r)+'</span>'; }
+
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  fetch('/api/finance?view=users',{credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('users '+r.status); return r.json(); }).then(render).catch(function(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); });
+}
+function render(d){
+  var users=(d&&d.users)||[];
+  document.getElementById('loading').classList.add('hidden');
+  if(!users.length){ document.getElementById('empty').classList.remove('hidden'); return; }
+  document.getElementById('tbl-wrap').classList.remove('hidden');
+  document.getElementById('rows').innerHTML = users.map(function(u){
+    var disabled = u.status==='Disabled';
+    var stCls = disabled?'off':(u.pendingInvite?'inv':'ok');
+    var stTxt = disabled?'Disabled':(u.pendingInvite?'Invited':'Active');
+    return '<tr>'
+      +'<td>'+esc(u.name||'—')+'</td>'
+      +'<td>'+esc(u.email)+'</td>'
+      +'<td>'+(u.roles||[]).map(roleChip).join('')+'</td>'
+      +'<td><span class="st '+stCls+'">'+stTxt+'</span></td>'
+      +'<td class="muted">'+fmtDate(u.lastLogin)+'</td>'
+      +'<td style="white-space:nowrap;">'
+        +'<button class="act" onclick="resetPw(\''+esc(u.email)+'\')">Reset password</button>'
+        +(disabled
+          ? '<button class="act go" onclick="setStatus(\''+esc(u.email)+'\',true)">Enable</button>'
+          : '<button class="act danger" onclick="setStatus(\''+esc(u.email)+'\',false)">Disable</button>')
+      +'</td></tr>';
+  }).join('');
+}
+
+function post(body){ return fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(body)}).then(function(r){return r.json();}); }
+
+function showLink(boxId, title, link){
+  var b=document.getElementById(boxId);
+  b.innerHTML = title+'<code id="'+boxId+'-c">'+esc(link)+'</code>'
+    +'<button class="act copy" onclick="copyLink(\''+boxId+'-c\')">📋 Copy link</button>'
+    +'<div class="note">Email is also sent, but if delivery isn’t set up yet, share this link directly. It expires in 1 hour.</div>';
+  b.classList.add('show');
+}
+function copyLink(id){ var t=document.getElementById(id); if(t&&navigator.clipboard) navigator.clipboard.writeText(t.textContent); }
+
+function invite(){
+  var name=document.getElementById('i-name').value.trim(), email=document.getElementById('i-email').value.trim();
+  if(!email){ alert('Enter an email.'); return; }
+  var btn=document.getElementById('i-btn'); btn.disabled=true; btn.textContent='Inviting…';
+  post({action:'user-invite',name:name,email:email}).then(function(d){
+    btn.disabled=false; btn.textContent='Send invite';
+    if(d&&d.ok){ document.getElementById('i-name').value=''; document.getElementById('i-email').value='';
+      if(d.link) showLink('i-link','✅ Invited <b>'+esc(d.email)+'</b>. Set-password link:', d.link);
+      load();
+    } else { alert((d&&d.error)||'Could not invite user.'); }
+  }).catch(function(e){ btn.disabled=false; btn.textContent='Send invite'; alert('Failed: '+(e&&e.message||e)); });
+}
+function resetPw(email){
+  if(!confirm('Send a password-reset link to '+email+'?')) return;
+  post({action:'user-reset',email:email}).then(function(d){
+    if(d&&d.ok&&d.link){ showLink('r-link','🔑 Reset link for <b>'+esc(email)+'</b>:', d.link); window.scrollTo(0,document.body.scrollHeight); }
+    else alert((d&&d.error)||'Could not create reset link.');
+  });
+}
+function setStatus(email, active){
+  if(!confirm((active?'Enable':'Disable')+' '+email+'?')) return;
+  post({action:'user-status',email:email,active:active}).then(function(d){ if(d&&d.ok) load(); else alert((d&&d.error)||'Could not update status.'); });
+}
+
+// ---- Roles & Approvers (assignable) ----
+function toggleRoles(){ var b=document.getElementById('roles-body'); var t=document.getElementById('roles-toggle'); var h=b.classList.toggle('hidden'); if(t) t.textContent=h?'Show ▾':'Hide ▴'; }
+function loadRoles(){
+  fetch('/api/finance?view=roles',{credentials:'same-origin'}).then(function(r){return r.json();}).then(renderRoles)
+    .catch(function(e){ document.getElementById('roles-body').textContent='Could not load roles: '+(e&&e.message||e); });
+}
+function roleRow(key,label,val,multi){
+  return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:9px;flex-wrap:wrap;">'
+    +'<div style="min-width:175px;font-weight:700;color:#0D1B2A;">'+esc(label)+'</div>'
+    +'<input id="role-'+esc(key)+'" value="'+esc(val||'')+'" placeholder="'+(multi?'email1@spyne.ai, email2@…':'person@spyne.ai')+'" style="flex:1;min-width:230px;padding:7px 10px;border:1px solid #D6DCE8;border-radius:7px;font-family:inherit;font-size:13px;">'
+    +'<button class="btn-primary" onclick="saveRole(\''+esc(key)+'\')" style="padding:7px 14px;">Save</button>'
+    +'<span id="rolest-'+esc(key)+'" style="font-size:12px;font-weight:700;min-width:60px;"></span></div>';
+}
+function renderRoles(d){
+  var body=document.getElementById('roles-body'); if(!d||!d.ok){ body.textContent='Could not load roles.'; return; }
+  var a=d.assignments||{}; var html='';
+  html+=roleRow('ceo','CEO', a.ceo, false);
+  html+=roleRow('finance','Finance', (a.finance||[]).join(', '), true);
+  html+=roleRow('admin','Admin', (a.admin||[]).join(', '), true);
+  html+=roleRow('forex','Forex officer', (a.forex||[]).join(', '), true);
+  html+='<div style="font-weight:800;margin:14px 0 9px;color:#0D1B2A;border-top:1px solid #EDF1F7;padding-top:12px;">Department heads (HOD)</div>';
+  (d.departments||[]).forEach(function(dep){ html+=roleRow('dept:'+dep, dep, (a.depts||{})[dep], false); });
+  html+='<div class="note" style="margin-top:8px;color:#8A97AA;">CEO &amp; each department head take a single email. Finance / Admin / Forex accept multiple, comma-separated. Leave blank to revert to the default.</div>';
+  body.innerHTML=html;
+}
+function saveRole(key){
+  var inp=document.getElementById('role-'+key), st=document.getElementById('rolest-'+key); if(!inp) return;
+  st.textContent='Saving…'; st.style.color='#8A97AA';
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'role',key:key,value:inp.value})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.ok){ st.textContent='✓ Saved'; st.style.color='#0F9D58'; }
+      else { st.textContent=(res&&res.error)||'Error'; st.style.color='#DC2626'; }
+    }).catch(function(e){ st.textContent='Failed'; st.style.color='#DC2626'; });
+}
+// ---- Scrap test requests (soft-delete by ID) ----
+var TEST_IDS=['TRF-20260617-CV8T','TRF-20260617-KJ94','TRF-20260617-XXO2','TRF-20260618-KQUT','TRF-20260618-SJS5','TRF-20260618-BZ0R','TRF-20260618-KU0D','TRF-20260618-LH8H','TRF-20260618-M40E','TRF-20260618-T3XM','TRF-20260618-F2FT','TRF-20260618-Q02W','TRF-20260619-BYYX','TRF-20260619-Z2W4','TRF-20260619-KFMK','TRF-20260619-RH0N','TRF-20260619-G52I','TRF-20260619-859R','TRF-20260619-T32X','TRF-20260623-XTJT','TRF-20260623-LBOI','TRF-20260623-IEOI','TRF-20260623-0ZRJ','TRF-20260624-D78Q','TRF-20260624-0OSJ','TRF-20260624-89FJ','TRF-20260624-LB6L','TRF-20260624-01DW','TRF-20260624-F1SQ','TRF-20260625-TC2K','TRF-20260625-MDYD','TRF-20260625-H4BU','TRF-20260625-NE6B','TRF-20260625-AJPH','TRF-20260625-BEIO','TRF-20260625-I3RT','TRF-20260625-VYOO','TRF-20260625-IYWJ','TRF-20260625-US1A'];
+function toggleScrap(){ var b=document.getElementById('scrap-body'); var t=document.getElementById('scrap-toggle'); var h=b.classList.toggle('hidden'); if(t) t.textContent=h?'Show ▾':'Hide ▴'; if(!h){ var ta=document.getElementById('scrap-ids'); if(ta && !ta.value.trim()) ta.value=TEST_IDS.join('\n'); } }
+function scrapTests(){
+  var ta=document.getElementById('scrap-ids'), st=document.getElementById('scrap-st');
+  var ids=(ta.value||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+  if(!ids.length){ st.textContent='Enter at least one request ID.'; st.style.color='#DC2626'; return; }
+  if(!confirm('Scrap '+ids.length+' request(s)?\n\nThey’ll be hidden from every dashboard. This is reversible (clear the Stage cell in the sheet to restore).')) return;
+  st.textContent='Scrapping…'; st.style.color='#8A97AA';
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'scrap',ids:ids})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.ok){ st.textContent='✓ Scrapped '+res.scrapped+(res.notFound&&res.notFound.length?(' · '+res.notFound.length+' not found'):''); st.style.color='#0F9D58'; load(); }
+      else { st.textContent=(res&&res.error)||'Error'; st.style.color='#DC2626'; }
+    }).catch(function(e){ st.textContent='Failed: '+(e&&e.message||e); st.style.color='#DC2626'; });
+}
+requireView('finance', function(me){ renderUserbar(me); load(); loadRoles(); });
+</script>
+</body>
+</html>

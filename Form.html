@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#E8232A;--red-d:#B01820;--red-l:#FEF0F0;--navy:#0D1B2A;--navy2:#1C3148;
+  --sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+  --red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;
+  --gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;--radius:10px;--radius-lg:14px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}
+.logo-sub{font-size:11px;color:var(--gray-5);}
+.chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--gray-5);}
+.chip b{color:var(--amber);}
+.main{display:grid;grid-template-columns:1fr 320px;gap:22px;max-width:1080px;margin:0 auto;padding:24px 20px 60px;}
+@media(max-width:880px){.main{grid-template-columns:1fr;}}
+.card{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-3);overflow:hidden;}
+.sec-h{padding:16px 24px 12px;border-bottom:2px solid var(--gray-2);display:flex;align-items:center;gap:12px;}
+.sec-ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.sec-t{font-size:14px;font-weight:800;color:var(--navy);}
+.sec-s{font-size:12px;color:var(--gray-5);margin-top:1px;}
+.sec-b{padding:20px 24px;}
+.sec-b+.sec-h{border-top:1px solid var(--gray-2);}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.span2{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;}
+.field label .req{color:var(--red);}
+.field input,.field select,.field textarea{padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);font-size:14px;font-family:inherit;color:var(--ink);background:#fff;outline:none;transition:border-color .2s;width:100%;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--red);}
+.field input[readonly]{background:var(--gray-1);color:var(--gray-7);}
+.field textarea{resize:vertical;min-height:64px;}
+.hint{font-size:11px;color:var(--gray-5);line-height:1.4;}
+.hint.ok{color:var(--green);font-weight:600;}.hint.bad{color:var(--red2);font-weight:600;}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;background:var(--amb-l);color:#92400E;margin-left:4px;}
+.radio-cards{display:flex;gap:10px;flex-wrap:wrap;}
+.rc{flex:1;min-width:120px;padding:12px;border-radius:var(--radius);border:2px solid var(--gray-3);cursor:pointer;text-align:center;transition:all .2s;user-select:none;}
+.rc:hover{border-color:var(--gray-5);}
+.rc.sel{border-color:var(--red);background:var(--red-l);}
+.rc .ic{font-size:20px;}.rc .nm{font-size:12px;font-weight:700;color:var(--gray-7);margin-top:3px;}
+.rc.sel .nm{color:var(--red);}.rc .sub{font-size:10px;color:var(--gray-5);margin-top:2px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{display:none;}
+.track{position:absolute;inset:0;background:var(--gray-3);border-radius:12px;cursor:pointer;transition:.2s;}
+.toggle input:checked~.track{background:var(--green);}
+.thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle input:checked~.track .thumb{transform:translateX(20px);}
+.info{background:var(--sky-l);border:1px solid #B3D7F5;border-radius:var(--radius);padding:11px 14px;font-size:12px;color:#1e3a5f;line-height:1.5;}
+.info.amber{background:var(--amb-l);border-color:#FCD34D80;color:#78350F;}
+.hidden{display:none!important;}
+/* summary */
+.summary{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-3);overflow:hidden;position:sticky;top:18px;}
+.sm-h{padding:15px 20px;border-bottom:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center;}
+.sm-t{font-size:14px;font-weight:800;color:var(--navy);}
+.pill{background:var(--sky-l);border:1px solid #B3D7F5;border-radius:20px;padding:3px 11px;font-size:11px;font-weight:700;color:var(--sky);}
+.sm-b{padding:16px 20px;}
+.sm-line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:13px;}
+.sm-line:last-of-type{border-bottom:none;}
+.sm-line .k{color:var(--gray-7);}.sm-line .v{font-weight:700;}
+.sm-total{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:13px 15px;background:var(--gray-1);border-radius:var(--radius);border:1px solid var(--gray-2);}
+.sm-total .k{font-size:13px;font-weight:700;color:var(--gray-7);}
+.sm-total .v{font-size:19px;font-weight:900;color:var(--navy);}
+.alert{margin-top:12px;padding:11px 13px;border-radius:var(--radius);font-size:12px;line-height:1.5;display:none;}
+.alert.show{display:block;}
+.alert.bad{background:var(--red2-l);border:1px solid #FECACA;color:var(--red2);}
+.alert.ok{background:var(--grn-l);border:1px solid #6EE7B780;color:#065F46;}
+.chain{padding:14px 20px;border-top:1px solid var(--gray-2);}
+.chain-t{font-size:11px;font-weight:800;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.chain-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.chain-step{background:var(--gray-2);color:var(--gray-7);border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;}
+.submit-area{padding:20px 24px;background:var(--gray-1);border-top:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
+.note{font-size:12px;color:var(--gray-5);max-width:380px;line-height:1.5;}
+.btn{padding:11px 26px;border-radius:var(--radius);border:none;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;}
+.btn-submit{background:var(--red);color:#fff;}.btn-submit:hover{background:var(--red-d);}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed;}
+.btn-clear{background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);}
+.err-banner{margin:0 24px 14px;padding:11px 14px;border-radius:var(--radius);background:var(--red2-l);border:1px solid #FECACA;color:var(--red2);font-size:13px;font-weight:600;display:none;}
+.err-banner.show{display:block;}
+/* success */
+.success{display:none;padding:46px 28px;text-align:center;}
+.success.show{display:block;}
+.success .ic{font-size:54px;}.success .t{font-size:23px;font-weight:900;color:var(--green);margin:12px 0 6px;}
+.success .s{font-size:14px;color:var(--gray-5);line-height:1.6;margin-bottom:20px;}
+.success .id{display:inline-block;background:var(--navy);color:#fff;border-radius:8px;padding:6px 14px;font-weight:800;font-size:14px;margin-bottom:18px;}
+.tl{display:flex;justify-content:center;flex-wrap:wrap;margin-bottom:24px;}
+.tl-i{display:flex;align-items:center;}
+.tl-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;background:var(--sky);}
+.tl-lb{font-size:10px;color:var(--gray-5);max-width:70px;text-align:center;margin-top:4px;}
+.tl-ln{width:30px;height:2px;background:var(--gray-3);margin-bottom:16px;}
+.loading{text-align:center;padding:60px;color:var(--gray-5);font-size:14px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-sq">S</div>
+    <div><div class="logo-txt" id="brand">Spyne TravelDesk</div><div class="logo-sub">Travel Request</div></div>
+  </div>
+  <div class="chip">Policy <b>v2.0</b> · India & US</div>
+</div>
+
+<div id="loading" class="loading">Loading form…</div>
+
+<div class="main hidden" id="app">
+  <!-- LEFT: FORM -->
+  <div>
+    <div class="card" id="form-card">
+
+      <!-- SUCCESS -->
+      <div class="success" id="success">
+        <div class="ic">✈️</div>
+        <div class="t">Request Submitted!</div>
+        <div class="s">Your travel request has been routed for approval.<br>You'll get email updates at every step.</div>
+        <div class="id" id="success-id"></div>
+        <div class="tl" id="success-tl"></div>
+        <button class="btn btn-submit" onclick="resetForm()" style="margin:0 auto;">+ New Request</button>
+      </div>
+
+      <div id="form-body">
+        <div class="err-banner" id="err-banner"></div>
+
+        <!-- TRAVELLER -->
+        <div class="sec-h"><div class="sec-ic" style="background:#FEF0F0;">👤</div>
+          <div><div class="sec-t">Traveller</div><div class="sec-s">Pick your department — your HOD fills in automatically</div></div></div>
+        <div class="sec-b">
+          <div class="grid">
+            <div class="field"><label>Full Name <span class="req">*</span></label><input id="f-name" placeholder="Priya Sharma"></div>
+            <div class="field"><label>Employee ID</label><input id="f-empid" placeholder="EMP-101"></div>
+            <div class="field"><label>Department <span class="req">*</span></label>
+              <select id="f-dept" onchange="onDept()"><option value="">Select department</option></select></div>
+            <div class="field"><label>Your Email</label><input id="f-email" type="email" placeholder="you@spyne.ai"></div>
+            <div class="field span2"><label>Approving HOD <span class="tag">Auto</span></label>
+              <input id="f-hod" readonly placeholder="Auto-filled from your department"></div>
+          </div>
+        </div>
+
+        <!-- TRIP -->
+        <div class="sec-h"><div class="sec-ic" style="background:#EBF5FF;">🗺️</div>
+          <div><div class="sec-t">Trip</div><div class="sec-s">Where & when. Currency and limits set automatically by policy.</div></div></div>
+        <div class="sec-b">
+          <div class="field span2" style="margin-bottom:16px;">
+            <label>Travel Type <span class="req">*</span></label>
+            <div class="radio-cards" id="ttype-cards">
+              <div class="rc" data-t="local" onclick="onType('local')"><div class="ic">🏙️</div><div class="nm">Local / City</div><div class="sub">HOD only · INR</div></div>
+              <div class="rc" data-t="domestic" onclick="onType('domestic')"><div class="ic">🇮🇳</div><div class="nm">Domestic</div><div class="sub">HOD → Finance · INR</div></div>
+              <div class="rc" data-t="international" onclick="onType('international')"><div class="ic">🌐</div><div class="nm">International</div><div class="sub">HOD → CEO → Finance · USD</div></div>
+            </div>
+          </div>
+
+          <div class="field span2" style="margin-bottom:16px;">
+            <label>Trip Direction <span class="req">*</span></label>
+            <div class="radio-cards">
+              <div class="rc sel" data-trip="round" onclick="onTrip('round')"><div class="ic">🔁</div><div class="nm">Round trip</div><div class="sub">Going & returning</div></div>
+              <div class="rc" data-trip="one" onclick="onTrip('one')"><div class="ic">➡️</div><div class="nm">One-way</div><div class="sub">Single journey</div></div>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field"><label>From (Origin) <span class="req">*</span></label><input id="f-from" placeholder="Departure city"></div>
+            <div class="field"><label>To (Destination) <span class="req">*</span></label><input id="f-to" placeholder="Destination city/country" oninput="recalc()"></div>
+            <div class="field span2" id="returnto-wrap">
+              <label>Return To <span class="tag">Optional</span></label>
+              <input id="f-returnto" placeholder="Leave blank if returning to origin">
+              <div class="hint">Fill only if you return to a different city than your origin.</div>
+            </div>
+            <div class="field"><label>Travel Start Date <span class="req">*</span></label><input id="f-start" type="date" onchange="recalc()"></div>
+            <div class="field" id="returndate-wrap"><label>Return Date <span class="req">*</span></label><input id="f-return" type="date" onchange="recalc()"></div>
+            <div class="field span2"><label>Duration <span class="tag">Auto</span></label><input id="f-duration" readonly placeholder="Calculated from your dates"></div>
+            <div class="field span2"><label>Purpose of Travel</label>
+              <select id="f-purpose"><option value="">Select purpose</option>
+                <option>Client Meeting</option><option>Conference / Event</option><option>Training</option>
+                <option>Site Visit</option><option>Audit</option><option>Product Launch</option>
+                <option>Partnership Meeting</option><option>Other</option></select></div>
+          </div>
+          <div class="info hidden" id="notice" style="margin-top:14px;"></div>
+        </div>
+
+        <!-- TRANSPORT -->
+        <div class="sec-h"><div class="sec-ic" style="background:#E6F4EA;">✈️</div>
+          <div><div class="sec-t">Transport & Costs</div><div class="sec-s">Estimated amounts in your policy currency</div></div></div>
+        <div class="sec-b">
+          <div class="grid">
+            <div class="field"><label>Primary Transport <span class="req">*</span></label>
+              <select id="f-mode" onchange="recalc()"><option value="">Select mode</option>
+                <option value="Flight (Economy)">Flight — Economy</option>
+                <option value="Train — 2nd AC">Train — 2nd AC</option>
+                <option value="Train — 1st AC">Train — 1st AC (HOD pre-approval)</option>
+                <option value="AC Bus / Coach">AC Bus / Coach</option>
+                <option value="Cab / Taxi">Cab / Taxi (economy)</option>
+                <option value="Own Vehicle">Own Vehicle</option></select></div>
+            <div class="field"><label>Estimated Transport Cost</label>
+              <input id="f-transport" type="number" min="0" placeholder="Round-trip estimate" oninput="recalc()">
+              <div class="hint">Flights/trains booked by Admin — give your best estimate.</div></div>
+            <div class="field"><label>Local Travel (whole trip)</label>
+              <input id="f-local" type="number" min="0" placeholder="Cabs/metro at destination" oninput="recalc()">
+              <div class="hint" id="local-hint">Economy modes only, with receipts.</div></div>
+            <div class="field"><label>Other Costs</label>
+              <input id="f-other" type="number" min="0" placeholder="Misc (phone, etc.)" oninput="recalc()"></div>
+          </div>
+        </div>
+
+        <!-- STAY & MEALS -->
+        <div class="sec-h"><div class="sec-ic" style="background:#F0FDF4;">🏨</div>
+          <div><div class="sec-t">Stay & Meals</div><div class="sec-s">Hotel cap & meal per-diem applied from policy</div></div></div>
+        <div class="sec-b">
+          <div class="toggle-row" style="margin-bottom:8px;">
+            <div><div style="font-size:13px;font-weight:600;">Hotel / Accommodation Required?</div>
+              <div class="hint" id="hotel-sub">Toggle if you need a hotel at the destination</div></div>
+            <label class="toggle"><input type="checkbox" id="f-hotel" onchange="onHotel()"><div class="track"><div class="thumb"></div></div></label>
+          </div>
+          <div id="hotel-fields" class="hidden">
+            <div class="grid">
+              <div class="field"><label>Hotel Cost / Night</label>
+                <input id="f-hotelrate" type="number" min="0" placeholder="Per night incl. taxes" oninput="recalc()">
+                <div class="hint" id="hotel-cap-hint"></div></div>
+              <div class="field"><label>Nights <span class="tag">Auto</span></label><input id="f-nights" readonly></div>
+            </div>
+          </div>
+          <div class="info" id="meal-info" style="margin-top:14px;">Select travel type to see the meal allowance.</div>
+        </div>
+
+        <!-- NOTES -->
+        <div class="sec-h"><div class="sec-ic" style="background:#F7F9FC;">📋</div>
+          <div><div class="sec-t">Notes</div><div class="sec-s">Anything the approver should know</div></div></div>
+        <div class="sec-b">
+          <div class="field span2"><label>Remarks for Approver</label>
+            <textarea id="f-notes" placeholder="Client name, agenda, justification for any exceptions…"></textarea></div>
+        </div>
+
+        <div class="submit-area">
+          <div class="note">Fields marked <span style="color:var(--red)">*</span> are required. Your request routes to your HOD first.</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-clear" onclick="resetForm()">Clear</button>
+            <button class="btn btn-submit" id="submit-btn" onclick="submitForm()">Submit Request ✈</button>
+          </div>
+        </div>
+      </div><!-- /form-body -->
+    </div>
+  </div>
+
+  <!-- RIGHT: SUMMARY -->
+  <div>
+    <div class="summary">
+      <div class="sm-h"><div class="sm-t">💰 Cost Summary</div><span class="pill" id="cur-pill">INR</span></div>
+      <div class="sm-b">
+        <div class="sm-line"><span class="k">Transport</span><span class="v" id="s-transport">—</span></div>
+        <div class="sm-line"><span class="k">Hotel</span><span class="v" id="s-hotel">—</span></div>
+        <div class="sm-line"><span class="k">Meals (policy)</span><span class="v" id="s-meals">—</span></div>
+        <div class="sm-line"><span class="k">Local travel</span><span class="v" id="s-local">—</span></div>
+        <div class="sm-line"><span class="k">Other</span><span class="v" id="s-other">—</span></div>
+        <div class="sm-total"><span class="k">Total Estimate</span><span class="v" id="s-total">—</span></div>
+        <div class="alert" id="s-alert"></div>
+      </div>
+      <div class="chain">
+        <div class="chain-t">Approval Chain</div>
+        <div class="chain-row" id="chain-row"><span class="chain-step">Select travel type</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var CFG = null;
+var state = { travelType:'', tripType:'round' };
+
+// ---- bootstrap ----
+function boot(cfg){
+  CFG = cfg;
+  document.getElementById('brand').textContent = cfg.company + ' TravelDesk';
+  var sel = document.getElementById('f-dept');
+  Object.keys(cfg.departments).forEach(function(d){
+    var o = document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o);
+  });
+  if (cfg.userEmail) document.getElementById('f-email').value = cfg.userEmail;
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  recalc();
+}
+function bootFail(err){
+  document.getElementById('loading').textContent = 'Could not load form: ' + (err && err.message || err);
+}
+if (typeof google !== 'undefined' && google.script && google.script.run){
+  google.script.run.withSuccessHandler(boot).withFailureHandler(bootFail).getClientConfig();
+} else {
+  // local preview fallback (not deployed)
+  boot({company:'Spyne',domain:'spyne.ai',userEmail:'',
+    departments:{Engineering:{head:'Anil Kumar',email:'eng.head@spyne.ai'},Sales:{head:'Sunita Rao',email:'sales.head@spyne.ai'}},
+    policy:{INDIA_TIER_A:['mumbai','delhi','bengaluru'],US_TIER_A:['new york','san francisco'],
+      HOTEL:{india:{A:6000,B:3000},us:{A:130,B:120}},MEALS:{domestic:800,us_A:70,us_B:60,local:0},
+      LOCAL_DAILY_CAP:{international:50}}});
+}
+
+// ---- helpers ----
+function $(id){ return document.getElementById(id); }
+function val(id){ var e=$(id); return e?(e.value||'').trim():''; }
+function n(id){ return +(val(id))||0; }
+function fmt(cur,x){ return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+
+function onDept(){
+  var d = val('f-dept');
+  var info = CFG.departments[d];
+  $('f-hod').value = info ? (info.head + ' <' + info.email + '>') : '';
+}
+function onType(t){
+  state.travelType = t;
+  document.querySelectorAll('#ttype-cards .rc').forEach(function(c){ c.classList.toggle('sel', c.dataset.t===t); });
+  recalc();
+}
+function onTrip(t){
+  state.tripType = t;
+  document.querySelectorAll('[data-trip]').forEach(function(c){ c.classList.toggle('sel', c.dataset.trip===t); });
+  var round = t==='round';
+  $('returndate-wrap').classList.toggle('hidden', !round);
+  $('returnto-wrap').classList.toggle('hidden', !round);
+  recalc();
+}
+function onHotel(){
+  $('hotel-fields').classList.toggle('hidden', !$('f-hotel').checked);
+  recalc();
+}
+
+function isIntl(){ return state.travelType==='international'; }
+function currency(){ return isIntl()?'USD':'INR'; }
+function tier(city){
+  if(!CFG) return 'B';
+  var c=(city||'').toLowerCase();
+  var list = isIntl()?CFG.policy.US_TIER_A:CFG.policy.INDIA_TIER_A;
+  return list.some(function(x){return c.indexOf(x)>-1;})?'A':'B';
+}
+function mealPerDay(){
+  if(!state.travelType) return 0;
+  if(isIntl()) return tier(val('f-to'))==='A'?CFG.policy.MEALS.us_A:CFG.policy.MEALS.us_B;
+  if(state.travelType==='domestic') return CFG.policy.MEALS.domestic;
+  return CFG.policy.MEALS.local;
+}
+function hotelCap(){ var t=tier(val('f-to')); return isIntl()?CFG.policy.HOTEL.us[t]:CFG.policy.HOTEL.india[t]; }
+
+function duration(){
+  var s=val('f-start');
+  var e = state.tripType==='round' ? val('f-return') : val('f-start');
+  if(!s||!e) return {days:0,nights:0};
+  var sd=new Date(s), ed=new Date(e);
+  if(ed<sd) return {days:0,nights:0};
+  var days=Math.round((ed-sd)/86400000)+1;
+  return {days:days,nights:Math.max(0,days-1)};
+}
+
+function recalc(){
+  if(!CFG) return;
+  var cur=currency();
+  $('cur-pill').textContent=cur;
+  var dur=duration();
+  $('f-duration').value = dur.days ? (dur.days+' day(s) · '+dur.nights+' night(s)') : '';
+  $('f-nights').value = dur.nights;
+
+  // notice period
+  var notice=$('notice');
+  var sd=val('f-start');
+  if(sd && state.travelType){
+    var daysOut=Math.ceil((new Date(sd)-new Date())/86400000);
+    var need = isIntl()?30:state.travelType==='domestic'?15:0;
+    if(need && daysOut<need){
+      notice.classList.remove('hidden'); notice.className='info amber';
+      notice.innerHTML='⚠ <b>Short notice:</b> travel in '+daysOut+' days; policy needs '+need+' business days. Extra approval may be required.';
+    } else notice.classList.add('hidden');
+  } else notice.classList.add('hidden');
+
+  // local hint
+  $('local-hint').textContent = isIntl() ? 'Overseas cap USD 50/day. Economy only, receipts required.' : 'Economy modes only, with receipts.';
+
+  // costs
+  var transport=n('f-transport');
+  var hotelRate=$('f-hotel').checked?n('f-hotelrate'):0;
+  var hotel=hotelRate*dur.nights;
+  var mpd=mealPerDay();
+  var meals=mpd*dur.days;
+  var local=n('f-local');
+  var other=n('f-other');
+  var total=transport+hotel+meals+local+other;
+
+  // meal info
+  if(state.travelType && mpd>0){
+    $('meal-info').innerHTML='<b>Meal allowance:</b> '+fmt(cur,mpd)+'/day × '+(dur.days||0)+' day(s) = <b>'+fmt(cur,meals)+'</b>. '+(isIntl()?'Overseas per-diem (no receipts).':'GST bills required.');
+  } else if(state.travelType==='local'){
+    $('meal-info').innerHTML='No standard meal per-diem for local travel. Use Other for field-day meals (₹500/day with bill).';
+  } else {
+    $('meal-info').textContent='Select travel type to see the meal allowance.';
+  }
+
+  // hotel cap hint
+  if($('f-hotel').checked && state.travelType){
+    var cap=hotelCap();
+    var h=$('hotel-cap-hint');
+    $('hotel-sub').textContent='Policy cap: '+fmt(cur,cap)+'/night (Tier '+tier(val('f-to'))+')';
+    if(hotelRate>cap){ h.className='hint bad'; h.textContent='⚠ Exceeds cap '+fmt(cur,cap)+'/night — excess not reimbursable.'; }
+    else if(hotelRate>0){ h.className='hint ok'; h.textContent='✓ Within cap '+fmt(cur,cap)+'/night.'; }
+    else { h.className='hint'; h.textContent='Tier '+tier(val('f-to'))+' cap: '+fmt(cur,cap)+'/night.'; }
+  }
+
+  // summary
+  set('s-transport',transport,cur); set('s-hotel',hotel,cur); set('s-meals',meals,cur);
+  set('s-local',local,cur); set('s-other',other,cur);
+  $('s-total').textContent=fmt(cur,total);
+
+  // budget alert
+  var a=$('s-alert');
+  var flags=[];
+  if($('f-hotel').checked && hotelRate>hotelCap()) flags.push('hotel/night over cap');
+  if(isIntl() && local>CFG.policy.LOCAL_DAILY_CAP.international*dur.days) flags.push('local over USD 50/day');
+  if(total>0 && flags.length){ a.className='alert bad show'; a.innerHTML='🚨 Over policy: '+flags.join(', ')+'. Approver remark required.'; }
+  else if(total>0){ a.className='alert ok show'; a.innerHTML='✓ Within policy range.'; }
+  else a.className='alert';
+
+  // chain
+  renderChain();
+}
+function set(id,amount,cur){ $(id).textContent = amount>0 ? fmt(cur,amount) : '—'; }
+
+function renderChain(){
+  var row=$('chain-row');
+  if(!state.travelType){ row.innerHTML='<span class="chain-step">Select travel type</span>'; return; }
+  var steps = state.travelType==='international' ? ['HOD','CEO','Finance','Admin']
+            : state.travelType==='domestic' ? ['HOD','Finance','Admin'] : ['HOD','Admin'];
+  row.innerHTML = steps.map(function(s,i){
+    return '<span class="chain-step">'+s+'</span>'+(i<steps.length-1?'<span style="color:var(--gray-5);">→</span>':'');
+  }).join('');
+}
+
+// ---- submit ----
+function showErr(msg){ var b=$('err-banner'); b.textContent=msg; b.classList.add('show'); b.scrollIntoView({behavior:'smooth',block:'center'}); }
+function clearErr(){ $('err-banner').classList.remove('show'); }
+
+function buildPayload(){
+  return {
+    name:val('f-name'), empId:val('f-empid'), dept:val('f-dept'), email:val('f-email'),
+    travelType:state.travelType, tripType:state.tripType,
+    from:val('f-from'), to:val('f-to'), returnTo:val('f-returnto'),
+    startDate:val('f-start'), returnDate:val('f-return'),
+    purpose:val('f-purpose'), transportMode:val('f-mode'),
+    transportCost:n('f-transport'), localCost:n('f-local'), otherCost:n('f-other'),
+    hotelNeeded:$('f-hotel').checked, hotelPerNight:n('f-hotelrate'),
+    notes:val('f-notes')
+  };
+}
+
+function submitForm(){
+  clearErr();
+  var miss=[];
+  if(!val('f-name')) miss.push('Full Name');
+  if(!val('f-dept')) miss.push('Department');
+  if(!state.travelType) miss.push('Travel Type');
+  if(!val('f-from')) miss.push('Origin');
+  if(!val('f-to')) miss.push('Destination');
+  if(!val('f-start')) miss.push('Start Date');
+  if(state.tripType==='round' && !val('f-return')) miss.push('Return Date');
+  if(!val('f-mode')) miss.push('Transport');
+  if(miss.length){ showErr('Please fill: '+miss.join(', ')); return; }
+
+  var btn=$('submit-btn'); btn.disabled=true; btn.textContent='Submitting…';
+  var payload=buildPayload();
+
+  if(typeof google==='undefined' || !google.script || !google.script.run){
+    // local preview
+    onSubmitOk({ok:true,id:'TRF-PREVIEW',chain:['HOD','Admin','Confirmed']});
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(onSubmitOk)
+    .withFailureHandler(function(err){ btn.disabled=false; btn.textContent='Submit Request ✈'; showErr(err && err.message || String(err)); })
+    .submitTravelRequest(payload);
+}
+
+function onSubmitOk(res){
+  var btn=$('submit-btn'); btn.disabled=false; btn.textContent='Submit Request ✈';
+  if(!res || !res.ok){ showErr((res && res.error) || 'Submission failed.'); return; }
+  $('success-id').textContent=res.id;
+  var chain=res.chain||['HOD','Admin','Confirmed'];
+  $('success-tl').innerHTML = chain.map(function(s,i){
+    return '<div class="tl-i"><div style="display:flex;flex-direction:column;align-items:center;">'
+      +'<div class="tl-dot">'+(i+1)+'</div><div class="tl-lb">'+s+'</div></div>'
+      +(i<chain.length-1?'<div class="tl-ln"></div>':'')+'</div>';
+  }).join('');
+  $('form-body').style.display='none';
+  $('success').classList.add('show');
+  window.scrollTo(0,0);
+}
+
+function resetForm(){
+  $('success').classList.remove('show');
+  $('form-body').style.display='';
+  document.querySelectorAll('#form-body input:not([readonly]),#form-body select,#form-body textarea').forEach(function(e){
+    if(e.type==='checkbox') e.checked=false; else e.value='';
+  });
+  if(CFG && CFG.userEmail) $('f-email').value=CFG.userEmail;
+  $('f-hod').value=''; $('f-nights').value=''; $('f-duration').value='';
+  state={travelType:'',tripType:'round'};
+  document.querySelectorAll('.rc').forEach(function(c){ c.classList.remove('sel'); });
+  document.querySelector('[data-trip="round"]').classList.add('sel');
+  $('hotel-fields').classList.add('hidden');
+  $('returndate-wrap').classList.remove('hidden'); $('returnto-wrap').classList.remove('hidden');
+  clearErr(); recalc(); window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

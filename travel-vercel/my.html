@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · My Requests</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:980px;margin:0 auto;padding:22px 20px 60px;}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.req{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+.req-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.req-id{font-weight:800;color:var(--navy);}
+.req-sub{font-size:12px;color:var(--gray-5);margin-top:2px;}
+.clarify-box{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;border-radius:8px;padding:9px 12px;font-size:13px;margin:10px 0;}
+.st{display:inline-block;padding:4px 11px;border-radius:7px;font-size:12px;font-weight:800;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.approved{background:var(--grn-l);color:#065F46;}.st.rejected{background:var(--red2-l);color:var(--red2);}
+.steps{display:flex;flex-wrap:wrap;gap:0;align-items:flex-start;margin-top:6px;}
+.step{display:flex;flex-direction:column;align-items:center;min-width:74px;}
+.dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;}
+.dot.done{background:var(--green);}.dot.cur{background:var(--amber);}.dot.wait{background:var(--gray-3);color:var(--gray-7);}.dot.rej{background:var(--red2);}.dot.na{background:#EAEDF2;color:var(--gray-5);}
+.step .lb{font-size:10px;color:var(--gray-7);margin-top:4px;text-align:center;font-weight:700;}
+.step .sub{font-size:9px;color:var(--gray-5);}
+.conn{height:2px;background:var(--gray-3);flex:1;min-width:14px;margin-top:13px;}
+.empty,.loading{padding:50px;text-align:center;color:var(--gray-5);background:#fff;border:1px solid var(--gray-3);border-radius:12px;}
+.newbtn{background:var(--red);color:#fff;text-decoration:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:800;}
+.hidden{display:none!important;}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-2);}
+.act{display:inline-flex;align-items:center;gap:4px;border-radius:7px;padding:6px 13px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;border:1px solid var(--gray-3);background:#fff;color:var(--gray-7);font-family:inherit;}
+.act.edit{border-color:#B3D7F5;color:var(--sky);}.act.cancel{border-color:var(--red2-l);color:var(--red2);}
+.act:hover{filter:brightness(.97);}
+.tlpanel{margin-top:12px;background:var(--gray-1);border:1px solid var(--gray-2);border-radius:9px;padding:12px 14px;}
+.tlrow{display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0;}
+.tldot{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex:0 0 auto;}
+.tldot.tdone{background:var(--green);}.tldot.trej{background:var(--red2);}.tldot.tpend{background:var(--amber);}.tldot.twait{background:var(--gray-3);color:var(--gray-7);}
+.tllb{font-weight:700;color:var(--navy);min-width:70px;}.tldt{color:var(--gray-5);}.tlnote{color:var(--gray-7);font-style:italic;}
+.tlcomments{margin-top:8px;padding-top:8px;border-top:1px dashed var(--gray-3);font-size:12px;color:var(--gray-7);}
+.tlc{padding:2px 0;}
+.actpanel{margin-top:12px;background:var(--gray-1);border:1px solid var(--gray-2);border-radius:9px;padding:12px 14px;}
+.acttbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.acttbl th{text-align:left;color:var(--gray-5);font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:4px 8px;border-bottom:2px solid var(--gray-2);}
+.acttbl td{padding:5px 8px;border-bottom:1px solid var(--gray-2);}
+.acttbl td.r,.acttbl th.r{text-align:right;}
+.acttbl tr.tot td{font-weight:800;color:var(--navy);border-top:2px solid var(--gray-3);}
+.actsum{margin-top:8px;font-size:12.5px;color:var(--gray-7);}
+.actform{margin-top:12px;padding-top:10px;border-top:1px dashed var(--gray-3);}
+.actform-h{font-size:12px;font-weight:800;color:var(--navy);margin-bottom:8px;}
+.actline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.actlbl{min-width:120px;font-size:12.5px;font-weight:700;color:var(--gray-7);}
+.actinp{padding:6px 9px;border:1.5px solid var(--gray-3);border-radius:7px;font-size:13px;font-family:inherit;}
+.acrcpt{font-size:11px;color:var(--green);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">My Travel Requests</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div class="bar">
+    <div class="title">My Travel Requests</div>
+    <a class="newbtn" href="/">+ New Request</a>
+  </div>
+  <div id="loading" class="loading">Loading…</div>
+  <div id="list"></div>
+  <div id="empty" class="empty hidden">You haven't submitted any travel requests yet. <a href="/" style="color:var(--sky);font-weight:700;">Create one →</a></div>
+</div>
+
+<script>
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('list').innerHTML=''; document.getElementById('empty').classList.add('hidden');
+  fetch('/api/me?mine=1',{credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('my '+r.status); return r.json(); }).then(onData).catch(onFail);
+}
+function onFail(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); }
+function onData(d){
+  document.getElementById('loading').classList.add('hidden');
+  var rows=(d&&d.rows)||[];
+  if(!rows.length){ document.getElementById('empty').classList.remove('hidden'); return; }
+  document.getElementById('list').innerHTML=rows.map(card).join('');
+  maybeDeepLink();
+}
+// Deep-link from a "submit your bills" reminder email: /my?trip=<id> opens that trip's expense panel.
+var DEEPLINK_TRIP=(function(){var m=location.search.match(/[?&]trip=([^&]+)/);return m?decodeURIComponent(m[1]):'';})();
+// Deep-link from the "forex card issued" email: /my?forexcard=<id> opens the card-back upload panel.
+var DEEPLINK_FXCARD=(function(){var m=location.search.match(/[?&]forexcard=([^&]+)/);return m?decodeURIComponent(m[1]):'';})();
+function maybeDeepLink(){
+  if(DEEPLINK_FXCARD){ var fid=DEEPLINK_FXCARD; DEEPLINK_FXCARD='';
+    var fp=document.getElementById('fxc-'+fid);
+    if(fp){ fp.classList.remove('hidden'); fp.scrollIntoView({behavior:'smooth',block:'center'}); return; } }
+  if(!DEEPLINK_TRIP) return; var id=DEEPLINK_TRIP; DEEPLINK_TRIP='';
+  var panel=document.getElementById('act-'+id);
+  if(panel){ panel.classList.remove('hidden'); panel.scrollIntoView({behavior:'smooth',block:'center'}); }
+}
+function headStatus(r){
+  if(/reject/i.test(r.status)) return ['rejected','Rejected'];
+  if(/clarification/i.test(r.status)) return ['pending','Action needed — clarification'];
+  if(/completed|confirmed|forex card issued/i.test(r.status)) return ['approved','Completed'];
+  if(/with admin|arrangement|forex/i.test(r.status)) return ['approved','Approved — in progress'];
+  return ['pending','In approval'];
+}
+// state: done | cur | wait | na | rej
+function stepState(v){
+  if(/reject/i.test(v)) return 'rej';
+  if(/approv|issued|completed|confirmed|done/i.test(v)) return 'done';
+  if(/pending|waiting/i.test(v)) return 'cur';
+  if(/n\/a/i.test(v)) return 'na';
+  return 'wait';
+}
+function dot(state,n){
+  var ic = state==='done'?'✓':(state==='rej'?'✕':(state==='na'?'–':n));
+  return '<div class="dot '+state+'">'+ic+'</div>';
+}
+function step(label,value){
+  var s=stepState(value);
+  return {html:'<div class="step">'+dot(s, label[0])+'<div class="lb">'+label+'</div><div class="sub">'+esc(value||'')+'</div></div>', s:s};
+}
+function card(r){
+  var hs=headStatus(r);
+  var steps=[];
+  steps.push(['HOD', r.hod]);
+  if(r.ceo!=='N/A') steps.push(['CEO', r.ceo]);
+  steps.push(['Finance', r.finance]);
+  steps.push(['Booking', r.booking||'—']);
+  if(r.forexIssued!=='N/A') steps.push(['Forex', r.forexIssued]);
+  var built=steps.map(function(s){return step(s[0], s[1]);});
+  var stepsHtml=built.map(function(b,i){ return (i>0?'<div class="conn"></div>':'')+b.html; }).join('');
+  return '<div class="req">'
+    +'<div class="req-h"><div><div class="req-id">'+esc(r.id)+'</div>'
+      +'<div class="req-sub">'+esc(cap(r.type)+' · '+r.trip)+' · '+esc(r.route)+' · '+esc(r.start+(r.end?' → '+r.end:''))+'</div>'
+      +'<div class="req-sub">Submitted '+esc(r.submission)+(r.purpose?' · '+esc(r.purpose):'')+'</div>'
+      +((r.flights||[]).some(function(f){return f.timeLabel;})?'<div class="req-sub">🕒 '+(r.flights||[]).filter(function(f){return f.timeLabel;}).map(function(f){return esc(f.label+': '+f.timeLabel);}).join(' &nbsp;·&nbsp; ')+'</div>':'')
+      +((r.raisedForOther&&r.traveller)?'<div class="req-sub">🧑‍✈️ Raised by you for: <b>'+esc(r.traveller)+'</b></div>':'')
+      +((r.pax>1&&r.passengers)?'<div class="req-sub">👥 '+r.pax+' travellers: '+esc(r.passengers.join(', '))+'</div>':'')+'</div>'
+      +'<span class="st '+hs[0]+'">'+esc(hs[1])+'</span></div>'
+    +'<div class="steps">'+stepsHtml+'</div>'
+    +(r.clarifyNote?'<div class="clarify-box">↩ <b>Clarification requested:</b> “'+esc(r.clarifyNote)+'” — use <b>Edit</b> to update &amp; resubmit.</div>':'')
+    +actionsHtml(r)
+    +timelineHtml(r)
+    +actualsHtml(r)
+    +flightHtml(r)
+    +forexCardHtml(r)
+  +'</div>';
+}
+function actionsHtml(r){
+  var btns=[];
+  if(r.canEdit) btns.push('<a class="act edit" href="/?edit='+encodeURIComponent(r.id)+'">✏️ Edit</a>');
+  if(r.canWithdraw) btns.push('<button type="button" class="act cancel" onclick="withdrawReq(\''+r.id+'\')">✕ Withdraw</button>');
+  if(r.canAddFlightDoc) btns.push('<button type="button" class="act ghost" onclick="toggleFlight(\''+r.id+'\')">✈️ Flight details</button>');
+  if(r.canAddActuals||(r.actuals&&r.actuals.hasActuals)) btns.push('<button type="button" class="act ghost" onclick="toggleActuals(\''+r.id+'\')">💳 Trip expenses &amp; reimbursement</button>');
+  if(r.canAddForexCard||r.forexCardDoc) btns.push('<button type="button" class="act ghost" onclick="toggleForexCard(\''+r.id+'\')">💱 Forex card</button>');
+  btns.push('<button type="button" class="act ghost" onclick="toggleTimeline(\''+r.id+'\')">🕘 Timeline</button>');
+  return '<div class="acts">'+btns.join('')+'</div>';
+}
+function m(cur,n){ return (cur||'INR')+' '+Math.round(Number(n||0)).toLocaleString(cur==='USD'?'en-US':'en-IN'); }
+var ACT_DOCS={}, ACT_CUR={}, ACT_CIDX={};
+var ACT_CATS=['Airport transfer / cab','Taxi / ride-share','Internet / phone','Laundry','Tips / gratuity','Parking / tolls','Currency conversion fee','Excess baggage','Conference / registration','Office supplies','Other'];
+function ensureCatList(){ if(document.getElementById('actcats')) return; var dl=document.createElement('datalist'); dl.id='actcats'; dl.innerHTML=ACT_CATS.map(function(c){return '<option value="'+esc(c)+'">';}).join(''); document.body.appendChild(dl); }
+// One traveller-added expense line: category (with suggestions) + amount + paid-by + receipt + remove.
+function custRow(rid,key,item,cur){ item=item||{}; cur=cur||ACT_CUR[rid]||'INR'; var pb=(item.paidBy==='company')?'company':'own';
+  return '<div class="actline" data-ckey="'+key+'">'
+    +'<input list="actcats" id="axcat-'+rid+'-'+key+'" class="actinp" placeholder="Category" value="'+esc(item.label||'')+'" style="min-width:130px;">'
+    +'<input id="axca-'+rid+'-'+key+'" type="number" min="0" step="any" class="actinp" placeholder="Amount '+cur+'" value="'+(item.actual||'')+'">'
+    +'<select id="axcp-'+rid+'-'+key+'" class="actinp"><option value="own"'+(pb==='own'?' selected':'')+'>Own money (reimburse)</option><option value="company"'+(pb==='company'?' selected':'')+'>Company card / forex</option></select>'
+    +'<label class="act ghost" style="cursor:pointer;">📎<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadActual(\''+rid+'\',\''+key+'\',this)"></label>'
+    +'<span class="acrcpt" id="axr-'+rid+'-'+key+'">'+(item.doc?'<a class="lnk" href="'+esc(item.doc)+'" target="_blank">📎 receipt ✓</a>':'')+'</span>'
+    +'<button type="button" class="act cancel" title="Remove this line" onclick="this.closest(\'.actline\').remove()" style="padding:4px 9px;">✕</button>'
+  +'</div>';
+}
+function addActLine(rid){ ensureCatList(); var cont=document.getElementById('axc-'+rid); if(!cont) return;
+  var idx=ACT_CIDX[rid]||0, key='custom-'+idx;
+  while(document.getElementById('axcat-'+rid+'-'+key)){ idx++; key='custom-'+idx; }
+  ACT_CIDX[rid]=idx+1;
+  var wrap=document.createElement('div'); wrap.innerHTML=custRow(rid,key,{},ACT_CUR[rid]); cont.appendChild(wrap.firstChild);
+}
+function actualsHtml(r){
+  var a=r.actuals||{}; if(!(r.canAddActuals||a.hasActuals)) return '';
+  var cur=a.currency||'INR';
+  ACT_DOCS[r.id]=ACT_DOCS[r.id]||{}; (a.items||[]).forEach(function(it){ if(it.doc && !ACT_DOCS[r.id][it.key]) ACT_DOCS[r.id][it.key]=it.doc; });
+  // Traveller sees only their OWN spend (what they paid + how) — the internal budget &
+  // budget-vs-actual variance are a Finance-only view (finance.html cost drawer).
+  var rows=(a.items||[]).filter(function(it){return it.actual>0;}).map(function(it){
+    return '<tr><td>'+esc(it.label)+'</td><td class="r">'+m(cur,it.actual)+'</td><td>'+(it.paidBy==='company'?'Company card / forex':'Own money')+'</td></tr>';
+  }).join('');
+  var summary='<table class="acttbl"><thead><tr><th>Line</th><th class="r">Amount you spent</th><th>Paid by</th></tr></thead><tbody>'
+    +(rows||'<tr><td colspan="3" style="color:#999;">No expenses submitted yet.</td></tr>')
+    +'<tr class="tot"><td>Total spent</td><td class="r">'+m(cur,a.actualTotal)+'</td><td></td></tr></tbody></table>'
+    +'<div class="actsum">Reimbursement due (your own money): <b>'+m(cur,a.reimbursable)+'</b>'+(a.advance?(' · Advance given: '+m(cur,a.advance)):'')
+      +(a.status==='Closed'?(' · <b style="color:var(--green);">Closed — approved '+m(cur,a.reimburseApproved)+'</b>')
+        :a.status==='HOD Approved'?(' · <b style="color:#0F766E;">✓ HOD approved — awaiting Finance settlement</b>')
+        :a.status==='Submitted'?(' · <b style="color:#B45309;">Submitted — awaiting HOD approval</b>')
+        :(' · status: '+esc(a.status)))+'</div>';
+  var form='';
+  if(r.canAddActuals){
+    ensureCatList(); ACT_CUR[r.id]=cur;
+    var byKey={}; (a.items||[]).forEach(function(it){byKey[it.key]=it;});
+    var lines=[['meals','Meals'],['local','Local conveyance'],['visa','Visa'],['baggage','Baggage'],['misc','Misc']];
+    var customItems=(a.items||[]).filter(function(it){return it.custom;});
+    ACT_CIDX[r.id]=customItems.length; // next free index for newly-added lines
+    form='<div class="actform"><div class="actform-h">Add / update your trip expenses — a receipt is required for each amount</div>'
+      +lines.map(function(L){ var it=byKey[L[0]]||{}; var pb=(it.paidBy==='company')?'company':'own';
+        return '<div class="actline"><span class="actlbl">'+L[1]+'</span>'
+          +'<input id="ax-'+r.id+'-'+L[0]+'" type="number" min="0" step="any" value="'+(it.actual||'')+'" placeholder="Amount '+cur+'" class="actinp">'
+          +'<select id="axp-'+r.id+'-'+L[0]+'" class="actinp"><option value="own"'+(pb==='own'?' selected':'')+'>Own money (reimburse)</option><option value="company"'+(pb==='company'?' selected':'')+'>Company card / forex</option></select>'
+          +'<label class="act ghost" style="cursor:pointer;">📎<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadActual(\''+r.id+'\',\''+L[0]+'\',this)"></label>'
+          +'<span class="acrcpt" id="axr-'+r.id+'-'+L[0]+'">'+(it.doc?'<a class="lnk" href="'+esc(it.doc)+'" target="_blank">📎 receipt ✓</a>':'')+'</span>'
+        +'</div>'; }).join('')
+      +'<div class="actform-h" style="margin-top:10px;">Other expenses — add your own category</div>'
+      +'<div id="axc-'+r.id+'">'+customItems.map(function(it){return custRow(r.id, it.key, it, cur);}).join('')+'</div>'
+      +'<button type="button" class="act ghost" onclick="addActLine(\''+r.id+'\')" style="margin-bottom:8px;">＋ Add expense line</button><br>'
+      +'<button type="button" class="act edit" onclick="submitActuals(\''+r.id+'\')">💾 Submit reimbursement claim</button></div>';
+  }
+  return '<div class="actpanel hidden" id="act-'+r.id+'">'+summary+form+'</div>';
+}
+var FL_DOC={};
+function flightHtml(r){
+  if(!r.canAddFlightDoc && !r.prefFlightDoc) return '';
+  var cur=r.prefFlightDoc?'<a class="lnk" href="'+esc(r.prefFlightDoc)+'" target="_blank">📎 current attachment</a>':'';
+  var form = r.canAddFlightDoc
+    ? '<div class="actline"><span class="actlbl">Screenshot / PDF</span><label class="act ghost" style="cursor:pointer;">📎 Upload<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadFlightDoc(\''+r.id+'\',this)"></label><span class="acrcpt" id="flr-'+r.id+'">'+cur+'</span></div>'
+      +'<div class="actline"><span class="actlbl">Notes</span><input id="fln-'+r.id+'" class="actinp" style="flex:1;min-width:200px;" placeholder="e.g. morning non-stop, Air India" value="'+esc(r.prefFlightNotes||'')+'"></div>'
+      +'<button type="button" class="act edit" onclick="saveFlight(\''+r.id+'\')">💾 Save flight details</button>'
+    : '<div class="actline">'+cur+(r.prefFlightNotes?' · '+esc(r.prefFlightNotes):'')+'</div>';
+  return '<div class="actpanel hidden" id="fl-'+r.id+'"><div class="actform-h">Share your preference for the exact flight? Attach a screenshot/PDF (MakeMyTrip/myBiz, etc.) so Admin can check and book as per policy.</div>'+form+'</div>';
+}
+function toggleFlight(id){ var p=document.getElementById('fl-'+id); if(p) p.classList.toggle('hidden'); }
+// Forex card back snapshot — uploaded by the traveller after the card is issued, used for future top-ups.
+function forexCardHtml(r){
+  if(!r.canAddForexCard && !r.forexCardDoc) return '';
+  var cur=r.forexCardDoc?'<a class="lnk" href="'+esc(r.forexCardDoc)+'" target="_blank">📎 card on file ✓</a>':'';
+  var form = r.canAddForexCard
+    ? '<div class="actline"><span class="actlbl">Card back (photo / PDF)</span><label class="act ghost" style="cursor:pointer;">📎 Upload<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadForexCard(\''+r.id+'\',this)"></label><span class="acrcpt" id="fxr-'+r.id+'">'+cur+'</span></div>'
+    : '<div class="actline">'+cur+'</div>';
+  return '<div class="actpanel hidden" id="fxc-'+r.id+'"><div class="actform-h">Upload a snapshot of the <b>back of your forex card</b> (card number &amp; details). We keep it on file so the Forex officer can load future <b>top-ups</b> without asking you again.</div>'+form+'</div>';
+}
+function toggleForexCard(id){ var p=document.getElementById('fxc-'+id); if(p) p.classList.toggle('hidden'); }
+function uploadForexCard(id,inp){ var f=inp.files[0]; var st=document.getElementById('fxr-'+id); if(!f) return; if(f.size>3*1024*1024){st.textContent='Max 3 MB';return;} st.textContent='Uploading…';
+  var rd=new FileReader(); rd.onload=function(){ var b64=String(rd.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:b64})})
+      .then(function(r){return r.json();}).then(function(d){ if(!(d&&d.ok)){ st.textContent='Upload failed'; return; }
+        st.innerHTML='Saving…';
+        fetch('/api/me',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'forexcard',id:id,doc:d.link})})
+          .then(function(r){return r.json();}).then(function(s){ if(s&&s.ok){ st.innerHTML='<a class="lnk" href="'+esc(d.link)+'" target="_blank">📎 card on file ✓</a>'; } else st.textContent='Could not save: '+((s&&s.error)||'error'); })
+          .catch(function(){ st.textContent='Save failed'; });
+      }).catch(function(){st.textContent='Upload failed';}); };
+  rd.readAsDataURL(f); }
+function uploadFlightDoc(id,inp){ var f=inp.files[0]; var st=document.getElementById('flr-'+id); if(!f) return; if(f.size>3*1024*1024){st.textContent='Max 3 MB';return;} st.textContent='Uploading…';
+  var rd=new FileReader(); rd.onload=function(){ var b64=String(rd.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:b64})})
+      .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok){ FL_DOC[id]=d.link; st.innerHTML='<a class="lnk" href="'+esc(d.link)+'" target="_blank">📎 attached ✓</a>'; } else st.textContent='Upload failed'; }).catch(function(){st.textContent='Upload failed';}); };
+  rd.readAsDataURL(f); }
+function saveFlight(id){ var notes=(document.getElementById('fln-'+id)||{}).value||''; var doc=FL_DOC[id]||'';
+  fetch('/api/me',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'flightdoc',id:id,doc:doc,notes:notes})})
+    .then(function(r){return r.json();}).then(function(d){ if(d&&d.ok){ load(); } else alert('Could not save: '+((d&&d.error)||'error')); }).catch(function(e){ alert('Save failed: '+(e&&e.message||e)); }); }
+function toggleActuals(id){ var p=document.getElementById('act-'+id); if(p) p.classList.toggle('hidden'); }
+function uploadActual(id,key,inp){
+  var f=inp.files[0]; var st=document.getElementById('axr-'+id+'-'+key); if(!f) return;
+  if(f.size>3*1024*1024){ st.textContent='Max 3 MB'; return; }
+  st.textContent='Uploading…';
+  var rd=new FileReader();
+  rd.onload=function(){ var b64=String(rd.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:b64})})
+      .then(function(r){return r.json();})
+      .then(function(d){ if(d&&d.ok){ ACT_DOCS[id]=ACT_DOCS[id]||{}; ACT_DOCS[id][key]=d.link; st.innerHTML='<a class="lnk" href="'+esc(d.link)+'" target="_blank">📎 receipt ✓</a>'; } else st.textContent='Upload failed'; })
+      .catch(function(){ st.textContent='Upload failed'; }); };
+  rd.readAsDataURL(f);
+}
+function submitActuals(id){
+  var keys=['meals','local','visa','baggage','misc']; var actuals={}; var missing=[]; var needCat=false;
+  keys.forEach(function(k){ var amt=Number((document.getElementById('ax-'+id+'-'+k)||{}).value)||0; var pb=(document.getElementById('axp-'+id+'-'+k)||{}).value||'own'; var doc=(ACT_DOCS[id]||{})[k]||'';
+    if(amt>0 && !doc) missing.push(k);
+    actuals[k]={amount:amt,paidBy:pb,doc:doc}; });
+  // traveller-added custom lines
+  var custom=[]; var cont=document.getElementById('axc-'+id);
+  if(cont){ Array.prototype.forEach.call(cont.querySelectorAll('.actline[data-ckey]'), function(row){
+    var key=row.getAttribute('data-ckey');
+    var label=((document.getElementById('axcat-'+id+'-'+key)||{}).value||'').trim();
+    var amt=Number((document.getElementById('axca-'+id+'-'+key)||{}).value)||0;
+    var pb=(document.getElementById('axcp-'+id+'-'+key)||{}).value||'own';
+    var doc=(ACT_DOCS[id]||{})[key]||'';
+    if(amt<=0 && !label) return; // skip blank row
+    if(amt>0 && !label) needCat=true;
+    if(amt>0 && !doc) missing.push(label||'added expense');
+    custom.push({label:label,amount:amt,paidBy:pb,doc:doc});
+  }); }
+  if(needCat){ alert('Please choose a category for each added expense line.'); return; }
+  if(missing.length){ alert('Please attach a receipt for: '+missing.join(', ')); return; }
+  actuals.custom=custom;
+  fetch('/api/me',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'actuals',id:id,actuals:actuals})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d&&d.ok){ load(); } else alert('Could not submit: '+((d&&d.error)||'error')); })
+    .catch(function(e){ alert('Submit failed: '+(e&&e.message||e)); });
+}
+function timelineHtml(r){
+  var tl=r.timeline||{steps:[],comments:[]};
+  var steps=(tl.steps||[]).map(function(s){
+    var cls=s.status==='done'?'tdone':(s.status==='rejected'?'trej':(s.status==='pending'?'tpend':'twait'));
+    var ic=s.status==='done'?'✓':(s.status==='rejected'?'✕':(s.status==='pending'?'…':'•'));
+    return '<div class="tlrow"><span class="tldot '+cls+'">'+ic+'</span><span class="tllb">'+esc(s.label)+'</span>'
+      +'<span class="tldt">'+esc(s.date||'')+'</span>'+(s.note?'<span class="tlnote">'+esc(s.note)+'</span>':'')+'</div>';
+  }).join('');
+  var comments=(tl.comments||[]).length?('<div class="tlcomments"><b>Remarks</b>'+tl.comments.map(function(c){return '<div class="tlc">'+esc(c)+'</div>';}).join('')+'</div>'):'';
+  return '<div class="tlpanel hidden" id="tl-'+r.id+'">'+steps+comments+'</div>';
+}
+function toggleTimeline(id){ var p=document.getElementById('tl-'+id); if(p) p.classList.toggle('hidden'); }
+function withdrawReq(id){
+  if(!confirm('Withdraw request '+id+'? This cancels it and notifies the current approver.')) return;
+  fetch('/api/me',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+    body:JSON.stringify({action:'cancel',id:id})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d&&d.ok){ load(); } else { alert('Could not withdraw: '+((d&&d.error)||'error')); } })
+    .catch(function(e){ alert('Withdraw failed: '+(e&&e.message||e)); });
+}
+requireView('requester', function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

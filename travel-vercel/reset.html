@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Set a new password · Spyne TravelDesk</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  :root{--red:#E8232A;--red-d:#B01820;--red-l:#FEF0F0;--navy:#0D1B2A;--ink:#0D1B2A;--gray-3:#D6DCE8;--gray-5:#8A97AA;--ok:#157347;--radius:9px;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(160deg,#0D1B2A 0%,#1C3148 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{width:100%;max-width:400px;background:#fff;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;}
+  .head{background:var(--navy);padding:24px 28px;display:flex;align-items:center;gap:11px;}
+  .logo-sq{width:38px;height:38px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;}
+  .logo-txt{font-size:16px;font-weight:900;color:#fff;line-height:1.1;}
+  .logo-sub{font-size:11px;color:#9fb0c4;}
+  .body{padding:26px 28px 30px;}
+  h1{font-size:18px;margin:0 0 3px;color:var(--ink);}
+  .lede{font-size:13px;color:#5a6b80;margin:0 0 20px;}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:#3c4a5e;margin-bottom:5px;}
+  .field input{width:100%;padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);font-size:14px;font-family:inherit;color:var(--ink);outline:none;}
+  .field input:focus{border-color:var(--red);}
+  .submit{width:100%;padding:12px;border:none;border-radius:var(--radius);background:var(--red);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:4px;}
+  .submit:hover{background:var(--red-d);}
+  .submit:disabled{opacity:.6;cursor:default;}
+  .msg{font-size:13px;border-radius:8px;padding:9px 12px;margin-bottom:14px;display:none;}
+  .msg.err{display:block;background:var(--red-l);color:var(--red-d);border:1px solid #f3c4c4;}
+  .msg.ok{display:block;background:#E8F5EE;color:var(--ok);border:1px solid #b6e0c6;}
+  .hint{font-size:11px;color:var(--gray-5);margin-top:-6px;margin-bottom:12px;}
+  a.back{color:#2563EB;font-size:13px;font-weight:700;text-decoration:underline;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <div class="logo-sq">S</div>
+      <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Travel Request &amp; Approvals</div></div>
+    </div>
+    <div class="body">
+      <h1>Set a new password</h1>
+      <p class="lede" id="lede">Choose a new password for your account.</p>
+      <div class="msg" id="msg"></div>
+      <form id="form">
+        <div class="field">
+          <label for="password">New password</label>
+          <input type="password" id="password" autocomplete="new-password" placeholder="••••••••" required>
+        </div>
+        <div class="field">
+          <label for="confirm">Confirm new password</label>
+          <input type="password" id="confirm" autocomplete="new-password" placeholder="••••••••" required>
+        </div>
+        <div class="hint">At least 8 characters.</div>
+        <button class="submit" id="submit" type="submit">Set password &amp; sign in</button>
+      </form>
+      <p style="text-align:center;margin-top:16px;"><a class="back" href="/login.html">← Back to sign in</a></p>
+    </div>
+  </div>
+<script>
+(function(){
+  function q(k){ var m=location.search.match(new RegExp('[?&]'+k+'=([^&]+)')); return m?decodeURIComponent(m[1]):''; }
+  var EMAIL=q('email'), TOKEN=q('token');
+  var msg=document.getElementById('msg'), submit=document.getElementById('submit');
+  function showMsg(t,ok){ msg.textContent=t; msg.className='msg '+(ok?'ok':'err'); }
+  if(!EMAIL || !TOKEN){ showMsg('This reset link is incomplete. Please request a new one from the sign-in page.', false); submit.disabled=true; }
+  document.getElementById('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var pw=document.getElementById('password').value, cf=document.getElementById('confirm').value;
+    if(pw.length<8){ showMsg('Password must be at least 8 characters.', false); return; }
+    if(pw!==cf){ showMsg('The two passwords don’t match.', false); return; }
+    submit.disabled=true; submit.textContent='Saving…';
+    fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+      body:JSON.stringify({action:'reset',email:EMAIL,token:TOKEN,password:pw,next:'/'})})
+      .then(function(r){return r.json();}).then(function(d){
+        if(d&&d.ok){ showMsg('Password updated — signing you in…', true); location.href=d.next||'/'; return; }
+        showMsg((d&&d.error)||'Could not reset password. Request a new link.', false);
+        submit.disabled=false; submit.textContent='Set password & sign in';
+      }).catch(function(){ showMsg('Network error — please try again.', false); submit.disabled=false; submit.textContent='Set password & sign in'; });
+  });
+})();
+</script>
+</body>
+</html>

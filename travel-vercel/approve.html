@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Approve · Spyne TravelDesk</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--red-d:#B01820;--navy:#0D1B2A;--green:#0F766E;--green-d:#0a5d57;--gray-1:#F7F9FC;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.wrap{max-width:560px;margin:30px auto;padding:0 18px;}
+.card{background:#fff;border:1px solid var(--gray-3);border-radius:14px;padding:26px;box-shadow:0 6px 20px rgba(13,27,42,.06);}
+h1{font-size:18px;color:var(--navy);margin-bottom:4px;}
+.sub{font-size:13px;color:var(--gray-5);margin-bottom:16px;}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #EDF1F7;font-size:13.5px;}
+.kv .k{color:var(--gray-5);}.kv .v{font-weight:700;color:var(--ink);text-align:right;}
+.flag-ok{margin-top:12px;background:#E6F4EA;color:var(--green);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;}
+.flag-brk{margin-top:12px;background:#FEF3C7;color:#B45309;border-radius:8px;padding:9px 12px;font-size:13px;font-weight:700;}
+label.cm{display:block;font-size:12px;font-weight:700;color:var(--gray-7);margin:16px 0 5px;}
+textarea{width:100%;min-height:64px;padding:10px 12px;border:1.5px solid var(--gray-3);border-radius:9px;font-family:inherit;font-size:14px;resize:vertical;}
+.btns{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+.btn{flex:1;min-width:130px;padding:13px;border:none;border-radius:9px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;}
+.btn.approve{background:var(--green);color:#fff;}.btn.approve:hover{background:var(--green-d);}
+.btn.reject{background:#fff;color:var(--red);border:1.5px solid var(--red);}.btn.reject:hover{background:#FEF0F0;}
+.btn.clarify{background:#fff;color:#B45309;border:1.5px solid #FDE68A;}.btn.clarify:hover{background:#FFFBEB;}
+.btn:disabled{opacity:.55;cursor:default;}
+.msg{padding:30px 10px;text-align:center;color:var(--gray-7);font-size:15px;line-height:1.5;}
+.msg .big{font-size:40px;display:block;margin-bottom:10px;}
+.lnk{color:#2563EB;font-weight:700;text-decoration:none;}
+.hide{display:none;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div><div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Approve / Reject</div></div></div>
+  <div id="trf-userbar"></div>
+</div>
+<script src="/auth-guard.js"></script>
+<div class="wrap"><div class="card"><div id="content"><div class="msg">Loading…</div></div></div></div>
+
+<script>
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function q(k){ var m=location.search.match(new RegExp('[?&]'+k+'=([^&]+)')); return m?decodeURIComponent(m[1]):''; }
+var ID=q('id'), STAGE=q('stage'), DECISION=(q('decision')==='reject'?'reject':'approve');
+var content=document.getElementById('content');
+function msg(html){ content.innerHTML='<div class="msg">'+html+'</div>'; }
+
+requireView(['hod','ceo','finance'], function(me){ renderUserbar(me); load(); });
+
+function load(){
+  if(!ID){ msg('This approval link is missing the request id.'); return; }
+  fetch('/api/decision?view=approvals',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    var row=(d.rows||[]).find(function(x){return String(x.id)===String(ID);});
+    if(!row){ msg('<span class="big">🔒</span><b>'+esc(ID)+'</b> isn’t awaiting your approval.<br>You may not be the approver for this request, it may already be decided, or it’s your own request (you can’t approve that).<br><br><a class="lnk" href="/hod">Go to Approvals</a>'); return; }
+    if(!row.pending){ msg('<span class="big">ℹ️</span><b>'+esc(ID)+'</b> is not awaiting your action right now.<br>Current status: <b>'+esc(row.status||'')+'</b>.<br><br><a class="lnk" href="/hod">Go to Approvals</a>'); return; }
+    renderConfirm(row);
+  }).catch(function(e){ msg('Could not load: '+esc(e&&e.message||e)); });
+}
+
+function renderConfirm(row){
+  var brk=/^POLICY BREAK/i.test(row.flag||'');
+  var h='<h1>Review &amp; '+(DECISION==='reject'?'reject':'approve')+' this request</h1>'
+    +'<div class="sub">'+esc(row.id)+' · '+esc(row.myStage==='ceo'?'CEO':(row.myStage==='finance'?'Finance':'Department Head'))+' stage</div>'
+    +'<div class="kv"><span class="k">Traveller</span><span class="v">'+esc(row.name||'')+(row.pax>1?(' +'+(row.pax-1)+' more'):'')+'</span></div>'
+    +'<div class="kv"><span class="k">Department</span><span class="v">'+esc(row.dept||'')+'</span></div>'
+    +'<div class="kv"><span class="k">Type</span><span class="v">'+esc((row.type||'')+' · '+(row.trip||''))+'</span></div>'
+    +'<div class="kv"><span class="k">Route</span><span class="v">'+esc(row.route||'')+'</span></div>'
+    +'<div class="kv"><span class="k">Dates</span><span class="v">'+esc((row.start||'')+(row.end?(' → '+row.end):''))+'</span></div>'
+    +'<div class="kv"><span class="k">Purpose</span><span class="v">'+esc(row.purpose||'')+'</span></div>'
+    +'<div class="kv"><span class="k">Estimated cost</span><span class="v">'+esc(row.estimatedCost||'')+'</span></div>'
+    +(brk?('<div class="flag-brk">⚠ '+esc(String(row.flag).replace(/^POLICY BREAK:\s*/i,''))+'</div>'):'<div class="flag-ok">✓ Within policy</div>')
+    +'<label class="cm" for="cmt">Remark / question (optional for approve · required to send back)</label><textarea id="cmt" placeholder="Add a note for the requester…"></textarea>'
+    +'<div class="btns"><button class="btn approve" id="b-approve" onclick="act(\'approve\')">✓ Approve</button>'
+    +'<button class="btn reject" id="b-reject" onclick="act(\'reject\')">✕ Reject</button></div>'
+    +'<div class="btns"><button class="btn clarify" id="b-clarify" onclick="sendBack()" title="Send back to the requester with a question">↩ Send back for clarification</button></div>';
+  content.innerHTML=h;
+}
+
+function act(decision){
+  var cmt=(document.getElementById('cmt')||{}).value||'';
+  var ba=document.getElementById('b-approve'), br=document.getElementById('b-reject');
+  if(ba) ba.disabled=true; if(br) br.disabled=true;
+  fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+    body:JSON.stringify({id:ID,decision:decision,comment:cmt})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.ok){ msg('<span class="big">'+(decision==='reject'?'✕':'✓')+'</span><b>'+esc(res.title||(decision==='reject'?'Rejected':'Approved'))+'</b><br>'+esc(res.msg||'')+'<br><br><a class="lnk" href="/hod">Back to Approvals</a>'); }
+      else { msg('<span class="big">⚠️</span>'+esc((res&&res.error)||'Could not record your decision.')+'<br><br><a class="lnk" href="/hod">Go to Approvals</a>'); }
+    }).catch(function(e){ msg('Failed: '+esc(e&&e.message||e)); });
+}
+function sendBack(){
+  var cmt=((document.getElementById('cmt')||{}).value||'').trim();
+  if(!cmt){ var c=document.getElementById('cmt'); if(c){ c.focus(); c.style.borderColor='#e11d48'; } alert('Type your question for the requester before sending it back.'); return; }
+  ['b-approve','b-reject','b-clarify'].forEach(function(id){ var b=document.getElementById(id); if(b) b.disabled=true; });
+  fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+    body:JSON.stringify({action:'clarify',id:ID,comment:cmt})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.ok){ msg('<span class="big">↩</span><b>'+esc(res.title||'Sent back')+'</b><br>'+esc(res.msg||'')+'<br><br><a class="lnk" href="/hod">Back to Approvals</a>'); }
+      else { msg('<span class="big">⚠️</span>'+esc((res&&res.error)||'Could not send it back.')+'<br><br><a class="lnk" href="/hod">Go to Approvals</a>'); }
+    }).catch(function(e){ msg('Failed: '+esc(e&&e.message||e)); });
+}
+</script>
+</body>
+</html>

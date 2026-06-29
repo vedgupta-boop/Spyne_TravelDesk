@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spyne ReimburseDesk · Finance</title>
+<style>
+  :root{--navy:#0D1B2A;--ink:#1a2332;--gray-1:#f6f8fb;--gray-2:#eef2f7;--gray-3:#e2e8f0;--gray-5:#8A97AA;--red:#E8232A;--green:#0a8a0a;--sky:#0077CC;--amber:#b8860b;--radius:12px;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--gray-1);color:var(--ink);}
+  .topbar{background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .logo-sq{width:32px;height:32px;border-radius:8px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;}
+  .brand{font-weight:800;font-size:16px;} .brand span{color:#9fb3c8;font-weight:600;} .topbar .sp{flex:1}
+  .wrap{max-width:1240px;margin:20px auto;padding:0 16px 60px;}
+  h1{font-size:20px;color:var(--navy);margin:0 0 4px;} .sub{color:var(--gray-5);font-size:13px;margin:0 0 16px;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;}
+  .kpi{background:#fff;border:1px solid var(--gray-3);border-radius:var(--radius);padding:14px 16px;}
+  .kpi .v{font-size:22px;font-weight:900;color:var(--navy);} .kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-5);font-weight:700;margin-top:2px;}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .bar input,.bar select{padding:8px 10px;border:1px solid var(--gray-3);border-radius:8px;font-size:13px;font-family:inherit;}
+  .chip{font-size:12px;font-weight:700;padding:6px 12px;border-radius:16px;border:1px solid var(--gray-3);background:#fff;color:#3D506A;cursor:pointer;}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  button.csv{margin-left:auto;background:#fff;border:1px solid var(--gray-3);color:#3D506A;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;}
+  .tbl-scroll{overflow-x:auto;background:#fff;border:1px solid var(--gray-3);border-radius:var(--radius);}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:980px;}
+  th{background:var(--gray-2);color:#3D506A;text-align:left;padding:9px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;position:sticky;top:0;}
+  td{padding:9px 11px;border-top:1px solid var(--gray-2);vertical-align:top;}
+  tr:hover td{background:var(--gray-1);}
+  .pill{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:11px;white-space:nowrap;}
+  .ok{background:#e6f5e6;color:var(--green);} .pend{background:#EEF2FF;color:#3730A3;} .no{background:#fff0f0;color:var(--red);} .na{background:var(--gray-2);color:var(--gray-5);} .wait{background:#FFF7E6;color:#92400E;}
+  .age{font-size:10px;font-weight:800;padding:2px 7px;border-radius:9px;margin-left:5px;} .age-ok{background:#e6f5e6;color:var(--green);} .age-warn{background:#FFF7E6;color:#92400E;} .age-late{background:#fff0f0;color:var(--red);}
+  .pay-btn{background:var(--green);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-weight:800;font-size:12px;cursor:pointer;}
+  .empty{text-align:center;color:var(--gray-5);padding:50px 0;}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(13,27,42,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal.open{display:flex;} .modal-card{background:#fff;border-radius:14px;padding:24px;max-width:420px;width:100%;}
+  .modal-card h3{margin:0 0 4px;color:var(--navy);} .modal-card label{font-size:12px;font-weight:700;color:#3D506A;display:block;margin:12px 0 5px;}
+  .modal-card input{width:100%;padding:9px 11px;border:1px solid var(--gray-3);border-radius:8px;font-size:14px;}
+  .modal-act{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="logo-sq">S</div><div class="brand">Spyne <span>ReimburseDesk</span></div><div class="sp"></div><div id="rmb-userbar"></div></div>
+<div class="wrap">
+  <h1>Finance — reimbursement tracker</h1>
+  <p class="sub" id="sub">Loading…</p>
+  <div class="kpis" id="kpis"></div>
+  <div class="bar">
+    <input id="search" placeholder="Search id / name / title…" oninput="render()">
+    <select id="f-cur" onchange="render()"><option value="">All currencies</option><option>INR</option><option>USD</option></select>
+    <span class="chip on" id="ch-all" onclick="setF('all')">All</span>
+    <span class="chip" id="ch-pay" onclick="setF('pay')">Awaiting payout</span>
+    <span class="chip" id="ch-pending" onclick="setF('pending')">In approval</span>
+    <span class="chip" id="ch-paid" onclick="setF('paid')">Paid</span>
+    <button class="csv" onclick="downloadCSV()">⬇ CSV</button>
+  </div>
+  <div class="tbl-scroll"><table id="tbl"><thead><tr>
+    <th>Claim ID</th><th>Employee</th><th>Dept</th><th>Title</th><th>Submitted</th>
+    <th style="text-align:right">Total</th><th style="text-align:right">Net</th>
+    <th>HOD</th><th>Finance</th><th>CEO</th><th>Payout</th><th>Status</th><th></th>
+  </tr></thead><tbody id="rows"></tbody></table></div>
+  <div id="empty"></div>
+</div>
+
+<div class="modal" id="paymodal"><div class="modal-card">
+  <h3>Record payout</h3>
+  <p class="sub" id="pay-info" style="margin:6px 0 0"></p>
+  <label>Amount paid</label><input id="pay-amt" type="number" min="0" step="1">
+  <label>Payment reference (UTR / txn id)</label><input id="pay-ref" placeholder="optional">
+  <div class="modal-act"><button class="chip" onclick="closePay()">Cancel</button><button class="pay-btn" onclick="confirmPay()">Mark reimbursed</button></div>
+</div></div>
+
+<script src="/auth-guard.js"></script>
+<script>
+var DATA={rows:[],currencySummaries:{}}, FILTER='all', PAYID=null;
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function money(a,c){c=c||'INR';return c+' '+Number(a||0).toLocaleString(c==='USD'?'en-US':'en-IN',{maximumFractionDigits:0});}
+
+requireView('finance',function(me){ renderUserbar(me); load(); });
+
+function load(){
+  fetch('/api/finance',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    DATA=d; renderKpis(); render();
+    el('sub').textContent=(d.rows||[]).length+' claim(s) total.';
+  }).catch(function(){ el('rows').innerHTML=''; el('empty').innerHTML='<div class="empty">Could not load.</div>'; });
+}
+function renderKpis(){
+  var rows=DATA.rows||[];
+  var pendingN=rows.filter(function(r){return ['dept','finance','mgmt'].indexOf(r.stage)>-1;}).length;
+  var payN=rows.filter(function(r){return r.canPay;}).length;
+  var sums=DATA.currencySummaries||{};
+  var pipeline=Object.keys(sums).map(function(c){return money(sums[c].totalPipeline,c);}).join(' · ')||'—';
+  var paid=Object.keys(sums).map(function(c){return money(sums[c].totalPaid,c);}).join(' · ')||'—';
+  el('kpis').innerHTML=[
+    ['v',rows.length,'Total claims'],['v',pendingN,'In approval'],['v',payN,'Awaiting payout'],
+    ['t',pipeline,'Open pipeline'],['t',paid,'Paid out']
+  ].map(function(k){return '<div class="kpi"><div class="v" style="font-size:'+(k[0]==='t'?'15px':'22px')+'">'+esc(k[1])+'</div><div class="l">'+k[2]+'</div></div>';}).join('');
+}
+function setF(f){ FILTER=f; ['all','pay','pending','paid'].forEach(function(x){ el('ch-'+x).classList.toggle('on',x===f); }); render(); }
+function pill(v,kind){ return '<span class="pill '+kind+'">'+esc(v)+'</span>'; }
+function decPill(v){ if(!v||v==='Pending')return pill('Pending','pend'); if(v==='N/A')return pill('N/A','na'); if(/reject/i.test(v))return pill('Rejected','no'); if(/approv/i.test(v))return pill('Approved','ok'); if(/await/i.test(v))return pill(v,'wait'); return pill(v,'pend'); }
+function ageBadge(r){ if(r.ageDays==null)return ''; var c=r.ageDays>=7?'age-late':(r.ageDays>=3?'age-warn':'age-ok'); return '<span class="age '+c+'">'+r.ageDays+'d</span>'; }
+
+function visible(){
+  var q=(el('search').value||'').toLowerCase(), cur=el('f-cur').value;
+  return (DATA.rows||[]).filter(function(r){
+    if(cur && r.currency!==cur) return false;
+    if(FILTER==='pay' && !r.canPay) return false;
+    if(FILTER==='pending' && ['dept','finance','mgmt'].indexOf(r.stage)<0) return false;
+    if(FILTER==='paid' && !/reimbursed|paid/i.test(r.status)) return false;
+    if(q && [r.id,r.name,r.title,r.dept].join(' ').toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+}
+function render(){
+  var rows=visible();
+  el('empty').innerHTML = rows.length?'':'<div class="empty">No matching claims.</div>';
+  el('rows').innerHTML=rows.map(function(r){
+    var pay = r.canPay ? '<button class="pay-btn" onclick="openPay(\''+esc(r.id)+'\')">Pay</button>'
+      : (/reimbursed|paid/i.test(r.status) ? (esc(money(r.paidAmount||r.net,r.currency))+(r.payRef?'<br><small style="color:var(--gray-5)">'+esc(r.payRef)+'</small>':'')) : '');
+    return '<tr>'+
+      '<td>'+esc(r.id)+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.dept||'')+'</td><td>'+esc(r.title||'')+'</td><td>'+esc(r.submission)+ageBadge(r)+'</td>'+
+      '<td style="text-align:right">'+esc(r.amountLabel)+'</td><td style="text-align:right;font-weight:800">'+esc(r.netLabel)+'</td>'+
+      '<td>'+decPill(r.hodStatus)+'</td><td>'+decPill(r.financeStatus)+'</td><td>'+decPill(r.mgmtStatus)+'</td>'+
+      '<td>'+(r.canPay?pill('Awaiting','wait'):(/reimbursed|paid/i.test(r.status)?pill('Paid','ok'):pill('—','na')))+'</td>'+
+      '<td style="font-size:11.5px;color:var(--gray-5)">'+esc(r.finalStatus||r.status)+'</td>'+
+      '<td>'+pay+'</td></tr>';
+  }).join('');
+}
+
+function openPay(id){ PAYID=id; var r=(DATA.rows||[]).find(function(x){return x.id===id;}); if(!r)return;
+  el('pay-info').textContent=r.id+' · '+(r.name||'')+' · net '+r.netLabel; el('pay-amt').value=r.net; el('pay-ref').value=''; el('paymodal').classList.add('open'); }
+function closePay(){ el('paymodal').classList.remove('open'); PAYID=null; }
+function confirmPay(){
+  if(!PAYID)return;
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'pay',id:PAYID,paidAmount:Number(el('pay-amt').value)||0,payRef:el('pay-ref').value})})
+    .then(function(r){return r.json();}).then(function(res){ if(!res.ok){ alert(res.error||'Failed'); return; } closePay(); load(); })
+    .catch(function(e){ alert('Network error: '+e.message); });
+}
+
+function downloadCSV(){
+  var rows=visible();
+  var head=['Claim ID','Employee','Department','Title','Submitted','Currency','Total','Net','HOD','Finance','CEO','Payout','Status','Paid Amount','Payment Ref','Paid On'];
+  var lines=[head.join(',')];
+  rows.forEach(function(r){
+    var vals=[r.id,r.name,r.dept,r.title,r.submission,r.currency,r.amount,r.net,r.hodStatus,r.financeStatus,r.mgmtStatus,(r.canPay?'Awaiting':(/paid|reimbursed/i.test(r.status)?'Paid':'')),r.finalStatus||r.status,r.paidAmount||'',r.payRef||'',r.payDate||''];
+    lines.push(vals.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(','));
+  });
+  var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='reimbursements.csv'; a.click();
+}
+</script>
+</body>
+</html>

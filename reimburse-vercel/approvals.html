@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spyne ReimburseDesk · Approvals</title>
+<style>
+  :root{--navy:#0D1B2A;--ink:#1a2332;--gray-1:#f6f8fb;--gray-2:#eef2f7;--gray-3:#e2e8f0;--gray-5:#8A97AA;--red:#E8232A;--green:#0a8a0a;--sky:#0077CC;--amber:#b8860b;--radius:12px;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--gray-1);color:var(--ink);}
+  .topbar{background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .logo-sq{width:32px;height:32px;border-radius:8px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;}
+  .brand{font-weight:800;font-size:16px;} .brand span{color:#9fb3c8;font-weight:600;} .topbar .sp{flex:1}
+  .wrap{max-width:1000px;margin:22px auto;padding:0 16px 60px;}
+  h1{font-size:20px;color:var(--navy);margin:0 0 4px;} .sub{color:var(--gray-5);font-size:13px;margin:0 0 6px;}
+  .ro{display:inline-block;font-size:11px;font-weight:800;background:#FFF7E6;color:#92400E;border:1px solid #F59E0B;border-radius:12px;padding:3px 10px;margin-bottom:14px;}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 18px;}
+  .chip{font-size:12px;font-weight:700;padding:6px 13px;border-radius:16px;border:1px solid var(--gray-3);background:#fff;color:#3D506A;cursor:pointer;}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .req-card{background:#fff;border:1px solid var(--gray-3);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(13,27,42,.05);}
+  .req-card.pending{border-left:4px solid var(--amber);}
+  .rc-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;}
+  .rc-title{font-weight:800;font-size:15px;color:var(--navy);} .rc-meta{font-size:12px;color:var(--gray-5);margin-top:2px;}
+  .rc-amt{font-size:18px;font-weight:900;color:var(--navy);text-align:right;} .rc-amt small{display:block;font-size:11px;color:var(--gray-5);font-weight:600;}
+  .tier{font-size:11.5px;font-weight:700;color:#3730A3;margin-top:6px;}
+  .lines{margin-top:12px;border-top:1px solid var(--gray-2);padding-top:10px;}
+  .lines table{width:100%;border-collapse:collapse;font-size:12.5px;} .lines th{text-align:left;color:var(--gray-5);font-size:11px;text-transform:uppercase;padding:3px 6px;} .lines td{padding:4px 6px;border-top:1px solid var(--gray-2);}
+  .kv{font-size:12.5px;color:#3D506A;margin-top:8px;} .kv b{color:var(--ink);}
+  .act{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center;}
+  .act textarea{flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--gray-3);border-radius:8px;font-family:inherit;font-size:13px;min-height:38px;resize:vertical;}
+  button{font-weight:800;font-size:13px;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;}
+  .b-app{background:var(--green);color:#fff;} .b-rej{background:var(--red);color:#fff;} .b-hold{background:#fff;color:#92400E;border:1px solid #F59E0B;}
+  .decided{font-size:12px;font-weight:800;padding:5px 12px;border-radius:13px;}
+  .d-ok{background:#e6f5e6;color:var(--green);} .d-no{background:#fff0f0;color:var(--red);}
+  .empty{text-align:center;color:var(--gray-5);padding:50px 0;}
+  .comments{white-space:pre-wrap;font-size:11.5px;color:var(--gray-5);margin-top:10px;border-top:1px dashed var(--gray-2);padding-top:8px;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="logo-sq">S</div><div class="brand">Spyne <span>ReimburseDesk</span></div><div class="sp"></div><div id="rmb-userbar"></div></div>
+<div class="wrap">
+  <h1 id="title">Approvals</h1>
+  <p class="sub" id="scope">Loading…</p>
+  <div id="ro" class="ro" style="display:none">Read-only monitor</div>
+  <div class="filters" id="filters"></div>
+  <div id="list"></div>
+</div>
+<script src="/auth-guard.js"></script>
+<script>
+var DATA={rows:[],readOnly:false}, FILTER='pending';
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function money(a,c){c=c||'INR';return c+' '+Number(a||0).toLocaleString(c==='USD'?'en-US':'en-IN',{maximumFractionDigits:0});}
+function qs(k){return (location.search.match(new RegExp(k+'=(\\w+)'))||[])[1]||'';}
+
+requireView(['hod','ceo','finance'],function(me){ renderUserbar(me); load(); });
+
+function load(){
+  var as=qs('as'); var url='/api/decision?view=approvals'+(as?'&as='+as:'');
+  fetch(url,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    DATA=d; el('scope').textContent=d.scope||'';
+    el('ro').style.display=d.readOnly?'inline-block':'none';
+    if(d.readOnly) FILTER='all';
+    renderFilters(); render();
+  }).catch(function(){ el('list').innerHTML='<div class="empty">Could not load approvals.</div>'; });
+}
+function renderFilters(){
+  var counts={pending:0,all:DATA.rows.length};
+  DATA.rows.forEach(function(r){ if(r.pending) counts.pending++; });
+  var defs=[['pending','Awaiting me ('+counts.pending+')'],['all','All ('+counts.all+')']];
+  el('filters').innerHTML=defs.map(function(f){return '<span class="chip'+(FILTER===f[0]?' on':'')+'" onclick="setF(\''+f[0]+'\')">'+f[1]+'</span>';}).join('');
+}
+function setF(f){ FILTER=f; renderFilters(); render(); }
+
+function render(){
+  var rows=DATA.rows.filter(function(r){ return FILTER==='pending' ? (r.pending||r.held||r.canPay) : true; });
+  if(!rows.length){ el('list').innerHTML='<div class="empty">'+(FILTER==='pending'?'Nothing awaiting you. 🎉':'No claims.')+'</div>'; return; }
+  el('list').innerHTML=rows.map(card).join('');
+}
+function linesHtml(r){
+  var d=r.detail||{},lines=d.lines||[];
+  if(!lines.length) return '';
+  return '<div class="lines"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th style="text-align:right">Amount</th><th>Receipt</th></tr></thead><tbody>'+
+    lines.map(function(l){return '<tr><td>'+esc(l.date||'')+'</td><td>'+esc(l.category||'')+'</td><td>'+esc(l.description||'')+'</td><td style="text-align:right">'+esc(money(l.amount,r.currency))+'</td><td>'+(l.receipt?'<a href="'+esc(l.receipt)+'" target="_blank" style="color:var(--sky)">view</a>':'—')+'</td></tr>';}).join('')+
+    '</tbody></table></div>';
+}
+function card(r){
+  var d=r.detail||{}, period=[d.periodFrom,d.periodTo].filter(Boolean).join(' → ');
+  var actionable = r.pending && !DATA.readOnly;
+  var head='<div class="rc-head"><div>'+
+    '<div class="rc-title">'+esc(r.title||'(untitled)')+'</div>'+
+    '<div class="rc-meta">'+esc(r.id)+' · '+esc(r.name||'')+' · '+esc(r.dept||'')+(d.project?' · '+esc(d.project):'')+(period?' · '+esc(period):'')+' · '+r.lineCount+' line(s) · '+esc(r.submission)+'</div>'+
+    '<div class="tier">'+esc(r.tier||'')+'</div>'+
+    '</div><div class="rc-amt">'+esc(r.netLabel)+'<small>net · total '+esc(r.amountLabel)+'</small></div></div>';
+  var info='<div class="kv"><b>Purpose:</b> '+esc(r.purpose||'—')+(d.payMethod?' &nbsp;·&nbsp; <b>Pay via:</b> '+esc([d.payMethod,d.payDetail].filter(Boolean).join(' · ')):'')+(d.advance>0?' &nbsp;·&nbsp; <b>Advance:</b> '+esc(money(d.advance,r.currency)):'')+(d.notes?'<br><b>Notes:</b> '+esc(d.notes):'')+'</div>';
+  var foot='';
+  if(actionable){
+    foot='<div class="act"><textarea id="c-'+esc(r.id)+'" placeholder="Optional remark…"></textarea>'+
+      '<button class="b-app" onclick="decide(\''+esc(r.id)+'\',\'approve\')">Approve</button>'+
+      '<button class="b-rej" onclick="decide(\''+esc(r.id)+'\',\'reject\')">Reject</button>'+
+      '<button class="b-hold" onclick="decide(\''+esc(r.id)+'\',\'hold\')">Hold</button></div>';
+  } else if(r.held){
+    foot='<div class="act"><span class="decided d-no">On hold</span> <textarea id="c-'+esc(r.id)+'" placeholder="Remark…"></textarea>'+
+      '<button class="b-app" onclick="decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="b-rej" onclick="decide(\''+esc(r.id)+'\',\'reject\')">Reject</button></div>';
+  } else {
+    var dec=r.decision||'';
+    foot='<div class="act"><span class="decided '+(/reject/i.test(dec)?'d-no':'d-ok')+'">'+(dec||esc(r.status))+'</span></div>';
+  }
+  var comments=r.comments?'<div class="comments">'+esc(r.comments)+'</div>':'';
+  return '<div class="req-card'+(actionable?' pending':'')+'">'+head+info+linesHtml(r)+foot+comments+'</div>';
+}
+function decide(id,decision){
+  var c=el('c-'+id); var comment=c?c.value:'';
+  if(decision==='reject'&&!comment){ if(!confirm('Reject without a remark?')) return; }
+  fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,decision:decision,comment:comment})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(!res.ok){ alert(res.error||'Action failed'); return; }
+      load();
+    }).catch(function(e){ alert('Network error: '+e.message); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<base target="_top">
+<title>Spyne Expense Approval · New Request</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#E8232A;--red-d:#B01820;--red-l:#FEF0F0;--navy:#0D1B2A;
+  --sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+  --red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;
+  --gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;--radius:10px;--radius-lg:14px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.main{display:grid;grid-template-columns:1fr 330px;gap:22px;max-width:1080px;margin:0 auto;padding:24px 20px 60px;align-items:start;}
+@media(max-width:880px){.main{grid-template-columns:1fr;}}
+.card{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-3);overflow:hidden;}
+.sec-h{padding:16px 24px 12px;border-bottom:2px solid var(--gray-2);display:flex;align-items:center;gap:12px;}
+.sec-ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.sec-t{font-size:14px;font-weight:800;color:var(--navy);}
+.sec-s{font-size:12px;color:var(--gray-5);margin-top:1px;}
+.sec-b{padding:20px 24px;}
+.sec-b+.sec-h{border-top:1px solid var(--gray-2);}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.span2{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;}
+.field label .req{color:var(--red);}
+.field input,.field select,.field textarea{padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);font-size:14px;font-family:inherit;color:var(--ink);background:#fff;outline:none;transition:border-color .2s;width:100%;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--red);}
+.field input[readonly]{background:var(--gray-1);color:var(--gray-7);}
+.field textarea{resize:vertical;min-height:60px;}
+.amount-row{display:flex;gap:0;}
+.amount-row select{width:88px;border-radius:var(--radius) 0 0 var(--radius);border-right:none;}
+.amount-row input{border-radius:0 var(--radius) var(--radius) 0;}
+.hint{font-size:11px;color:var(--gray-5);line-height:1.4;}
+.hint.ok{color:var(--green);font-weight:600;}.hint.bad{color:var(--red2);font-weight:600;}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;background:var(--amb-l);color:#92400E;margin-left:4px;}
+.radio-cards{display:flex;gap:10px;flex-wrap:wrap;}
+.rc{flex:1;min-width:110px;padding:12px;border-radius:var(--radius);border:2px solid var(--gray-3);cursor:pointer;text-align:center;transition:all .2s;user-select:none;}
+.rc:hover{border-color:var(--gray-5);}
+.rc.sel{border-color:var(--red);background:var(--red-l);}
+.rc .ic{font-size:20px;}.rc .nm{font-size:12px;font-weight:700;color:var(--gray-7);margin-top:3px;}
+.rc.sel .nm{color:var(--red);}.rc .sub{font-size:10px;color:var(--gray-5);margin-top:2px;}
+.info{background:var(--sky-l);border:1px solid #B3D7F5;border-radius:var(--radius);padding:11px 14px;font-size:12px;color:#1e3a5f;line-height:1.5;}
+.info.amber{background:var(--amb-l);border-color:#FCD34D80;color:#78350F;}
+.hidden{display:none!important;}
+/* summary */
+.summary{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-3);overflow:hidden;position:sticky;top:18px;}
+.sm-h{padding:15px 20px;border-bottom:1px solid var(--gray-2);}
+.sm-t{font-size:14px;font-weight:800;color:var(--navy);}
+.sm-b{padding:16px 20px;}
+.sm-line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:13px;gap:10px;}
+.sm-line:last-of-type{border-bottom:none;}
+.sm-line .k{color:var(--gray-7);}.sm-line .v{font-weight:700;text-align:right;}
+.sm-total{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:13px 15px;background:var(--gray-1);border-radius:var(--radius);border:1px solid var(--gray-2);}
+.sm-total .k{font-size:13px;font-weight:700;color:var(--gray-7);}
+.sm-total .v{font-size:19px;font-weight:900;color:var(--navy);}
+.tier{margin-top:12px;padding:11px 13px;border-radius:var(--radius);font-size:12px;line-height:1.5;font-weight:600;}
+.tier.std{background:var(--grn-l);border:1px solid #6EE7B780;color:#065F46;}
+.tier.high{background:var(--amb-l);border:1px solid #FCD34D80;color:#78350F;}
+.chain{padding:14px 20px;border-top:1px solid var(--gray-2);}
+.chain-t{font-size:11px;font-weight:800;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.chain-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.chain-step{background:var(--gray-2);color:var(--gray-7);border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;}
+.chain-step.cur{background:var(--navy);color:#fff;}
+.chain-step.life{background:#fff;border:1px dashed var(--gray-3);color:var(--gray-5);}
+.chain-arrow{color:var(--gray-5);font-size:11px;}
+.submit-area{padding:20px 24px;background:var(--gray-1);border-top:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
+.note{font-size:12px;color:var(--gray-5);max-width:360px;line-height:1.5;}
+.btn{padding:11px 26px;border-radius:var(--radius);border:none;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;}
+.btn-submit{background:var(--red);color:#fff;}.btn-submit:hover{background:var(--red-d);}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed;}
+.btn-clear{background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);}
+.err-banner{margin:0 24px 14px;padding:11px 14px;border-radius:var(--radius);background:var(--red2-l);border:1px solid #FECACA;color:var(--red2);font-size:13px;font-weight:600;display:none;}
+.err-banner.show{display:block;}
+.success{display:none;padding:46px 28px;text-align:center;}
+.success.show{display:block;}
+.success .ic{font-size:54px;}.success .t{font-size:23px;font-weight:900;color:var(--green);margin:12px 0 6px;}
+.success .s{font-size:14px;color:var(--gray-5);line-height:1.6;margin-bottom:20px;}
+.success .id{display:inline-block;background:var(--navy);color:#fff;border-radius:8px;padding:6px 14px;font-weight:800;font-size:14px;margin-bottom:18px;}
+.tl{display:flex;justify-content:center;flex-wrap:wrap;margin-bottom:24px;}
+.tl-i{display:flex;align-items:center;}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;background:var(--sky);}
+.tl-lb{font-size:9px;color:var(--gray-5);max-width:64px;text-align:center;margin-top:4px;}
+.tl-ln{width:22px;height:2px;background:var(--gray-3);margin-bottom:16px;}
+.loading{text-align:center;padding:60px;color:var(--gray-5);font-size:14px;}
+.qdoc{margin-bottom:8px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-sq">S</div>
+    <div><div class="logo-txt" id="brand">Spyne Expense Approval Dashboard</div><div class="logo-sub">Expense / Purchase Request</div></div>
+  </div>
+  <div id="exp-userbar"></div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div id="loading" class="loading">Loading form…</div>
+
+<div class="main hidden" id="app">
+  <div>
+    <div class="card" id="form-card">
+      <div class="success" id="success">
+        <div class="ic">✅</div>
+        <div class="t">Request Submitted!</div>
+        <div class="s">Routed for approval. Raise this <b>before</b> placing the order — you'll get email updates at every step.</div>
+        <div class="id" id="success-id"></div>
+        <div class="tl" id="success-tl"></div>
+        <button class="btn btn-submit" onclick="resetForm()" style="margin:0 auto;">+ New Request</button>
+      </div>
+
+      <div id="form-body">
+        <div class="err-banner" id="err-banner"></div>
+
+        <!-- REQUESTER -->
+        <div class="sec-h"><div class="sec-ic" style="background:#FEF0F0;">👤</div>
+          <div><div class="sec-t">Requester</div><div class="sec-s">Pick your department — your HOD fills in automatically</div></div></div>
+        <div class="sec-b">
+          <div class="grid">
+            <div class="field"><label>Full Name <span class="req">*</span></label><input id="f-name" placeholder="Priya Sharma"></div>
+            <div class="field"><label>Employee ID</label><input id="f-empid" placeholder="EMP-101"></div>
+            <div class="field"><label>Department <span class="req">*</span></label>
+              <select id="f-dept" onchange="onDept()"><option value="">Select department</option></select></div>
+            <div class="field"><label>Your Email</label><input id="f-email" type="email" placeholder="you@spyne.ai"></div>
+            <div class="field span2"><label>Approving HOD <span class="tag">Auto</span></label>
+              <input id="f-hod" readonly placeholder="Auto-filled from your department"></div>
+          </div>
+        </div>
+
+        <!-- REQUEST -->
+        <div class="sec-h"><div class="sec-ic" style="background:#EBF5FF;">🧾</div>
+          <div><div class="sec-t">What are you requesting?</div><div class="sec-s">New spend, a new tool/subscription, or a renewal</div></div></div>
+        <div class="sec-b">
+          <div class="field span2" style="margin-bottom:16px;">
+            <label>Request Type <span class="req">*</span></label>
+            <div class="radio-cards" id="rtype-cards">
+              <div class="rc" data-t="New Purchase" onclick="onReqType('New Purchase')"><div class="ic">🛒</div><div class="nm">New Purchase</div><div class="sub">Goods / service</div></div>
+              <div class="rc" data-t="New Subscription" onclick="onReqType('New Subscription')"><div class="ic">🔑</div><div class="nm">New Subscription</div><div class="sub">New tool / software</div></div>
+              <div class="rc" data-t="Renewal" onclick="onReqType('Renewal')"><div class="ic">🔁</div><div class="nm">Renewal</div><div class="sub">Existing service</div></div>
+            </div>
+          </div>
+          <div class="grid">
+            <div class="field"><label>Nature of spend <span class="req">*</span></label><select id="f-nature" onchange="recalc()"></select></div>
+            <div class="field"><label>Category</label><select id="f-category"><option value="">Select category</option></select></div>
+            <div class="field"><label>Linked Travel Request <span class="tag">Optional</span></label><input id="f-travelid" placeholder="TRF-… (for trip expenses)"></div>
+            <div class="field"><label>Vendor / Supplier <span class="req">*</span></label><input id="f-vendor" list="vendor-list" autocomplete="off" placeholder="e.g. Figma, AWS, Dell" oninput="vendorLookup()" onchange="vendorLookup()"><datalist id="vendor-list"></datalist></div>
+            <div class="field span2"><label>Item / Service <span class="req">*</span></label><input id="f-item" placeholder="What exactly is being bought / subscribed?"></div>
+            <div class="field"><label>Vendor GST / PAN</label><input id="f-vgst" placeholder="GSTIN / PAN (optional)"></div>
+            <div class="field"><label>Vendor Phone</label><input id="f-vphone" placeholder="Contact number (optional)"></div>
+            <div class="field span2"><label>Vendor Email</label><input id="f-vemail" type="email" placeholder="Vendor email (optional)"></div>
+          </div>
+          <div class="hint" id="nature-note" style="margin-top:8px;"></div>
+        </div>
+
+        <!-- BUDGET GATE -->
+        <div class="sec-h"><div class="sec-ic" style="background:#E6F4EA;">📊</div>
+          <div><div class="sec-t">Budget</div><div class="sec-s">Is this covered by an approved budget?</div></div></div>
+        <div class="sec-b">
+          <div class="field span2" style="margin-bottom:14px;">
+            <label>Budget taken? <span class="req">*</span></label>
+            <div class="radio-cards" id="budget-cards">
+              <div class="rc" data-b="Yes" onclick="onBudget('Yes')"><div class="ic">✅</div><div class="nm">Yes — budgeted</div><div class="sub">Claim an approved line</div></div>
+              <div class="rc" data-b="No" onclick="onBudget('No')"><div class="ic">⚠️</div><div class="nm">No — not budgeted</div><div class="sub">Justification + CEO approval</div></div>
+            </div>
+          </div>
+          <div class="span2 hidden" id="budgetline-wrap">
+            <div class="grid">
+              <div class="field"><label>Approved Budget</label><select id="f-budget" onchange="onBudgetPick()"><option value="">Select budget</option></select></div>
+              <div class="field"><label>Budget Line Item</label><select id="f-budget-line" onchange="recalc()"><option value="">Select line</option></select></div>
+            </div>
+            <div class="field span2 hidden" id="budgetfree-wrap" style="margin-top:10px;"><label>Budget line reference</label>
+              <input id="f-budgetline" placeholder="Note the budget head (optional)"></div>
+            <div class="hint" id="budget-note" style="margin-top:6px;"></div>
+          </div>
+          <div class="field span2 hidden" id="oob-wrap"><label>Out-of-budget justification <span class="req">*</span></label>
+            <textarea id="f-oob" placeholder="Why is this needed despite not being budgeted?"></textarea>
+            <div class="info amber" style="margin-top:8px;">⚠ Out-of-budget requests need <b>CEO approval</b> regardless of amount.</div></div>
+        </div>
+
+        <!-- AMOUNT -->
+        <div class="sec-h"><div class="sec-ic" style="background:#FFFBEB;">💰</div>
+          <div><div class="sec-t">Amount &amp; Billing</div><div class="sec-s">₹20,000+ needs 3 quotations · ₹75,000+ also needs CEO/Management</div></div></div>
+        <div class="sec-b">
+          <div class="grid">
+            <div class="field"><label>Currency</label><select id="f-currency" onchange="recalc()"></select></div>
+            <div class="field"><label>Billing <span class="req">*</span></label><select id="f-frequency" onchange="recalc()"></select></div>
+            <div class="field"><label>Rate per Unit <span class="req">*</span></label><input id="f-rate" type="number" min="0" step="any" placeholder="0" oninput="recalc()"></div>
+            <div class="field"><label>Quantity <span class="req">*</span></label><input id="f-qty" type="number" min="0" step="any" value="1" oninput="recalc()"></div>
+            <div class="field"><label>Total Amount <span class="tag">Auto</span></label><input id="f-amount" readonly placeholder="0"></div>
+            <div class="field"><label>Expense Month</label><input id="f-month" type="month"></div>
+            <div class="field span2"><label>Needed By</label><input id="f-needby" type="date"></div>
+          </div>
+        </div>
+
+        <!-- QUOTATIONS (≥ threshold) -->
+        <div class="sec-h" id="quote-h"><div class="sec-ic" style="background:#EBF5FF;">📑</div>
+          <div><div class="sec-t">Quotations <span class="tag" id="quote-tag">Required ≥ ₹20,000</span></div><div class="sec-s">Three quotations are required at this value.</div></div></div>
+        <div class="sec-b" id="quote-b">
+          <div class="field span2" style="margin-bottom:12px;">
+            <label>Are all three quotations available?</label>
+            <div class="radio-cards" id="quote-cards">
+              <div class="rc" data-q="Yes" onclick="onQuotes('Yes')"><div class="ic">📄</div><div class="nm">Yes</div><div class="sub">Attach all three</div></div>
+              <div class="rc" data-q="No" onclick="onQuotes('No')"><div class="ic">✏️</div><div class="nm">No</div><div class="sub">Give a reason</div></div>
+            </div>
+          </div>
+          <div id="quote-yes" class="hidden">
+            <div class="grid">
+              <div class="field qdoc"><label>Quotation 1 <span class="req">*</span></label><input type="file" id="f-q1" accept="image/*,.pdf" onchange="uploadDoc('f-q1','q1','up-q1')"><div class="hint" id="up-q1"></div></div>
+              <div class="field qdoc"><label>Quotation 2 <span class="req">*</span></label><input type="file" id="f-q2" accept="image/*,.pdf" onchange="uploadDoc('f-q2','q2','up-q2')"><div class="hint" id="up-q2"></div></div>
+              <div class="field qdoc span2"><label>Quotation 3 <span class="req">*</span></label><input type="file" id="f-q3" accept="image/*,.pdf" onchange="uploadDoc('f-q3','q3','up-q3')"><div class="hint" id="up-q3"></div></div>
+            </div>
+          </div>
+          <div id="quote-no" class="hidden">
+            <div class="field span2"><label>Reason for fewer than three quotations <span class="req">*</span></label>
+              <textarea id="f-qreason" placeholder="Sole vendor, urgency, etc."></textarea></div>
+          </div>
+        </div>
+
+        <!-- JUSTIFICATION -->
+        <div class="sec-h"><div class="sec-ic" style="background:#F7F9FC;">📋</div>
+          <div><div class="sec-t">Justification &amp; Documents</div><div class="sec-s">Why is this needed?</div></div></div>
+        <div class="sec-b">
+          <div class="field span2"><label>Purpose / Justification <span class="req">*</span></label>
+            <textarea id="f-purpose" placeholder="What is this for, and why now? Mention the business impact."></textarea></div>
+          <div class="field span2" style="margin-top:16px;"><label>Supporting document <span class="tag">Optional</span></label>
+            <input type="file" id="f-doc" accept="image/*,.pdf" onchange="uploadDoc('f-doc','proforma','up-doc')">
+            <div class="hint" id="up-doc">A quotation or proforma (optional, max 5 MB).</div></div>
+          <div class="field span2" style="margin-top:16px;"><label>Notes for Approver</label>
+            <textarea id="f-notes" placeholder="Anything else the approver should know"></textarea></div>
+        </div>
+
+        <div class="submit-area">
+          <div class="note">Fields marked <span style="color:var(--red)">*</span> are required. Your request routes to your HOD first.</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-clear" onclick="resetForm()">Clear</button>
+            <button class="btn btn-submit" id="submit-btn" onclick="submitForm()">Submit Request →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="summary" id="summary">
+      <div class="sm-h"><div class="sm-t">Request Summary</div></div>
+      <div class="sm-b">
+        <div class="sm-line"><span class="k">Type</span><span class="v" id="s-type">—</span></div>
+        <div class="sm-line"><span class="k">Vendor</span><span class="v" id="s-vendor">—</span></div>
+        <div class="sm-line"><span class="k">Budget</span><span class="v" id="s-budget">—</span></div>
+        <div class="sm-line"><span class="k">Quotations</span><span class="v" id="s-quotes">—</span></div>
+        <div class="sm-total"><span class="k">Amount</span><span class="v" id="s-amount">—</span></div>
+        <div class="tier std" id="s-tier">Enter an amount to see the approval route.</div>
+      </div>
+      <div class="chain">
+        <div class="chain-t">Approval Route</div>
+        <div class="chain-row" id="s-chain"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var CFG=null, POL=null;
+var state={reqType:'',currency:'INR',budget:'',quotes:'',docs:{}};
+function $(id){return document.getElementById(id);}
+function val(id){var e=$(id);return e?(e.value||'').trim():'';}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(cur,x){cur=cur||'INR';return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0});}
+
+function boot(cfg){
+  CFG=cfg; POL=cfg.policy;
+  $('brand').textContent=cfg.company+' '+(cfg.appName||'Expense Approval Dashboard');
+  var sel=$('f-dept'); Object.keys(cfg.departments).forEach(function(d){var o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+  var cat=$('f-category'); (POL.CATEGORIES||[]).forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;cat.appendChild(o);});
+  var cur=$('f-currency'); (POL.CURRENCIES||['INR','USD']).forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;cur.appendChild(o);});
+  var fr=$('f-frequency'); Object.keys(POL.FREQUENCIES||{'One-time':1}).forEach(function(f){var o=document.createElement('option');o.value=f;o.textContent=f;fr.appendChild(o);});
+  $('quote-tag').textContent='Required ≥ ₹'+(POL.QUOTE_THRESHOLD_INR||20000).toLocaleString('en-IN');
+  if(cfg.userEmail){var fe=$('f-email');fe.value=cfg.userEmail;fe.readOnly=true;}
+  fillNature(); loadVendors();
+  $('loading').classList.add('hidden'); $('app').classList.remove('hidden');
+  recalc(); applyDeepLink();
+}
+function fillNature(){
+  var dept=val('f-dept');
+  var capexDepts=(POL.CAPEX_DEPTS||[]);
+  var opts=['Expense'].concat(capexDepts.indexOf(dept)>-1?['Capex']:[]);
+  var cur=val('f-nature');
+  $('f-nature').innerHTML=opts.map(function(o){return '<option'+(o===cur?' selected':'')+'>'+o+'</option>';}).join('');
+  $('nature-note').textContent=capexDepts.indexOf(dept)>-1?'Capex thresholds (₹3,00,000 → CEO) apply for this department.':'Capex is available only to IT (HR, IT & Admin).';
+}
+function applyDeepLink(){
+  var q=new URLSearchParams(location.search);
+  var bud=q.get('budget'); if(!bud) return;
+  PENDING_LINK={budget:bud, line:q.get('line')||''};
+  var dept=q.get('dept'); if(dept){ var ds=$('f-dept'); ds.value=dept; onDept(); }
+  onBudget('Yes'); // reveals + loads budgets, then applies PENDING_LINK
+  document.querySelector('#budget-cards .rc[data-b="Yes"]').classList.add('sel');
+}
+requireView('requester', function(me){
+  fetch('/api/config').then(function(r){if(!r.ok)throw new Error('config '+r.status);return r.json();})
+    .then(function(cfg){cfg.userEmail=me.email; boot(cfg); renderUserbar(me);})
+    .catch(function(e){$('loading').textContent='Could not load form: '+(e&&e.message||e);});
+});
+
+function onDept(){var d=val('f-dept');var info=CFG.departments[d];$('f-hod').value=info?(info.head+' <'+info.email+'>'):'';fillNature();if(state.budget==='Yes')loadBudgets();recalc();}
+var VENDORS=[];
+function loadVendors(){
+  fetch('/api/me?vendors=1',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    VENDORS=(d&&d.vendors)||[];
+    $('vendor-list').innerHTML=VENDORS.map(function(v){return '<option value="'+esc(v.vendor)+'">';}).join('');
+  }).catch(function(){});
+}
+function vendorLookup(){
+  var name=val('f-vendor').toLowerCase();
+  var m=VENDORS.find(function(v){return v.vendor.toLowerCase()===name;});
+  if(!m)return;
+  if(!val('f-vgst')&&m.gst)$('f-vgst').value=m.gst;
+  if(!val('f-vphone')&&m.phone)$('f-vphone').value=m.phone;
+  if(!val('f-vemail')&&m.email)$('f-vemail').value=m.email;
+}
+function onReqType(t){state.reqType=t;document.querySelectorAll('#rtype-cards .rc').forEach(function(c){c.classList.toggle('sel',c.dataset.t===t);});}
+function onBudget(b){
+  state.budget=b;
+  document.querySelectorAll('#budget-cards .rc').forEach(function(c){c.classList.toggle('sel',c.dataset.b===b);});
+  $('budgetline-wrap').classList.toggle('hidden', b!=='Yes');
+  $('oob-wrap').classList.toggle('hidden', b!=='No');
+  if(b==='Yes')loadBudgets();
+  recalc();
+}
+var BUDGETS=[],PENDING_LINK=null;
+function loadBudgets(){
+  var dept=val('f-dept');
+  if(!dept){ $('budget-note').textContent='Pick your department first to see its approved budgets.'; $('f-budget').innerHTML='<option value="">Select budget</option>'; $('f-budget-line').innerHTML='<option value="">Select line</option>'; return; }
+  $('budget-note').textContent='Loading approved budgets…';
+  fetch('/api/budget?dept='+encodeURIComponent(dept),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    BUDGETS=(d&&d.budgets)||[];
+    var sel=$('f-budget');
+    if(!BUDGETS.length){ sel.innerHTML='<option value="">— none —</option>'; $('budgetfree-wrap').classList.remove('hidden'); $('budget-note').textContent='No locked budget for '+dept+' yet — you can still proceed; Finance will map it.'; $('f-budget-line').innerHTML='<option value="">N/A</option>'; return; }
+    $('budgetfree-wrap').classList.add('hidden'); $('budget-note').textContent='Pick the approved budget line this expense draws from.';
+    sel.innerHTML='<option value="">Select budget</option>'+BUDGETS.map(function(b){return '<option value="'+esc(b.id)+'">'+esc(b.title)+' ('+esc(b.period)+')</option>';}).join('');
+    if(PENDING_LINK){ sel.value=PENDING_LINK.budget; onBudgetPick(); if(PENDING_LINK.line)$('f-budget-line').value=PENDING_LINK.line; PENDING_LINK=null; }
+  }).catch(function(){ $('budget-note').textContent='Could not load budgets.'; });
+}
+function onBudgetPick(){
+  var b=BUDGETS.find(function(x){return x.id===val('f-budget');});
+  var sel=$('f-budget-line');
+  if(!b){ sel.innerHTML='<option value="">Select line</option>'; return; }
+  sel.innerHTML='<option value="">Select line</option>'+b.lines.map(function(l){return '<option value="'+esc(l.id)+'">'+esc(l.head)+' — remaining '+Number(l.remaining||0).toLocaleString('en-IN')+'</option>';}).join('');
+  recalc();
+}
+function onQuotes(q){
+  state.quotes=q;
+  document.querySelectorAll('#quote-cards .rc').forEach(function(c){c.classList.toggle('sel',c.dataset.q===q);});
+  $('quote-yes').classList.toggle('hidden', q!=='Yes');
+  $('quote-no').classList.toggle('hidden', q!=='No');
+}
+function annualize(a,f){var m=(POL.FREQUENCIES&&POL.FREQUENCIES[f]!=null)?POL.FREQUENCIES[f]:1;return Math.round((Number(a)||0)*m);}
+function toINR(a,c){return c==='USD'?Math.round((Number(a)||0)*(POL.FX_USD_INR||92)):(Number(a)||0);}
+
+function recalc(){
+  if(!POL)return;
+  state.currency=val('f-currency')||'INR';
+  var cur=state.currency, freq=val('f-frequency')||'One-time';
+  var rate=Number(val('f-rate'))||0, qty=Number(val('f-qty'))||0, amount=Math.round(rate*qty);
+  $('f-amount').value=amount?amount:'';
+  var nature=val('f-nature')||'Expense', recurring=freq!=='One-time', capex=(nature==='Capex'||nature==='Asset');
+  var annual=annualize(amount,freq), annualINR=toINR(annual,cur), amountINR=toINR(amount,cur);
+  var thresh=capex?(POL.CEO_CAPEX_INR||300000):(recurring?(POL.CEO_EXPENSE_RECURRING_INR||240000):(POL.CEO_EXPENSE_ONETIME_INR||75000));
+  var basis=(!capex&&recurring)?annualINR:amountINR;
+  var oob=state.budget==='No';
+  var mgmt=basis>thresh||oob;
+  var quotesReq=amountINR>=(POL.QUOTE_THRESHOLD_INR||20000);
+
+  $('quote-h').classList.toggle('hidden', !quotesReq);
+  $('quote-b').classList.toggle('hidden', !quotesReq);
+
+  $('s-type').textContent=(nature&&nature!=='Expense'?nature+' · ':'')+(state.reqType||'—');
+  $('s-vendor').textContent=val('f-vendor')||'—';
+  $('s-budget').textContent=state.budget==='Yes'?'Budgeted (linked)':(state.budget==='No'?'Out of budget':'—');
+  $('s-quotes').textContent=amount?(quotesReq?'3 required':'Not required'):'—';
+  $('s-amount').textContent=amount?fmt(cur,amount):'—';
+
+  var tier=$('s-tier');var basisLbl=(!capex&&recurring)?'annualised':'amount';
+  if(!amount){tier.className='tier std';tier.textContent='Enter an amount to see the approval route.';}
+  else if(mgmt){tier.className='tier high';var why=(oob&&!(basis>thresh))?'out of budget':(esc(nature)+' '+basisLbl+' &gt; ₹'+thresh.toLocaleString('en-IN'));tier.innerHTML='⬆ <b>CEO approval required</b> ('+why+').'+(quotesReq?' 3 quotations required.':'');}
+  else{tier.className='tier std';tier.innerHTML='✓ <b>HOD → Finance</b> ('+esc(nature)+', within ₹'+thresh.toLocaleString('en-IN')+').'+(quotesReq?' 3 quotations required.':'');}
+
+  // route: approvals then lifecycle (PO/Delivery only for Capex/Asset)
+  var appr=['HOD','Finance'].concat(mgmt?['Sanjay (CEO)']:[]);
+  var life=capex?['PO','Delivery','e-Invoice','Payment']:['e-Invoice','Payment'];
+  var html=appr.map(function(s,i){return (i>0?'<span class="chain-arrow">→</span>':'')+'<span class="chain-step'+(i===0?' cur':'')+'">'+esc(s)+'</span>';}).join('');
+  html+=life.map(function(s){return '<span class="chain-arrow">→</span><span class="chain-step life">'+esc(s)+'</span>';}).join('');
+  $('s-chain').innerHTML=html;
+
+  // over-budget check against the selected line's remaining
+  state.overBudget=false;
+  if(state.budget==='Yes'&&val('f-budget')&&val('f-budget-line')){
+    var bb=BUDGETS.find(function(x){return x.id===val('f-budget');});
+    var ll=bb&&bb.lines.find(function(x){return x.id===val('f-budget-line');});
+    var note=$('budget-note');
+    if(ll){ var rem=Number(ll.remaining||0);
+      if(amount&&amountINR>rem){ state.overBudget=true; note.style.color='var(--red2)'; note.innerHTML='⚠ Exceeds remaining on "'+esc(ll.head)+'" (remaining ₹'+rem.toLocaleString('en-IN')+', this ₹'+amountINR.toLocaleString('en-IN')+'). Reduce the amount, pick another line, or mark it out-of-budget.'; }
+      else { note.style.color=''; note.textContent='Drawing from "'+ll.head+'" — remaining ₹'+rem.toLocaleString('en-IN')+'.'; }
+    }
+  }
+}
+
+function uploadDoc(inputId,key,statusId){
+  var inp=$(inputId),st=$(statusId),f=inp.files[0];
+  if(!f){state.docs[key]='';if(st)st.textContent='';return;}
+  if(f.size>5*1024*1024){st.className='hint bad';st.textContent='Too large — max 5 MB.';inp.value='';state.docs[key]='';return;}
+  st.className='hint';st.textContent='Uploading…';
+  var reader=new FileReader();
+  reader.onload=function(){
+    var base64=String(reader.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:base64})})
+      .then(function(r){return r.json();})
+      .then(function(d){if(d.ok){state.docs[key]=d.link;st.className='hint ok';st.textContent='✓ Uploaded';}else{state.docs[key]='';st.className='hint bad';st.textContent='Upload failed: '+(d.error||'error');}})
+      .catch(function(){state.docs[key]='';st.className='hint bad';st.textContent='Upload failed.';});
+  };
+  reader.readAsDataURL(f);
+}
+
+function showErr(m){var b=$('err-banner');b.textContent=m;b.classList.add('show');b.scrollIntoView({behavior:'smooth',block:'center'});}
+function clearErr(){$('err-banner').classList.remove('show');}
+
+function budgetLineLabel(){
+  var b=BUDGETS.find(function(x){return x.id===val('f-budget');});
+  if(b){ var l=b.lines.find(function(x){return x.id===val('f-budget-line');}); return b.id+' · '+(l?l.head:''); }
+  return val('f-budgetline');
+}
+function buildPayload(){
+  return {
+    name:val('f-name'),empId:val('f-empid'),dept:val('f-dept'),email:val('f-email'),
+    reqType:state.reqType,category:val('f-category'),travelId:val('f-travelid'),item:val('f-item'),vendor:val('f-vendor'),
+    currency:val('f-currency'),amount:Number(val('f-amount'))||0,rate:Number(val('f-rate'))||0,qty:Number(val('f-qty'))||0,frequency:val('f-frequency'),needBy:val('f-needby'),expenseMonth:val('f-month'),
+    vendorGst:val('f-vgst'),vendorPhone:val('f-vphone'),vendorEmail:val('f-vemail'),
+    nature:val('f-nature')||'Expense',budgetTaken:state.budget,oobJustification:val('f-oob'),budgetId:val('f-budget'),lineId:val('f-budget-line'),budgetLine:budgetLineLabel(),
+    quotesAvailable:state.quotes,quotations:[state.docs.q1||'',state.docs.q2||'',state.docs.q3||''].filter(Boolean),
+    quotesReason:val('f-qreason'),docQuote:state.docs.proforma||'',
+    purpose:val('f-purpose'),notes:val('f-notes')
+  };
+}
+function submitForm(){
+  clearErr();
+  var cur=val('f-currency')||'INR',amt=Number(val('f-amount'))||0;
+  var amountINR=toINR(amt,cur), quotesReq=amountINR>=(POL.QUOTE_THRESHOLD_INR||20000);
+  var miss=[];
+  if(!val('f-name'))miss.push('Full Name');
+  if(!val('f-dept'))miss.push('Department');
+  if(!state.reqType)miss.push('Request Type');
+  if(!val('f-vendor'))miss.push('Vendor');
+  if(!val('f-item'))miss.push('Item / Service');
+  if(!state.budget)miss.push('Budget taken (Yes/No)');
+  if(state.budget==='No'&&!val('f-oob'))miss.push('Out-of-budget justification');
+  if(state.budget==='Yes'&&BUDGETS.length&&(!val('f-budget')||!val('f-budget-line')))miss.push('Approved budget & line item');
+  if(!(Number(val('f-rate'))>0))miss.push('Rate per Unit');
+  if(!(Number(val('f-qty'))>0))miss.push('Quantity');
+  if(!val('f-frequency'))miss.push('Billing');
+  if(!val('f-purpose'))miss.push('Purpose / Justification');
+  if(quotesReq){
+    if(!state.quotes)miss.push('Quotations available? (Yes/No)');
+    else if(state.quotes==='Yes'){if(!state.docs.q1||!state.docs.q2||!state.docs.q3)miss.push('All 3 quotation uploads');}
+    else if(!val('f-qreason'))miss.push('Reason for fewer quotations');
+  }
+  if(miss.length){showErr('Please fill: '+miss.join(', '));return;}
+  if(state.overBudget){showErr('Amount exceeds the selected budget line’s remaining balance. Reduce it, pick another line, or mark it out-of-budget.');return;}
+  doSubmit(false);
+}
+function doSubmit(force){
+  var btn=$('submit-btn');btn.disabled=true;btn.textContent='Submitting…';
+  var payload=buildPayload();if(force)payload.allowDuplicate=true;
+  fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(function(r){return r.json().catch(function(){return {ok:false,error:'Server error ('+r.status+')'};});})
+    .then(onSubmitOk)
+    .catch(function(err){btn.disabled=false;btn.textContent='Submit Request →';showErr(err&&err.message||String(err));});
+}
+function onSubmitOk(res){
+  var btn=$('submit-btn');btn.disabled=false;btn.textContent='Submit Request →';
+  if(res&&res.duplicate){
+    if(confirm('⚠ '+res.error+'\n\nClick OK to submit anyway, or Cancel to review.')){doSubmit(true);}
+    else{showErr('Submission cancelled — looks like a possible duplicate of '+res.dupId+'.');}
+    return;
+  }
+  if(!res||!res.ok){showErr((res&&res.error)||'Submission failed.');return;}
+  $('success-id').textContent=res.id;
+  var chain=res.chain||['HOD','Finance','PO','Delivery','e-Invoice','Payment','Paid'];
+  $('success-tl').innerHTML=chain.map(function(s,i){
+    return '<div class="tl-i"><div style="display:flex;flex-direction:column;align-items:center;"><div class="tl-dot">'+(i+1)+'</div><div class="tl-lb">'+esc(s)+'</div></div>'+(i<chain.length-1?'<div class="tl-ln"></div>':'')+'</div>';
+  }).join('');
+  $('form-body').style.display='none';$('success').classList.add('show');window.scrollTo(0,0);
+}
+function resetForm(){
+  $('success').classList.remove('show');$('form-body').style.display='';
+  document.querySelectorAll('#form-body input:not([readonly]),#form-body select,#form-body textarea').forEach(function(e){if(e.type==='checkbox')e.checked=false;else e.value='';});
+  if(CFG&&CFG.userEmail)$('f-email').value=CFG.userEmail;
+  $('f-hod').value='';$('f-qty').value='1';
+  ['up-q1','up-q2','up-q3','up-doc'].forEach(function(i){var e=$(i);if(e){e.textContent='';e.className='hint';}});
+  $('up-doc').textContent='A quotation or proforma (optional, max 5 MB).';
+  state={reqType:'',currency:'INR',budget:'',quotes:'',docs:{}};
+  document.querySelectorAll('.rc').forEach(function(c){c.classList.remove('sel');});
+  $('budgetline-wrap').classList.add('hidden');$('oob-wrap').classList.add('hidden');fillNature();
+  $('quote-yes').classList.add('hidden');$('quote-no').classList.add('hidden');
+  clearErr();recalc();window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

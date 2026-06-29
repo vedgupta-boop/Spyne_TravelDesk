@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#E8232A;--navy:#0D1B2A;--navy2:#1C3148;--sky:#0077CC;--sky-l:#EBF5FF;
+  --green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;--red2:#DC2626;--red2-l:#FEE2E2;
+  --gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}
+.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 20px 60px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;}
+.kpi .num{font-size:24px;font-weight:900;color:var(--navy);margin-top:6px;}
+.kpi .sub{font-size:11px;color:var(--gray-5);margin-top:3px;}
+.kpi.green .num{color:var(--green);}.kpi.amber .num{color:#B45309;}.kpi.sky .num{color:var(--sky);}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:980px;}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;position:sticky;top:0;}
+th.r,td.r{text-align:right;}
+td{padding:10px 12px;border-bottom:1px solid var(--gray-2);white-space:nowrap;}
+tr:hover td{background:var(--gray-1);}
+.id{font-weight:800;color:var(--navy);}
+.muted{color:var(--gray-5);}
+.amt{font-variant-numeric:tabular-nums;}
+.total{font-weight:800;color:var(--navy);}
+.st{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}
+.st.approved{background:var(--grn-l);color:#065F46;}
+.st.rejected{background:var(--red2-l);color:var(--red2);}
+.flag{font-size:11px;color:var(--red2);font-weight:700;}
+.flag.ok{color:var(--green);}
+.empty{padding:50px;text-align:center;color:var(--gray-5);font-size:14px;}
+.hidden{display:none!important;}
+tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gray-3);}
+.loading{padding:60px;text-align:center;color:var(--gray-5);}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Finance — Cost Tracking</div></div></div>
+  <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+</div>
+
+<div class="wrap">
+  <div id="kpis" class="cards"></div>
+
+  <div class="bar">
+    <div class="title">Travel Requests</div>
+    <div class="filters" id="filters">
+      <span class="chip active" data-f="all" onclick="setFilter('all')">All</span>
+      <span class="chip" data-f="pending" onclick="setFilter('pending')">Pending</span>
+      <span class="chip" data-f="approved" onclick="setFilter('approved')">Approved</span>
+      <span class="chip" data-f="rejected" onclick="setFilter('rejected')">Rejected</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="loading" class="loading">Loading requests…</div>
+    <div class="tbl-scroll hidden" id="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>Date</th><th>Traveller</th><th>Dept</th><th>Type</th><th>Route</th>
+          <th>Start</th><th class="r">Days</th><th>Cur</th>
+          <th class="r">Transport</th><th class="r">Hotel</th><th class="r">Meals</th>
+          <th class="r">Local</th><th class="r">Other</th><th class="r">Total</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot id="foot"></tfoot>
+      </table>
+    </div>
+    <div id="empty" class="empty hidden">No requests match this filter.</div>
+  </div>
+</div>
+
+<script>
+var DATA = { rows: [], currencySummaries: {} };
+var FILTER = 'all';
+
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  if(typeof google!=='undefined' && google.script && google.script.run){
+    google.script.run.withSuccessHandler(onData).withFailureHandler(onFail).getRequestsForFinance();
+  } else {
+    onData({currencySummaries:{INR:{count:2,pending:1,approved:1,rejected:0,totalPipeline:78000,totalApproved:42000}},
+      rows:[{id:'TRF-DEMO-1001',date:'16 Jun 2026',name:'Priya Sharma',dept:'Engineering',type:'domestic',
+        route:'Mumbai → Delhi',start:'20 Jun 2026',days:3,currency:'INR',transport:9000,hotel:9000,meals:2400,
+        local:1500,other:0,total:21900,flag:'Within policy',status:'Pending Finance Approval'}]});
+  }
+}
+function onFail(err){ document.getElementById('loading').textContent='Could not load: '+(err&&err.message||err); }
+
+function statusClass(s){ if(/reject/i.test(s)) return 'rejected'; if(/approved|admin|confirmed/i.test(s)) return 'approved'; return 'pending'; }
+
+function fmt(cur,x){ return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+
+function onData(d){
+  DATA = d || {rows:[],currencySummaries:{}};
+  document.getElementById('loading').classList.add('hidden');
+  renderKpis(); render();
+}
+
+function renderKpis(){
+  var s=DATA.currencySummaries||{}; var curs=Object.keys(s);
+  var totalCount=0; curs.forEach(function(c){ totalCount+=s[c].count; });
+  var html='<div class="kpi"><div class="lb">Total Requests</div><div class="num">'+totalCount+'</div><div class="sub">'+(curs.length?curs.join(' · '):'no data')+'</div></div>';
+  curs.forEach(function(c){
+    var x=s[c];
+    html+='<div class="kpi sky"><div class="lb">Pipeline ('+c+')</div><div class="num amt">'+fmt(c,x.totalPipeline)+'</div><div class="sub">'+x.pending+' pending · '+x.approved+' approved</div></div>';
+    html+='<div class="kpi green"><div class="lb">Approved cost ('+c+')</div><div class="num amt">'+fmt(c,x.totalApproved)+'</div><div class="sub">'+x.approved+' request(s)</div></div>';
+  });
+  document.getElementById('kpis').innerHTML=html;
+}
+
+function setFilter(f){
+  FILTER=f;
+  document.querySelectorAll('#filters .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.f===f); });
+  render();
+}
+
+function render(){
+  var rows=(DATA.rows||[]).filter(function(r){ return FILTER==='all' || statusClass(r.status)===FILTER; });
+  var tbody=document.getElementById('rows'), foot=document.getElementById('foot');
+  if(!rows.length){
+    document.getElementById('tbl-wrap').classList.add('hidden');
+    document.getElementById('empty').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('empty').classList.add('hidden');
+  document.getElementById('tbl-wrap').classList.remove('hidden');
+
+  tbody.innerHTML = rows.map(function(r){
+    var sc=statusClass(r.status);
+    var flagOk=/within/i.test(r.flag);
+    return '<tr>'
+      +'<td class="id">'+esc(r.id)+'<div class="flag'+(flagOk?' ok':'')+'">'+(flagOk?'✓ in policy':'⚠ over')+'</div></td>'
+      +'<td class="muted">'+esc(r.date)+'</td>'
+      +'<td>'+esc(r.name)+'</td><td class="muted">'+esc(r.dept)+'</td>'
+      +'<td>'+esc(cap(r.type))+'</td><td class="muted">'+esc(r.route)+'</td>'
+      +'<td class="muted">'+esc(r.start)+'</td><td class="r">'+r.days+'</td><td>'+esc(r.currency)+'</td>'
+      +'<td class="r amt">'+num(r.transport)+'</td><td class="r amt">'+num(r.hotel)+'</td>'
+      +'<td class="r amt">'+num(r.meals)+'</td><td class="r amt">'+num(r.local)+'</td>'
+      +'<td class="r amt">'+num(r.other)+'</td><td class="r amt total">'+fmt(r.currency,r.total)+'</td>'
+      +'<td><span class="st '+sc+'">'+esc(shortStatus(r.status))+'</span></td>'
+    +'</tr>';
+  }).join('');
+
+  // footer totals per currency
+  var byCur={};
+  rows.forEach(function(r){
+    if(!byCur[r.currency]) byCur[r.currency]={transport:0,hotel:0,meals:0,local:0,other:0,total:0};
+    var b=byCur[r.currency];
+    b.transport+=r.transport;b.hotel+=r.hotel;b.meals+=r.meals;b.local+=r.local;b.other+=r.other;b.total+=r.total;
+  });
+  foot.innerHTML=Object.keys(byCur).map(function(c){
+    var b=byCur[c];
+    return '<tr><td colspan="8">Totals ('+c+')</td><td>'+c+'</td>'
+      +'<td class="r amt">'+num(b.transport)+'</td><td class="r amt">'+num(b.hotel)+'</td>'
+      +'<td class="r amt">'+num(b.meals)+'</td><td class="r amt">'+num(b.local)+'</td>'
+      +'<td class="r amt">'+num(b.other)+'</td><td class="r amt total">'+fmt(c,b.total)+'</td><td></td></tr>';
+  }).join('');
+}
+
+function shortStatus(s){
+  if(/reject/i.test(s)) return 'Rejected';
+  if(/admin|confirmed/i.test(s)) return 'Approved';
+  if(/finance/i.test(s)) return 'At Finance';
+  if(/ceo/i.test(s)) return 'At CEO';
+  if(/hod|dept/i.test(s)) return 'At HOD';
+  return s;
+}
+function num(x){ return Number(x||0).toLocaleString('en-IN',{maximumFractionDigits:0}); }
+function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · Department</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 20px 60px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;}
+.kpi .num{font-size:24px;font-weight:900;color:var(--navy);margin-top:6px;}
+.kpi.amber .num{color:#B45309;}.kpi.green .num{color:var(--green);}.kpi.red .num{color:var(--red2);}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.scopechip{background:var(--amb-l);color:#92400E;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:800;}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:1240px;}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+th.r,td.r{text-align:right;}
+td{padding:10px 12px;border-bottom:1px solid var(--gray-2);white-space:nowrap;vertical-align:top;}
+tr:hover td{background:var(--gray-1);}
+.id{font-weight:800;color:var(--navy);}.muted{color:var(--gray-5);}.amt{font-variant-numeric:tabular-nums;font-weight:700;}
+.cost-link{cursor:pointer;border-bottom:1px dashed var(--sky);color:var(--navy);}.cost-link:hover{color:var(--sky);}.caret{font-size:9px;color:var(--sky);margin-left:3px;}
+.st{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.approved{background:var(--grn-l);color:#065F46;}.st.rejected{background:var(--red2-l);color:var(--red2);}.st.hold{background:#EDE9FE;color:#5B21B6;}
+.brk-yes{cursor:pointer;color:var(--red2);font-weight:800;border-bottom:1px dashed var(--red2);white-space:nowrap;}.brk-no{color:var(--green);font-weight:700;}
+.empty,.loading{padding:50px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.drawer-ov{position:fixed;inset:0;background:rgba(13,27,42,.45);opacity:0;visibility:hidden;transition:opacity .2s;z-index:40;}
+.drawer-ov.open{opacity:1;visibility:visible;}
+.drawer{position:fixed;top:0;right:0;height:100%;width:430px;max-width:92vw;background:#fff;box-shadow:-8px 0 30px rgba(13,27,42,.25);transform:translateX(100%);transition:transform .25s ease;z-index:41;display:flex;flex-direction:column;}
+.drawer.open{transform:translateX(0);}
+.drawer-hd{background:var(--navy);color:#fff;padding:18px 20px;}.drawer-hd .x{float:right;cursor:pointer;font-size:20px;line-height:1;color:rgba(255,255,255,.8);}
+.drawer-hd .did{font-size:15px;font-weight:900;}.drawer-hd .dsub{font-size:12px;color:var(--gray-5);margin-top:3px;}
+.drawer-bd{padding:18px 20px;overflow-y:auto;flex:1;}
+.bd-tbl{width:100%;border-collapse:collapse;font-size:13px;}.bd-tbl td{padding:9px 4px;border-bottom:1px solid var(--gray-2);vertical-align:top;}
+.bd-tbl .li{font-weight:700;}.bd-tbl .bs{font-size:11px;color:var(--gray-5);margin-top:2px;}.bd-tbl .av{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;color:var(--navy);}
+/* expense breakdown: flex rows so the per-line amount is always visible (never clipped by drawer overflow) */
+.bd-exp{margin:2px 0;}
+.bdr{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--gray-2);}
+.bdr .bdl{min-width:0;}
+.bdr .li{font-weight:700;}
+.bdr .bs{font-size:11px;color:var(--gray-5);margin-top:2px;overflow-wrap:anywhere;}
+.bdr .bda{white-space:nowrap;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;flex-shrink:0;text-align:right;}
+.bdr.tot{border-top:2px solid var(--gray-3);border-bottom:none;padding-top:12px;}
+.bdr.tot .li{font-size:15px;}.bdr.tot .bda{font-size:15px;color:var(--red);font-weight:900;}
+.bd-tbl .tot td{border-top:2px solid var(--gray-3);border-bottom:none;font-size:15px;padding-top:12px;}.bd-tbl .tot .av{color:var(--red);font-weight:900;}
+.bd-flag{margin-top:16px;border-radius:8px;padding:11px 13px;font-size:12px;font-weight:600;line-height:1.45;}.bd-flag.ok{background:var(--grn-l);color:#065F46;}.bd-flag.brk{background:#FEE2E2;color:#DC2626;}
+.bd-sec{margin-top:16px;font-size:11px;font-weight:800;color:var(--gray-5);text-transform:uppercase;letter-spacing:.4px;}
+.bd-cmt{font-size:12px;color:var(--gray-7);background:var(--gray-1);border-radius:8px;padding:9px 12px;margin-top:6px;white-space:pre-wrap;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Department — Overview</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div id="kpis" class="cards"></div>
+  <div class="bar">
+    <div class="title">Department Travel <span class="scopechip" id="scopechip">—</span></div>
+    <div class="filters" id="filters">
+      <span class="chip active" data-f="all" onclick="setFilter('all')">All</span>
+      <span class="chip" data-f="progress" onclick="setFilter('progress')">In progress</span>
+      <span class="chip" data-f="completed" onclick="setFilter('completed')">Approved / Done</span>
+      <span class="chip" data-f="rejected" onclick="setFilter('rejected')">Rejected</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div id="loading" class="loading">Loading…</div>
+    <div class="tbl-scroll hidden" id="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="r">Sr.</th><th>Employee</th><th>Purpose</th><th>Type</th><th>Route</th><th>Dates</th>
+          <th class="r">Est. Cost</th><th class="r">Advance</th><th>Policy Breach</th><th>Status</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty hidden">No requests for your department.</div>
+  </div>
+</div>
+
+<div class="drawer-ov" id="cost-ov" onclick="closeCost()"></div>
+<aside class="drawer" id="cost-drawer" aria-hidden="true">
+  <div class="drawer-hd"><span class="x" onclick="closeCost()">×</span><div class="did" id="cd-id"></div><div class="dsub" id="cd-sub"></div></div>
+  <div class="drawer-bd" id="cd-body"></div>
+</aside>
+
+<script>
+var DATA={rows:[]}, VIEW=[], FILTER='all';
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function fmt(cur,x){ cur=cur||'INR'; return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden'); document.getElementById('empty').classList.add('hidden');
+  fetch('/api/decision?view=approvals',{credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('dept '+r.status); return r.json(); }).then(onData).catch(onFail);
+}
+function onFail(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); }
+function bucket(s){ s=String(s||''); if(/reject/i.test(s)) return 'rejected'; if(/completed|confirmed|forex card issued/i.test(s)) return 'completed'; return 'progress'; }
+function onData(d){
+  DATA=d||{rows:[]};
+  document.getElementById('scopechip').textContent=DATA.scope||'Department';
+  document.getElementById('loading').classList.add('hidden');
+  renderKpis(); render();
+}
+function renderKpis(){
+  var rows=DATA.rows||[];
+  var prog=rows.filter(function(r){return bucket(r.status)==='progress';}).length;
+  var done=rows.filter(function(r){return bucket(r.status)==='completed';}).length;
+  var rej=rows.filter(function(r){return bucket(r.status)==='rejected';}).length;
+  document.getElementById('kpis').innerHTML=
+    '<div class="kpi"><div class="lb">Total Requests</div><div class="num">'+rows.length+'</div></div>'
+   +'<div class="kpi amber"><div class="lb">In Progress</div><div class="num">'+prog+'</div></div>'
+   +'<div class="kpi green"><div class="lb">Approved / Done</div><div class="num">'+done+'</div></div>'
+   +'<div class="kpi red"><div class="lb">Rejected</div><div class="num">'+rej+'</div></div>';
+}
+function setFilter(f){ FILTER=f; document.querySelectorAll('#filters .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.f===f); }); render(); }
+function filtered(){ return (DATA.rows||[]).filter(function(r){ return FILTER==='all' || bucket(r.status)===FILTER; }); }
+function shortStatus(s){ s=String(s||''); if(/on hold/i.test(s))return 'On Hold'; if(/reject/i.test(s))return 'Rejected'; if(/pending hod/i.test(s))return 'Awaiting HOD'; if(/pending ceo/i.test(s))return 'At CEO'; if(/pending finance/i.test(s))return 'At Finance'; if(/with admin|arrangement/i.test(s))return 'With Admin'; if(/forex/i.test(s))return 'Forex card'; if(/completed/i.test(s))return 'Completed'; if(/confirmed/i.test(s))return 'Confirmed'; return s; }
+function stPill(s){ var c=/on hold/i.test(s)?'hold':(/reject/i.test(s)?'rejected':(/approv|confirm|complet|admin|booking|forex|issued/i.test(s)?'approved':'pending')); return '<span class="st '+c+'">'+esc(shortStatus(s))+'</span>'; }
+function render(){
+  var rows=filtered(); VIEW=rows;
+  if(!rows.length){ document.getElementById('empty').classList.remove('hidden'); document.getElementById('tbl-wrap').classList.add('hidden'); return; }
+  document.getElementById('empty').classList.add('hidden'); document.getElementById('tbl-wrap').classList.remove('hidden');
+  document.getElementById('rows').innerHTML=rows.map(row).join('');
+}
+function row(r,i){
+  var brk=/^POLICY BREAK/i.test(r.flag||'');
+  var policy=brk?'<span class="brk-yes" onclick="openCost('+i+')">⚠ Yes</span>':'<span class="brk-no">No</span>';
+  return '<tr>'
+    +'<td class="r muted">'+(i+1)+'</td>'
+    +'<td>'+esc(r.name)+(r.pax>1?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">+'+(r.pax-1)+' pax</span>':'')+'<div class="muted" style="font-size:11px;">'+esc(r.email)+'</div></td>'
+    +'<td class="muted">'+esc(r.purpose)+'</td>'
+    +'<td>'+esc(cap(r.type)+' · '+r.trip)+'</td>'
+    +'<td class="muted">'+esc(r.route)+'</td>'
+    +'<td class="muted">'+esc(r.start+(r.end?' → '+r.end:''))+'</td>'
+    +'<td class="r amt"><span class="cost-link" onclick="openCost('+i+')">'+esc(r.estimatedCost)+'<span class="caret">▸</span></span></td>'
+    +'<td class="r amt">'+(r.advance>0?fmt(r.currency,r.advance):'<span class="muted">—</span>')+'</td>'
+    +'<td>'+policy+'</td>'
+    +'<td>'+stPill(r.status)+'</td>'
+  +'</tr>';
+}
+// Flight/hotel routing block for the cost drawer — shows each leg's from→to + dates so
+// approvers (HOD/CEO/Finance) see the full itinerary, especially for multi-city trips.
+function itineraryHtml(r){
+  var fl=(r.flights||[]), ht=(r.hotels||[]); if(!fl.length && !ht.length) return '';
+  function irow(t,s){ return '<div style="padding:8px 4px;border-bottom:1px solid #EDF1F7;"><div style="font-weight:700;color:#0D1B2A;">'+esc(t)+'</div><div style="font-size:11px;color:#8A97AA;margin-top:2px;">'+esc(s)+'</div></div>'; }
+  var h='';
+  if(fl.length) h+='<div class="bd-sec" style="color:#0077CC;">✈️ Flights — route &amp; dates'+(fl.length>2?(' · '+fl.length+' legs'):'')+'</div>'+fl.map(function(f){ return irow(f.label||'Flight',((f.from||'?')+' → '+(f.to||'?'))+(f.date?(' · '+f.date):'')+(f.timeLabel?('  ·  '+f.timeLabel):'')); }).join('');
+  if(ht.length) h+='<div class="bd-sec" style="color:#0077CC;">🏨 Hotels'+(ht.length>1?(' · '+ht.length):'')+'</div>'+ht.map(function(hh){ return irow((hh.label||'Stay')+(hh.city?(' — '+hh.city):''),((hh.checkIn||'')+(hh.checkOut?(' → '+hh.checkOut):''))+(hh.nights?('  ·  '+hh.nights+' night(s)'):'')); }).join('');
+  return h;
+}
+function openCost(i){
+  var r=VIEW[i]; if(!r) return; var b=r.breakdown||{}; var cur=r.currency||'INR';
+  document.getElementById('cd-id').textContent=r.id;
+  document.getElementById('cd-sub').textContent=(r.name||'')+' · '+(r.dept||'')+' — '+(r.route||'')+(r.trip?(' ('+r.trip+')'):'')+(r.pax>1?('  ·  👥 '+r.pax+' travellers'+(r.passengers&&r.passengers.length?': '+r.passengers.join(', '):'')):'');
+  var lines=[];
+  function line(label,basis,amt){ lines.push('<div class="bdr"><div class="bdl"><div class="li">'+esc(label)+'</div>'+(basis?'<div class="bs">'+esc(basis)+'</div>':'')+'</div><div class="bda">'+fmt(cur,amt)+'</div></div>'); }
+  var legs=(/round/i.test(r.trip||''))?'round trip (×2 legs)':'one-way';
+  line('Transport',(b.mode?b.mode+' · ':'')+legs,b.transport);
+  line('Local conveyance','airport transfers + 40 km/day cab × '+(b.days||0)+' day(s)',b.local);
+  if(b.hotel>0) line('Hotel',fmt(cur,b.hotelRate)+'/night × '+(b.hotelNights||0)+' night(s)',b.hotel);
+  if(b.meals>0) line('Meals (per-diem)',fmt(cur,b.mealRate)+'/day × '+(b.days||0)+' day(s)',b.meals);
+  var EXLBL={visa:'Visa fee',insurance:'Travel insurance',phone:'Phone / communication',laundry:'Laundry',baggage:'Baggage (US domestic)'};
+  var ex=b.extras||{}; Object.keys(EXLBL).forEach(function(k){ if(ex[k]>0) line(EXLBL[k],'',ex[k]); });
+  var html='<div class="bd-exp">'+lines.join('')+'<div class="bdr tot"><div class="bdl"><div class="li">Total expenses'+(r.pax>1?' (× '+r.pax+' travellers)':'')+'</div></div><div class="bda">'+fmt(cur,r.total)+'</div></div></div>';
+  var af=Number(r.advForex||b.forex||0), ad=Number(r.advDeposit||b.deposit||0), at=af+ad;
+  if(at>0){ html+='<div class="bd-sec" style="color:#3730A3;">Advances (refundable — not expenses)</div><table class="bd-tbl"><tbody>'
+    +(af>0?'<tr><td><div class="li">Forex advance</div><div class="bs">meals &amp; local conveyance</div></td><td class="av">'+fmt(cur,af)+'</td></tr>':'')
+    +(ad>0?'<tr><td><div class="li">Hotel security deposit</div><div class="bs">refundable · per hotel</div></td><td class="av">'+fmt(cur,ad)+'</td></tr>':'')
+    +'<tr class="tot"><td class="li">Total advance</td><td class="av" style="color:#3730A3;">'+fmt(cur,at)+'</td></tr></tbody></table>'; }
+  // Budget vs Actual + variance — shown to HOD & CEO (per-line, tagged in/not-in-budget + exceeded).
+  var a=r.actuals||{};
+  if(a.hasActuals || (a.status && a.status!=='Pending')){
+    var TB='background:#E6F4EA;color:#0F766E;', TNB='background:#FEF3C7;color:#B45309;', TEX='background:#FEE2E2;color:#B91C1C;';
+    var chip=function(txt,css){return '<span style="'+css+'border-radius:5px;padding:0 6px;font-size:10px;font-weight:700;margin-right:4px;">'+txt+'</span>';};
+    var arows=(a.items||[]).filter(function(it){return it.estimate>0||it.actual>0;}).map(function(it){
+      var ov=it.actual>it.estimate; var notB=it.custom||(it.estimate<=0&&it.actual>0);
+      var tags=(notB?chip('not in budget',TNB):chip('in budget',TB))+((it.actual>0&&ov)?chip('exceeded',TEX):'');
+      return '<tr><td><div class="li">'+esc(it.label)+'</div><div class="bs">'+tags+'</div></td>'
+        +'<td class="av">'+fmt(cur,it.estimate)+'</td><td class="av">'+(it.actual?fmt(cur,it.actual):'—')+'</td>'
+        +'<td class="av" style="color:'+(it.actual?(ov?'#B91C1C':'#0F766E'):'#999')+';">'+(it.actual?((ov?'over ':'under ')+fmt(cur,Math.abs(it.estimate-it.actual))):'—')+'</td></tr>';
+    }).join('');
+    html+='<div class="bd-sec" style="color:#7C3AED;">Budget vs Actual · trip ('+esc(a.status)+')</div>'
+      +'<table class="bd-tbl"><thead><tr><th style="text-align:left;font-size:10px;color:#8A97AA;">Line</th><th style="text-align:right;font-size:10px;color:#8A97AA;">Budget</th><th style="text-align:right;font-size:10px;color:#8A97AA;">Actual</th><th style="text-align:right;font-size:10px;color:#8A97AA;">Variance</th></tr></thead><tbody>'+arows
+      +'<tr class="tot"><td class="li">Total</td><td class="av">'+fmt(cur,a.estTotal)+'</td><td class="av">'+fmt(cur,a.actualTotal)+'</td><td class="av">'+(a.variance<0?'over ':'under ')+fmt(cur,Math.abs(a.variance))+'</td></tr></tbody></table>'
+      +'<div class="bs" style="margin-top:5px;">Reimbursement (own money): <b>'+fmt(cur,a.reimbursable)+'</b>'
+        +(a.hodApproved?(' · <b style="color:#0F766E;">✓ HOD approved'+(a.hodBy?(' by '+esc(a.hodBy)):'')+'</b>'):(a.status==='Submitted'?' · <b style="color:#B45309;">awaiting HOD approval</b>':''))
+        +(a.status==='Closed'?(' · closed — paid '+fmt(cur,a.reimburseApproved)):'')+'</div>';
+    if(a.late) html+='<div class="bd-flag brk" style="margin-top:8px;">⚠ Claim submitted '+a.late.days+' day'+(a.late.days===1?'':'s')+' late (due '+esc(a.late.due)+'). Per policy, confirm a reasonable justification before approving.</div>';
+    if(r.canApproveReimburse){
+      html+='<button onclick="approveClaim('+i+')" style="margin-top:10px;background:#0F766E;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">✓ Approve reimbursement claim ('+fmt(cur,a.reimbursable)+')</button>';
+    }
+  }
+  var brk=/^POLICY BREAK/i.test(r.flag||'');
+  var reasons=String(r.flag||'').replace(/^POLICY BREAK:\s*/i,'').split(';').map(function(s){return s.trim();}).filter(Boolean);
+  if(brk){ html+='<div class="bd-flag brk">⚠ Policy breach:</div><table class="bd-tbl"><tbody>'+reasons.map(function(x,n){return '<tr><td><div class="li">Reason '+(n+1)+'</div><div class="bs">'+esc(x)+'</div></td></tr>';}).join('')+'</tbody></table>'; }
+  else { html+='<div class="bd-flag ok">✓ Within policy</div>'; }
+  if(r.comments){ html+='<div class="bd-sec">Approver remarks</div><div class="bd-cmt">'+esc(r.comments)+'</div>'; }
+  html = itineraryHtml(r) + html; // routing at the top — clarity on where→where before approving
+  document.getElementById('cd-body').innerHTML=html;
+  document.getElementById('cost-drawer').classList.add('open'); document.getElementById('cost-drawer').setAttribute('aria-hidden','false'); document.getElementById('cost-ov').classList.add('open');
+}
+function approveClaim(i){ var r=VIEW[i]; if(!r) return;
+  if(!confirm('Approve the reimbursement claim for '+r.id+'? It then goes to Finance for settlement.')) return;
+  fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'reimburse',id:r.id})})
+    .then(function(x){return x.json();}).then(function(d){ if(d&&d.ok){ closeCost(); load(); } else alert('Could not approve: '+((d&&d.error)||'error')); })
+    .catch(function(e){ alert('Failed: '+(e&&e.message||e)); }); }
+function closeCost(){ document.getElementById('cost-drawer').classList.remove('open'); document.getElementById('cost-drawer').setAttribute('aria-hidden','true'); document.getElementById('cost-ov').classList.remove('open'); }
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeCost(); });
+requireView(['hod','ceo'], function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

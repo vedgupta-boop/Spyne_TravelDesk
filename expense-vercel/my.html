@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne Expense Approval · My Requests</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1000px;margin:0 auto;padding:22px 20px 60px;}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.req{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+.req-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.req-id{font-weight:800;color:var(--navy);font-size:14px;}
+.req-sub{font-size:11px;color:var(--gray-5);margin-top:2px;}
+.amt{font-weight:800;color:var(--navy);}
+.st{display:inline-block;padding:4px 11px;border-radius:7px;font-size:12px;font-weight:800;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.approved{background:var(--grn-l);color:#065F46;}.st.rejected{background:var(--red2-l);color:var(--red2);}
+.steps{display:flex;flex-wrap:wrap;align-items:flex-start;margin-top:6px;}
+.step{display:flex;flex-direction:column;align-items:center;min-width:70px;}
+.dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
+.dot.done{background:var(--green);}.dot.cur{background:var(--amber);}.dot.wait{background:var(--gray-3);color:var(--gray-7);}.dot.rej{background:var(--red2);}.dot.na{background:#EAEDF2;color:var(--gray-5);}
+.step .lb{font-size:9px;color:var(--gray-7);margin-top:4px;text-align:center;font-weight:700;}.step .sub{font-size:8px;color:var(--gray-5);}
+.conn{height:2px;background:var(--gray-3);flex:1;min-width:10px;margin-top:11px;}
+.actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;}
+.btn{border:none;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-go{background:var(--green);color:#fff;}.btn-up{background:var(--sky);color:#fff;}
+.hintline{font-size:11px;color:var(--gray-5);margin-top:6px;}
+.empty,.loading{padding:50px;text-align:center;color:var(--gray-5);background:#fff;border:1px solid var(--gray-3);border-radius:12px;}
+.newbtn{background:var(--red);color:#fff;text-decoration:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:800;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+.hidden{display:none!important;}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.search,.sortsel{padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;}
+.search{min-width:200px;}
+.updated{font-size:11px;color:var(--gray-5);}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px 0;flex-wrap:wrap;}
+.pager .pginfo{font-size:12px;color:var(--gray-5);}
+.pgbtns{display:flex;gap:6px;align-items:center;}
+.pgbtn{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:7px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.pgbtn:disabled{opacity:.4;cursor:default;}
+@media(max-width:620px){.steps{overflow-x:auto;}.wrap{padding:16px 12px 50px;}}
+@media print{.topbar,.newbtn,.toolbar,#pager,.btn-refresh,.actions{display:none!important;}.req{break-inside:avoid;border-color:#ccc;}.wrap{max-width:none;padding:0;}body{background:#fff;}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne Expense Approval Dashboard</div><div class="logo-sub">My Requests</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="exp-userbar"></div>
+    <span class="updated" id="updated"></span>
+    <button class="btn-refresh" id="auto-btn" onclick="toggleAuto()">⏱ Auto: Off</button>
+    <button class="btn-refresh" onclick="printReport()">🖨 Print / PDF</button>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div class="bar"><div class="title">My Expense Requests</div><a class="newbtn" href="/">+ New Request</a></div>
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <input id="search" class="search" placeholder="Search id / item / vendor" oninput="applyFilters()">
+    <select id="sort" class="sortsel" onchange="applyFilters()">
+      <option value="new">Newest first</option><option value="old">Oldest first</option>
+      <option value="amthi">Amount: high → low</option><option value="amtlo">Amount: low → high</option>
+    </select>
+    <div class="filters" id="filters">
+      <span class="chip active" data-f="all" onclick="setFilter('all')">All</span>
+      <span class="chip" data-f="approval" onclick="setFilter('approval')">In approval</span>
+      <span class="chip" data-f="progress" onclick="setFilter('progress')">In progress</span>
+      <span class="chip" data-f="paid" onclick="setFilter('paid')">Paid</span>
+      <span class="chip" data-f="rejected" onclick="setFilter('rejected')">Rejected</span>
+    </div>
+  </div>
+  <div id="loading" class="loading">Loading…</div>
+  <div id="list"></div>
+  <div class="pager" id="pager"></div>
+  <div id="empty" class="empty hidden">You haven't submitted any expense requests yet. <a href="/" style="color:var(--sky);font-weight:700;">Create one →</a></div>
+</div>
+<div class="toast" id="toast"></div>
+<input type="file" id="hidden-file" accept="image/*,.pdf" class="hidden">
+
+<script>
+var ROWS=[],FILTER='all',PAGE=1,PAGESIZE=10,AUTO=false,AUTOID=null,PRINTING=false;
+function tINR(x,c){return c==='USD'?Math.round((Number(x)||0)*92):(Number(x)||0);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('list').innerHTML='';document.getElementById('empty').classList.add('hidden');
+  fetch('/api/me?mine=1',{credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('my '+r.status);return r.json();}).then(onData).catch(onFail);
+}
+function onFail(e){document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e);}
+function onData(d){
+  document.getElementById('loading').classList.add('hidden');
+  ROWS=(d&&d.rows)||[];
+  document.getElementById('toolbar').style.display=ROWS.length?'flex':'none';
+  var u=document.getElementById('updated');if(u)u.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  if(!ROWS.length){document.getElementById('empty').classList.remove('hidden');document.getElementById('list').innerHTML='';document.getElementById('pager').innerHTML='';return;}
+  document.getElementById('empty').classList.add('hidden');
+  render();
+}
+function myBucket(r){if(/reject/i.test(r.status))return'rejected';if(/paid/i.test(r.status))return'paid';if(/po issued|delivered|invoice|payment/i.test(r.status))return'progress';return'approval';}
+function setFilter(f){FILTER=f;PAGE=1;document.querySelectorAll('#filters .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f===f);});render();}
+function applyFilters(){PAGE=1;render();}
+function filteredRows(){var q=(document.getElementById('search').value||'').trim().toLowerCase();return ROWS.filter(function(r){
+  if(FILTER!=='all'&&myBucket(r)!==FILTER)return false;
+  if(q){var hay=(r.id+' '+r.item+' '+r.vendor+' '+r.reqType).toLowerCase();if(hay.indexOf(q)<0)return false;}
+  return true;});}
+function sortRows(rows){var k=(document.getElementById('sort').value)||'new';
+  if(k==='amthi'||k==='amtlo'){var d=k==='amthi'?-1:1;return rows.slice().sort(function(a,b){return (tINR(a.amount,a.currency)-tINR(b.amount,b.currency))*d;});}
+  var d2=k==='old'?1:-1;return rows.slice().sort(function(a,b){return ((Date.parse(a.submission)||0)-(Date.parse(b.submission)||0))*d2;});}
+function changePage(d){PAGE+=d;render();}
+function renderPager(n,start,end,pages){var el=document.getElementById('pager');if(!el)return;if(n<=PAGESIZE){el.innerHTML='';return;}
+  el.innerHTML='<div class="pginfo">Showing '+(start+1)+'–'+end+' of '+n+'</div><div class="pgbtns"><button class="pgbtn"'+(PAGE<=1?' disabled':'')+' onclick="changePage(-1)">‹ Prev</button><span class="pginfo">Page '+PAGE+' / '+pages+'</span><button class="pgbtn"'+(PAGE>=pages?' disabled':'')+' onclick="changePage(1)">Next ›</button></div>';}
+function render(){
+  var rows=sortRows(filteredRows());var n=rows.length;
+  if(!n){document.getElementById('list').innerHTML='<div class="empty">No requests match this filter.</div>';document.getElementById('pager').innerHTML='';return;}
+  var pages=Math.max(1,Math.ceil(n/PAGESIZE));if(PAGE>pages)PAGE=pages;if(PAGE<1)PAGE=1;
+  var start=PRINTING?0:(PAGE-1)*PAGESIZE,end=PRINTING?n:Math.min(n,start+PAGESIZE);
+  document.getElementById('list').innerHTML=rows.slice(start,end).map(card).join('');
+  renderPager(n,start,end,pages);
+}
+function toggleAuto(){AUTO=!AUTO;document.getElementById('auto-btn').textContent='⏱ Auto: '+(AUTO?'On':'Off');if(AUTOID){clearInterval(AUTOID);AUTOID=null;}if(AUTO)AUTOID=setInterval(load,60000);}
+function printReport(){PRINTING=true;render();setTimeout(function(){window.print();},120);}
+window.addEventListener('afterprint',function(){if(PRINTING){PRINTING=false;render();}});
+function headStatus(r){
+  if(/reject/i.test(r.status))return['rejected','Rejected'];
+  if(/paid/i.test(r.status))return['approved','Paid & closed'];
+  if(/po issued|delivered|invoice|payment/i.test(r.status))return['approved','In progress'];
+  return['pending','In approval'];
+}
+function stepState(v){if(/reject/i.test(v))return'rej';if(/approv|issued|delivered|submitted|paid|done/i.test(v))return'done';if(/pending|awaiting/i.test(v))return'cur';if(/n\/a/i.test(v))return'na';return'wait';}
+function dot(s,n){var ic=s==='done'?'✓':(s==='rej'?'✕':(s==='na'?'–':n));return'<div class="dot '+s+'">'+ic+'</div>';}
+function step(label,value){var s=stepState(value);return'<div class="step">'+dot(s,label[0])+'<div class="lb">'+esc(label)+'</div><div class="sub">'+esc(value||'')+'</div></div>';}
+function card(r,i){
+  var hs=headStatus(r);
+  var steps=[['HOD',r.hod||'Pending'],['Finance',r.finance||'Waiting']];
+  if(r.mgmtStatus!=='N/A')steps.push(['Sanjay',r.mgmtStatus]);
+  if(r.capex){steps.push(['PO',r.po||'']);steps.push(['Delivery',r.deliveryStatus||'']);}
+  steps.push(['Invoice',r.invoiceStatus||'']);
+  steps.push(['Payment',r.payStatus|| (/paid/i.test(r.status)?'Paid':'')]);
+  var stepsHtml=steps.map(function(s,k){return(k>0?'<div class="conn"></div>':'')+step(s[0],s[1]);}).join('');
+  var act='';
+  if(r.canConfirmDelivery)act+='<button class="btn btn-go" onclick="confirmDelivery(\''+esc(r.id)+'\')">✓ Confirm delivery</button>';
+  if(r.canSubmitInvoice)act+='<button class="btn btn-up" onclick="submitInvoice(\''+esc(r.id)+'\')">⬆ Submit e-invoice</button>';
+  var actHtml=act?'<div class="actions">'+act+'</div>':'';
+  return '<div class="req">'
+    +'<div class="req-h"><div><div class="req-id">'+esc(r.id)+' <span class="amt">· '+esc(r.amountLabel)+(r.frequency&&r.frequency!=="One-time"?' / '+esc(r.frequency.toLowerCase()):'')+'</span></div>'
+      +'<div class="req-sub">'+esc(r.reqType)+(r.category?' · '+esc(r.category):'')+' · '+esc(r.item)+' — '+esc(r.vendor)+'</div>'
+      +'<div class="req-sub">Submitted '+esc(r.submission)+(r.needBy?' · needed by '+esc(r.needBy):'')+' · '+esc(r.status)+'</div></div>'
+      +'<span class="st '+hs[0]+'">'+esc(hs[1])+'</span></div>'
+    +'<div class="steps">'+stepsHtml+'</div>'+actHtml
+  +'</div>';
+}
+function confirmDelivery(id){
+  if(!confirm('Confirm that "'+id+'" has been delivered?'))return;
+  fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'deliver',id:id})})
+    .then(function(r){return r.json();}).then(function(res){toast(res.ok?(res.title||'Delivery confirmed'):'Error: '+(res.error||'failed'));if(res.ok)load();}).catch(function(){toast('Error');});
+}
+function submitInvoice(id){
+  var inp=document.getElementById('hidden-file');
+  inp.value=''; inp.onchange=function(){
+    var f=inp.files[0]; if(!f)return;
+    if(f.size>5*1024*1024){toast('File too large — max 5 MB');return;}
+    toast('Uploading invoice…');
+    var reader=new FileReader();
+    reader.onload=function(){
+      var base64=String(reader.result).split(',')[1];
+      fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:base64})})
+        .then(function(r){return r.json();})
+        .then(function(d){ if(!d.ok){toast('Upload failed: '+(d.error||'error'));return;}
+          return fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'invoice',id:id,invoiceDoc:d.link})})
+            .then(function(r){return r.json();}).then(function(res){toast(res.ok?(res.title||'Invoice submitted'):'Error: '+(res.error||'failed'));if(res.ok)load();});
+        }).catch(function(){toast('Upload failed');});
+    };
+    reader.readAsDataURL(f);
+  };
+  inp.click();
+}
+var toastT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},2800);}
+requireView('requester', function(me){renderUserbar(me);load();});
+</script>
+</body>
+</html>

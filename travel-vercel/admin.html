@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · Admin</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;
+--amber:#F59E0B;--amb-l:#FFFBEB;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1400px;margin:0 auto;padding:22px 20px 60px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;}
+.kpi .num{font-size:24px;font-weight:900;color:var(--navy);margin-top:6px;}
+.kpi.amber .num{color:#B45309;}.kpi.green .num{color:var(--green);}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:1900px;}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;position:sticky;top:0;}
+th.r,td.r{text-align:right;}
+td{padding:10px 12px;border-bottom:1px solid var(--gray-2);white-space:nowrap;vertical-align:top;}
+tr:hover td{background:var(--gray-1);}
+.id{font-weight:800;color:var(--navy);}
+.muted{color:var(--gray-5);}
+.amt{font-variant-numeric:tabular-nums;}
+.total{font-weight:800;color:var(--navy);}
+.st{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}
+.st.done{background:var(--grn-l);color:#065F46;}
+.empty{padding:50px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.loading{padding:60px;text-align:center;color:var(--gray-5);}
+/* action cell */
+.act-cell{white-space:normal;min-width:340px;}
+.act-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
+.tkt-in{flex:1;min-width:150px;padding:6px 9px;border:1.5px solid var(--gray-3);border-radius:7px;font-size:12px;font-family:inherit;}
+.btn{border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-book{background:var(--sky);color:#fff;}.btn-done{background:var(--green);color:#fff;}
+.btn[disabled]{opacity:.45;cursor:default;}
+.hint{font-size:11px;color:var(--gray-5);}.hint.ok{color:var(--green);font-weight:600;}
+.lnk{color:var(--sky);font-size:12px;white-space:nowrap;}
+.fx-note{font-size:11px;color:#B45309;font-weight:700;margin-bottom:6px;}
+.leg-bk{border:1px solid var(--gray-2);border-radius:8px;padding:8px 10px;margin-bottom:7px;background:var(--gray-1);}
+.leg-bk-h{font-size:11.5px;font-weight:700;color:var(--gray-7);margin-bottom:6px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Admin — Arrangements</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="downloadCSV()">⬇ CSV</button>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div id="kpis" class="cards"></div>
+  <div class="bar">
+    <div class="title">Approved Travel — to Arrange</div>
+    <div class="filters" id="filters">
+      <span class="chip active" data-f="pending" onclick="setFilter('pending')">To arrange</span>
+      <span class="chip" data-f="done" onclick="setFilter('done')">Done</span>
+      <span class="chip" data-f="all" onclick="setFilter('all')">All</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div id="loading" class="loading">Loading…</div>
+    <div class="tbl-scroll hidden" id="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="r">Sr.</th><th>Request ID</th><th>Employee</th><th>Department</th><th>Type</th>
+          <th>Route</th><th>Dates</th><th>Days/Nights</th><th>Transport</th><th>Hotel</th>
+          <th class="r">Transport Cost</th><th class="r">Hotel Cost</th><th class="r">Booking Est.</th>
+          <th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty hidden">Nothing here.</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var DATA = { rows: [] };
+var FILTER = 'pending';
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(cur,x){ return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function isDone(s){ return /done|booked|arranged|complete|confirmed/i.test(s||''); }
+
+function csvCell(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; }
+function downloadCSV(){
+  var rows=DATA.rows||[]; if(!rows.length){ alert('No requests to export.'); return; }
+  var bk=function(r){return r.bookings||{flights:[],hotels:[]};};
+  var cols=[
+    ['TRF ID',function(r){return r.id;}],['Submitted',function(r){return r.date;}],['Traveller',function(r){return r.name;}],['Email',function(r){return r.email;}],
+    ['Department',function(r){return r.dept;}],['Type',function(r){return r.type;}],['Trip',function(r){return r.trip;}],['Route',function(r){return r.route||r.route2;}],
+    ['Start',function(r){return r.start;}],['End',function(r){return r.end;}],['Days',function(r){return r.days;}],['Nights',function(r){return r.nights;}],
+    ['Mode',function(r){return r.mode;}],['Currency',function(r){return r.currency;}],['Hotel needed',function(r){return r.hotelReq;}],
+    ['Est. total',function(r){return (r.currency||'')+' '+(r.total||0);}],['Forex (USD)',function(r){return r.forex||0;}],
+    ['Flight ticket(s) / PNR',function(r){return (bk(r).flights||[]).map(function(f){return [f.airline,f.info].filter(Boolean).join(' ');}).filter(Boolean).join(' | ')||r.ticketInfo||'';}],
+    ['Hotel booking(s)',function(r){return (bk(r).hotels||[]).map(function(h){return h.info;}).filter(Boolean).join(' | ');}],
+    ['Booking status',function(r){return r.adminStatus||'';}],['Notes',function(r){return r.notes;}]
+  ];
+  var lines=[cols.map(function(c){return csvCell(c[0]);}).join(',')];
+  rows.forEach(function(r){ lines.push(cols.map(function(c){return csvCell(c[1](r));}).join(',')); });
+  var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='admin-bookings.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  fetch('/api/admin',{credentials:'same-origin'})
+    .then(function(r){ if(!r.ok) throw new Error('admin '+r.status); return r.json(); })
+    .then(onData).catch(onFail);
+}
+function onFail(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); }
+function onData(d){
+  DATA = d || {rows:[]};
+  document.getElementById('loading').classList.add('hidden');
+  renderKpis(); render();
+}
+function renderKpis(){
+  var rows=DATA.rows||[];
+  var pending=rows.filter(function(r){return !isDone(r.adminStatus) && !isDone(r.status);}).length;
+  var done=rows.length-pending;
+  document.getElementById('kpis').innerHTML =
+    '<div class="kpi amber"><div class="lb">To Arrange</div><div class="num">'+pending+'</div></div>'
+   +'<div class="kpi green"><div class="lb">Completed</div><div class="num">'+done+'</div></div>'
+   +'<div class="kpi"><div class="lb">Total Approved</div><div class="num">'+rows.length+'</div></div>';
+}
+function setFilter(f){
+  FILTER=f;
+  document.querySelectorAll('#filters .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.f===f); });
+  render();
+}
+function render(){
+  var rows=(DATA.rows||[]).filter(function(r){
+    var done=isDone(r.adminStatus)||isDone(r.status);
+    return FILTER==='all' || (FILTER==='done'?done:!done);
+  });
+  if(!rows.length){ document.getElementById('empty').classList.remove('hidden'); document.getElementById('tbl-wrap').classList.add('hidden'); return; }
+  document.getElementById('empty').classList.add('hidden');
+  document.getElementById('tbl-wrap').classList.remove('hidden');
+  document.getElementById('rows').innerHTML = rows.map(row).join('');
+}
+function row(r,i){
+  var done=isDone(r.adminStatus)||isDone(r.status);
+  var b=r.breakdown||{};
+  var hotelTxt = (b.hotel>0) ? (fmt(r.currency,b.hotelRate)+'/n × '+(b.hotelNights||0)) : 'Not required';
+  var bookEst = (b.transport||0)+(b.hotel||0);
+  return '<tr>'
+    +'<td class="r muted">'+(i+1)+'</td>'
+    +'<td class="id">'+esc(r.id)+'</td>'
+    +'<td>'+esc(r.name)+(r.pax>1?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">+'+(r.pax-1)+' pax</span>':'')+'<div class="muted" style="font-size:11px;">'+esc(r.email)+'</div>'+(r.pax>1?'<div class="muted" style="font-size:10px;">👥 '+esc((r.passengers||[]).join(', '))+'</div>':'')+'</td>'
+    +'<td class="muted">'+esc(r.dept)+'</td>'
+    +'<td>'+esc(cap(r.type)+' · '+r.trip)+'</td>'
+    +'<td class="muted">'+esc(r.route)+'</td>'
+    +'<td class="muted">'+esc(r.start+(r.end?' → '+r.end:''))+'</td>'
+    +'<td class="muted">'+esc(r.days+'d / '+r.nights+'n')+'</td>'
+    +'<td>'+esc(r.mode||'—')+'</td>'
+    +'<td class="muted">'+esc(hotelTxt)+'</td>'
+    +'<td class="r amt">'+fmt(r.currency,b.transport)+'</td>'
+    +'<td class="r amt">'+fmt(r.currency,b.hotel)+'</td>'
+    +'<td class="r amt total">'+fmt(r.currency,bookEst)+'</td>'
+    +'<td><span class="st '+(done?'done':'pending')+'">'+esc(done?'Done':(r.adminStatus||'Pending'))+'</span></td>'
+    +'<td class="act-cell">'+actions(r,done)+'</td>'
+  +'</tr>';
+}
+var UP={}; // upload cache: UP[id] = { f:{idx:link}, h:{idx:link} }
+function legLabel(kind,leg){
+  if(kind==='f') return esc((leg.from||'?')+' → '+(leg.to||'?'))+(leg.date?' · '+esc(leg.date):'')+(leg.timeLabel?' · 🕒 '+esc(leg.timeLabel):'');
+  return esc(leg.city||'?')+(leg.checkIn?' · '+esc(leg.checkIn)+(leg.checkOut?' → '+esc(leg.checkOut):''):'')+(leg.nights?' ('+leg.nights+'n)':'');
+}
+function prefFlightHtml(r){
+  if(!r.prefFlightDoc && !r.prefFlightNotes) return '';
+  return '<div class="fx-note" style="background:#EBF5FF;border-color:#B3D7F5;color:#1e3a5f;">✈️ <b>Traveller’s preferred flight:</b> '
+    +(r.prefFlightDoc?'<a class="lnk" href="'+esc(r.prefFlightDoc)+'" target="_blank">📎 view screenshot/PDF</a>':'')
+    +(r.prefFlightNotes?' <span>· '+esc(r.prefFlightNotes)+'</span>':'')+'</div>';
+}
+function legRow(id,kind,i,leg,booked,cur){
+  var info=(booked&&booked.info)||'', doc=(booked&&booked.doc)||'', airline=(booked&&booked.airline)||'', actual=(booked&&booked.actual)||'';
+  var inputs = (kind==='f')
+    ? '<input class="tkt-in" id="bk-fa-'+esc(id)+'-'+i+'" value="'+esc(airline)+'" placeholder="Airline (e.g. Air India)" style="max-width:150px;">'
+      +'<input class="tkt-in" id="bk-f-'+esc(id)+'-'+i+'" value="'+esc(info)+'" placeholder="Flight no., PNR, dates">'
+    : '<input class="tkt-in" id="bk-h-'+esc(id)+'-'+i+'" value="'+esc(info)+'" placeholder="Hotel name, confirmation no., dates">';
+  return '<div class="leg-bk">'
+    +'<div class="leg-bk-h">'+(kind==='f'?'✈️':'🏨')+' <b>'+esc(leg.label||'')+'</b> — '+legLabel(kind,leg)+'</div>'
+    +'<div class="act-row">'
+      +inputs
+      +'<input class="tkt-in" id="bk-act-'+kind+'-'+esc(id)+'-'+i+'" type="number" min="0" step="any" value="'+esc(actual)+'" placeholder="Actual '+esc(cur||'')+'" title="Actual amount paid (from invoice)" style="max-width:130px;">'
+      +'<label class="hint">📎 <input type="file" accept="image/*,.pdf" onchange="uploadLeg(\''+esc(id)+'\',\''+kind+'\','+i+',this)"></label>'
+      +'<span class="hint" id="bkst-'+kind+'-'+esc(id)+'-'+i+'">'+(doc?'<a class="lnk" href="'+esc(doc)+'" target="_blank">📎 View</a>':'')+'</span>'
+      +(kind==='f'?'<button type="button" class="btn btn-clear" style="padding:5px 11px;font-size:11px;" onclick=\'flyAdm('+JSON.stringify(JSON.stringify({id:id,i:i,from:leg.from||'',to:leg.to||'',date:leg.date||''}))+')\'>🔎 Live flights</button>':'')
+    +'</div>'
+    +(kind==='f'?'<div id="flyadm-'+esc(id)+'-'+i+'" style="margin-top:6px;"></div>':'')
+    +'</div>';
+}
+function actions(r,done){
+  var flights=r.flights||[], hotels=r.hotels||[];
+  var bk=r.bookings||{flights:[],hotels:[]};
+  if(done){
+    var h=prefFlightHtml(r);
+    flights.forEach(function(leg,i){ var b=(bk.flights||[])[i]||{}; h+='<div class="hint">✈️ '+esc(leg.label)+': '+esc((b.airline?b.airline+' · ':'')+(b.info||'—'))+(leg.timeLabel?' · 🕒 '+esc(leg.timeLabel):'')+(b.doc?' <a class="lnk" href="'+esc(b.doc)+'" target="_blank">📎</a>':'')+'</div>'; });
+    hotels.forEach(function(leg,i){ var b=(bk.hotels||[])[i]||{}; h+='<div class="hint">🏨 '+esc(leg.label)+': '+esc(b.info||'—')+(b.doc?' <a class="lnk" href="'+esc(b.doc)+'" target="_blank">📎</a>':'')+'</div>'; });
+    h+=(r.isForex?'<div class="hint" style="color:var(--green);">→ Routed to Forex (Jasvinder)</div>':'<div class="hint ok">✓ Completed</div>');
+    // Manual route to Forex for international trips that weren't auto-routed (forex toggle missed at submit).
+    if(r.type==='international' && !/forex|jasvinder|issued/i.test(r.status||'')){
+      h+='<div class="act-row" style="margin-top:8px;"><button class="btn btn-book" onclick="sendForex(\''+esc(r.id)+'\')">💱 Send to Forex officer</button></div>';
+    }
+    return h;
+  }
+  UP[r.id]={f:{},h:{}};
+  (bk.flights||[]).forEach(function(b,i){ if(b&&b.doc) UP[r.id].f[i]=b.doc; });
+  (bk.hotels||[]).forEach(function(b,i){ if(b&&b.doc) UP[r.id].h[i]=b.doc; });
+  var html=prefFlightHtml(r)+(r.isForex?'<div class="fx-note">💱 Intl + Forex — routes to Jasvinder after Completed</div>':'');
+  flights.forEach(function(leg,i){ html+=legRow(r.id,'f',i,leg,(bk.flights||[])[i],r.currency); });
+  hotels.forEach(function(leg,i){ html+=legRow(r.id,'h',i,leg,(bk.hotels||[])[i],r.currency); });
+  if(!flights.length && !hotels.length) html+='<div class="hint">No flights/hotels to book.</div>';
+  html+='<div class="act-row" style="margin-top:8px;">'
+      +'<button class="btn btn-book" onclick="saveBk(\''+esc(r.id)+'\')">💾 Save Bookings</button>'
+      +'<button class="btn btn-done" onclick="mark(\''+esc(r.id)+'\',\'Completed\')">✓ Mark Booking Completed</button>'
+    +'</div>';
+  return html;
+}
+function uploadLeg(id,kind,i,inp){
+  var f=inp.files[0]; var st=document.getElementById('bkst-'+kind+'-'+id+'-'+i);
+  if(!f) return; if(f.size>3*1024*1024){ st.className='hint bad'; st.textContent='Max 3 MB'; return; }
+  st.className='hint'; st.textContent='Uploading…';
+  var reader=new FileReader();
+  reader.onload=function(){
+    var base64=String(reader.result).split(',')[1];
+    if(kind==='f') st.textContent='Uploading & reading ticket…';
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:base64,parseTicket:(kind==='f')})})
+      .then(function(r){return r.json();})
+      .then(function(d){ if(!d.ok){ st.className='hint bad'; st.textContent='Upload failed'; return; } if(!UP[id]) UP[id]={f:{},h:{}}; UP[id][kind][i]=d.link; st.innerHTML='<a class="lnk" href="'+esc(d.link)+'" target="_blank">📎 View</a> ✓';
+        if(kind==='f' && d.extracted) applyTicket(id,i,d.extracted,st); })
+      .catch(function(){ st.className='hint bad'; st.textContent='Upload failed'; });
+  };
+  reader.readAsDataURL(f);
+}
+// Auto-fill the airline + flight-info inputs from the parsed ticket (only fills blanks; admin can edit).
+function applyTicket(id,i,t,st){
+  var fa=document.getElementById('bk-fa-'+id+'-'+i), fi=document.getElementById('bk-f-'+id+'-'+i), fact=document.getElementById('bk-act-f-'+id+'-'+i);
+  if(fa && !fa.value && t.airline) fa.value=t.airline;
+  if(fi && !fi.value){
+    var info=[t.flightNumber, t.pnr?('PNR '+t.pnr):'', t.departDate].filter(Boolean).join(' · ');
+    if(info) fi.value=info;
+  }
+  if(fact && !fact.value && t.totalFare){ var n=Number(String(t.totalFare).replace(/[^0-9.]/g,'')); if(n) fact.value=n; }
+  if(st) st.innerHTML+=' <span style="color:var(--green);">✨ auto-filled</span>';
+}
+// ---- Live flight search on the booking screen (fills airline + info + actual fare) ----
+function flyDur(min){ min=Number(min)||0; var h=Math.floor(min/60), m=min%60; return (h?h+'h ':'')+(m?m+'m':(h?'':'0m')); }
+function flyTime(iso){ if(!iso) return ''; var d=new Date(iso); if(isNaN(d)) return ''; return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+function flyMoney(cur,n){ return (cur||'INR')+' '+Math.round(Number(n)||0).toLocaleString(cur==='USD'?'en-US':'en-IN'); }
+function isoFromFmt(s){ var p=String(s||'').split('/'); return (p.length===3)?(p[2]+'-'+p[1]+'-'+p[0]):s; } // DD/MM/YYYY -> YYYY-MM-DD
+function flyAdm(js){
+  var a; try{ a=JSON.parse(js); }catch(e){ return; }
+  var box=document.getElementById('flyadm-'+a.id+'-'+a.i); if(!box) return;
+  var row=(DATA.rows||[]).find(function(x){return x.id===a.id;})||{};
+  var cur=row.currency||'INR', intl=(row.type==='international')?1:0;
+  if(!a.from||!a.to||!a.date){ box.innerHTML='<div class="hint bad">No route/date on this leg.</div>'; return; }
+  box.innerHTML='<div class="hint">🔎 Searching '+esc(a.from)+' → '+esc(a.to)+'…</div>';
+  var qs='/api/me?flights=1&from='+encodeURIComponent(a.from)+'&to='+encodeURIComponent(a.to)+'&date='+encodeURIComponent(isoFromFmt(a.date))+'&cur='+cur+'&intl='+intl;
+  fetch(qs,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(!d||!d.configured){ box.innerHTML='<div class="hint">Live flight search isn’t enabled (set RAPIDAPI_KEY).</div>'; return; }
+    if(!d.ok){ box.innerHTML='<div class="hint bad">'+esc(d.error||'search failed')+'</div>'; return; }
+    FLYADM=FLYADM||{}; FLYADM[a.id+'-'+a.i]={cur:cur, data:d, more:false};
+    renderFlyAdm(a.id,a.i);
+  }).catch(function(e){ box.innerHTML='<div class="hint bad">Search failed: '+esc(e&&e.message||e)+'</div>'; });
+}
+var FLYADM={};
+function flyAdmCard(id,i,o,cur){
+  var stops=(o.stops===0)?'Non-stop':(o.stops+' stop'+(o.stops>1?'s':''));
+  var tag=o.kind?('<span style="background:var(--sky-l);color:var(--sky);font-weight:800;font-size:10px;padding:2px 7px;border-radius:6px;margin-right:6px;">'+esc(o.kind)+'</span>'):'';
+  var times=(o.depart||o.arrive)?(esc(flyTime(o.depart))+(o.arrive?(' → '+esc(flyTime(o.arrive))):'')):'';
+  return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--gray-3);border-radius:8px;padding:7px 10px;margin-bottom:6px;font-size:12px;">'
+    +'<div>'+tag+'<b>'+flyMoney(cur,o.price)+'</b> · '+flyDur(o.durationMin)+' · '+stops+'<div class="hint">'+esc(o.carrier||'')+(times?(' · '+times):'')+'</div></div>'
+    +'<button type="button" class="btn btn-clear" style="padding:5px 11px;font-size:11px;" onclick=\'useFlightAdm("'+id+'",'+i+','+JSON.stringify(JSON.stringify(o))+')\'>Use</button></div>';
+}
+function renderFlyAdm(id,i){
+  var st=FLYADM[id+'-'+i]; if(!st) return; var box=document.getElementById('flyadm-'+id+'-'+i); if(!box) return;
+  var d=st.data, cur=st.cur, html='';
+  var picks=d.options||[];
+  if(picks.length) html+=picks.map(function(o){return flyAdmCard(id,i,o,cur);}).join('');
+  if(d.more&&d.more.length){
+    html+='<button type="button" class="btn btn-clear" style="padding:4px 10px;font-size:11px;margin-bottom:6px;" onclick="FLYADM[\''+id+'-'+i+'\'].more=!FLYADM[\''+id+'-'+i+'\'].more;renderFlyAdm(\''+id+'\','+i+');">'+(st.more?'▴ Hide':'▾ More options ('+d.more.length+')')+'</button>';
+    if(st.more) html+=d.more.map(function(o){return flyAdmCard(id,i,o,cur);}).join('');
+  }
+  if(!html) html='<div class="hint">No live flights found.</div>';
+  box.innerHTML=html;
+}
+function useFlightAdm(id,i,js){
+  var o; try{ o=JSON.parse(js); }catch(e){ return; }
+  var fa=document.getElementById('bk-fa-'+id+'-'+i), fi=document.getElementById('bk-f-'+id+'-'+i), fact=document.getElementById('bk-act-f-'+id+'-'+i);
+  if(fa && o.carrier) fa.value=o.carrier;
+  if(fi){ var info=[(o.kind||''), (o.depart?flyTime(o.depart)+(o.arrive?'→'+flyTime(o.arrive):''):''), (o.stops===0?'non-stop':o.stops+'-stop')].filter(Boolean).join(' · '); fi.value=info; }
+  if(fact && o.price) fact.value=o.price;
+}
+function saveBk(id){
+  var r=(DATA.rows||[]).find(function(x){return x.id===id;}); if(!r) return;
+  var up=UP[id]||{f:{},h:{}};
+  var actv=function(kind,i){ var e=document.getElementById('bk-act-'+kind+'-'+id+'-'+i); return e?Number(e.value)||0:0; };
+  var flights=(r.flights||[]).map(function(leg,i){ var el=document.getElementById('bk-f-'+id+'-'+i); var ela=document.getElementById('bk-fa-'+id+'-'+i); return {airline:ela?ela.value:'', info:el?el.value:'', doc:up.f[i]||'', actual:actv('f',i)}; });
+  var hotels=(r.hotels||[]).map(function(leg,i){ var el=document.getElementById('bk-h-'+id+'-'+i); return {info:el?el.value:'', doc:up.h[i]||'', actual:actv('h',i)}; });
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'bookings',bookings:{flights:flights,hotels:hotels}})})
+    .then(function(r2){return r2.json();})
+    .then(function(res){ if(res&&res.ok){ toast('Bookings saved'); r.bookings={flights:flights,hotels:hotels}; } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(){ toast('Error saving bookings'); });
+}
+function mark(id,status){
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,status:status})})
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(res && res.ok){ toast(id+' → '+status); var row=(DATA.rows||[]).find(function(x){return x.id===id;}); if(row) row.adminStatus=status; renderKpis(); render(); }
+      else toast('Error: '+((res&&res.error)||'failed'));
+    }).catch(function(e){ toast('Error: '+(e.message||e)); });
+}
+function sendForex(id){
+  if(!confirm('Send '+id+' to the Forex officer (Jasvinder)? They’ll be emailed and it will appear on the Forex dashboard.')) return;
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'tofx'})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast(res.msg||(id+' → Forex officer')); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(e){ toast('Error: '+(e.message||e)); });
+}
+var toastT;
+function toast(msg){
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove('show'); },2200);
+}
+
+requireView('admin', function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

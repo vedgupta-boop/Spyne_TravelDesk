@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne Expense Approval · Budgets</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1100px;margin:0 auto;padding:22px 20px 60px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;}
+.kpi .num{font-size:22px;font-weight:900;color:var(--navy);margin-top:6px;}.kpi.green .num{color:var(--green);}.kpi.amber .num{color:#B45309;}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.newbtn{background:var(--red);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
+.budget{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+.budget.realloc{border-left:4px solid var(--amber);}
+.b-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.b-id{font-weight:800;color:var(--navy);}.b-sub{font-size:12px;color:var(--gray-5);margin-top:2px;}
+.st{display:inline-block;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.approved{background:var(--grn-l);color:#065F46;}.st.rejected{background:var(--red2-l);color:var(--red2);}
+.chainmini{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.cm{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:var(--gray-2);color:var(--gray-7);}
+.cm.done{background:var(--grn-l);color:#065F46;}.cm.cur{background:var(--amb-l);color:#B45309;}.cm.rej{background:var(--red2-l);color:var(--red2);}
+table.lt{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;}
+table.lt th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-5);padding:6px 8px;border-bottom:1px solid var(--gray-2);}
+table.lt th.r,table.lt td.r{text-align:right;}
+table.lt td{padding:7px 8px;border-bottom:1px solid var(--gray-2);vertical-align:top;}
+.bar-track{height:6px;background:var(--gray-2);border-radius:4px;overflow:hidden;margin-top:4px;}.bar-fill{height:100%;background:var(--sky);}
+.vend{font-size:11px;color:var(--gray-5);margin-top:3px;}
+.lact{font-size:11px;margin-top:7px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.lact a{display:inline-block;background:var(--sky-l);color:var(--sky);border:1px solid #BBD9F2;border-radius:6px;padding:3px 9px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.lact a:hover{background:var(--sky);color:#fff;}
+.lact .lact-lbl{color:var(--gray-5);font-weight:700;}
+.actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
+.btn{border:none;border-radius:7px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+.btn-ap{background:var(--green);color:#fff;}.btn-rj{background:var(--red2);color:#fff;}.btn-v{background:var(--sky);color:#fff;}.btn-r{background:#7C3AED;color:#fff;}
+.empty,.loading{padding:50px;text-align:center;color:var(--gray-5);background:#fff;border:1px solid var(--gray-3);border-radius:12px;}
+.hidden{display:none!important;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+/* modal */
+.ov{position:fixed;inset:0;background:rgba(13,27,42,.45);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:40px 16px;overflow:auto;}
+.ov.open{display:flex;}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:560px;overflow:hidden;}
+.modal-h{background:var(--navy);color:#fff;padding:16px 20px;font-weight:800;display:flex;justify-content:space-between;align-items:center;}
+.modal-h .x{cursor:pointer;font-size:20px;color:rgba(255,255,255,.8);}
+.modal-b{padding:20px;}
+.field{margin-bottom:12px;}.field label{font-size:11px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px;}
+.inp{width:100%;padding:9px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:14px;font-family:inherit;}
+.lrow{display:grid;grid-template-columns:1fr 110px 120px 28px;gap:8px;margin-bottom:8px;align-items:center;}
+.lrm{background:none;border:none;color:var(--red2);font-size:16px;cursor:pointer;}
+.modal-f{padding:14px 20px;background:var(--gray-1);display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--gray-2);}
+.tot{font-weight:800;color:var(--navy);}
+.kpi.sky .num{color:var(--sky);}.kpi.red .num{color:var(--red2);}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.search,.sel{padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;background:#fff;}
+.search{min-width:180px;}
+.updated{font-size:11px;color:var(--gray-5);}
+.atrisk{background:var(--amb-l);border:1px solid #FCD34D;border-radius:12px;padding:12px 16px;margin-bottom:16px;}
+.atrisk h4{font-size:12px;font-weight:800;color:#92400E;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.atrisk .ar{font-size:12px;color:#78350F;padding:2px 0;}
+.age{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10.5px;font-weight:800;margin-left:6px;}
+.age.ok{background:var(--gray-2);color:var(--gray-7);}.age.warn{background:var(--amb-l);color:#B45309;}.age.late{background:var(--red2-l);color:var(--red2);}
+.budget.overdue{box-shadow:0 0 0 2px #FCD34D inset;}
+.pace{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;margin-left:6px;}
+.pace.ahead{background:var(--red2-l);color:var(--red2);}.pace.ontrack{background:var(--grn-l);color:#065F46;}
+.lineage{font-size:11px;color:var(--sky);margin-top:3px;}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:18px;}
+.chart{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:14px 16px;}
+.chart h3{font-size:13px;font-weight:800;color:var(--navy);}.chart .csub{font-size:11px;color:var(--gray-5);margin:2px 0 12px;}
+.crow{margin:9px 0;}.cr-top{display:flex;justify-content:space-between;gap:10px;font-size:12px;margin-bottom:3px;}
+.cr-top .cl{color:var(--gray-7);font-weight:700;}.cr-top .cv{font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;}
+.ctrack{height:10px;background:var(--gray-2);border-radius:5px;overflow:hidden;}.cfill{height:100%;border-radius:5px;min-width:2px;}
+.cempty{font-size:12px;color:var(--gray-5);padding:8px 0;}
+.tl{margin-top:10px;}.tl-item{position:relative;padding:0 0 11px 16px;border-left:2px solid var(--gray-2);}
+.tl-item:last-child{border-left-color:transparent;}
+.tl-dot{position:absolute;left:-6px;top:1px;width:10px;height:10px;border-radius:50%;background:var(--gray-3);border:2px solid #fff;}
+.tl-dot.ok{background:var(--green);}.tl-dot.no{background:var(--red2);}
+.tl-h{font-size:12px;font-weight:800;color:var(--ink);}.tl-meta{font-size:10.5px;color:var(--gray-5);}.tl-txt{font-size:12px;color:var(--gray-7);margin-top:1px;white-space:pre-wrap;}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px;flex-wrap:wrap;}
+.pager .pginfo{font-size:12px;color:var(--gray-5);}.pgbtns{display:flex;gap:6px;align-items:center;}
+.pgbtn{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:7px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}.pgbtn:disabled{opacity:.4;cursor:default;}
+@media(max-width:680px){.charts{grid-template-columns:1fr;}.lrow{grid-template-columns:1fr 80px 28px;}.lrow .l-freq{grid-column:1/3;}.wrap{padding:16px 12px 50px;}table.lt{font-size:12px;}.modal{max-width:96vw;}}
+@media print{.topbar,.tools,.actions,#charts-wrap,#pager,.ov,.btn-refresh,.chainmini{display:none!important;}.budget,.kpi,.chart{break-inside:avoid;border-color:#ccc;}.wrap{max-width:none;padding:0;}body{background:#fff;}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne Expense Approval Dashboard</div><div class="logo-sub">Budgets</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="exp-userbar"></div>
+    <span class="updated" id="updated"></span>
+    <button class="btn-refresh" id="auto-btn" onclick="toggleAuto()">⏱ Auto: Off</button>
+    <button class="btn-refresh" onclick="printReport()">🖨 Print / PDF</button>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div id="kpis" class="cards"></div>
+  <div id="atrisk"></div>
+  <div id="charts-wrap" style="display:none;">
+    <div class="bar" style="margin-bottom:10px;cursor:pointer;" onclick="toggleCharts()"><div class="title">📈 Analytics</div><span id="charts-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Hide ▴</span></div>
+    <div id="charts-body"><div class="charts">
+      <div class="chart"><h3>Budget Utilisation</h3><div class="csub">Locked budgets — % of allocation spent</div><div id="ch-util"></div></div>
+      <div class="chart"><h3>Top Vendors</h3><div class="csub">Spend drawn down — top 6 (₹)</div><div id="ch-vendor"></div></div>
+    </div></div>
+  </div>
+  <div class="bar">
+    <div class="title">Department Budgets</div>
+    <div class="tools">
+      <input id="search" class="search" placeholder="Search id / title / dept" oninput="applyFilters()">
+      <select id="f-dept" class="sel" onchange="applyFilters()"><option value="">All departments</option></select>
+      <select id="f-period" class="sel" onchange="applyFilters()"><option value="">All periods</option></select>
+      <select id="f-type" class="sel" onchange="applyFilters()"><option value="">All types</option><option value="budget">Budgets</option><option value="realloc">Reallocations</option><option value="claim">Claims</option></select>
+      <select id="f-status" class="sel" onchange="applyFilters()"><option value="">Any status</option><option value="pending">Pending</option><option value="locked">Locked</option><option value="closed">Closed</option></select>
+      <select id="sort" class="sel" onchange="applyFilters()"><option value="new">Newest</option><option value="util">Utilisation %</option><option value="rem">Remaining</option><option value="dept">Department</option></select>
+      <button class="newbtn" style="background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);" onclick="downloadCSV()">⬇ CSV</button>
+      <button class="newbtn" onclick="openCreate()">+ New Budget</button>
+    </div>
+  </div>
+  <div id="loading" class="loading">Loading…</div>
+  <div id="list"></div>
+  <div class="pager" id="pager"></div>
+  <div id="empty" class="empty hidden">No budgets yet. <a href="#" onclick="openCreate();return false;" style="color:var(--sky);font-weight:700;">Create one →</a></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Create budget modal -->
+<div class="ov" id="ov-create"><div class="modal">
+  <div class="modal-h"><span>New Budget Request</span><span class="x" onclick="closeM('ov-create')">×</span></div>
+  <div class="modal-b">
+    <div class="field"><label>Department</label><select id="c-dept" class="inp"></select></div>
+    <div class="field"><label>Period</label><select id="c-period" class="inp"></select></div>
+    <div class="field"><label>Currency</label><select id="c-currency" class="inp"><option value="INR">INR (₹)</option><option value="USD">USD ($)</option></select></div>
+    <div class="field"><label>Title (optional)</label><input id="c-title" class="inp" placeholder="e.g. Technology — FY 2026-27"></div>
+    <div class="field"><label>Line items</label><div id="c-lines"></div>
+      <button class="btn btn-v" style="margin-top:4px;" onclick="addLine()">+ Add line item</button></div>
+    <div style="text-align:right;margin-top:8px;">Total: <span class="tot" id="c-total">0</span></div>
+  </div>
+  <div class="modal-f"><button class="btn" style="background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);" onclick="closeM('ov-create')">Cancel</button><button class="btn btn-ap" onclick="submitCreate()">Submit for approval</button></div>
+</div></div>
+
+<!-- Vendor mapping modal -->
+<div class="ov" id="ov-vendor"><div class="modal">
+  <div class="modal-h"><span>Claim budget</span><span class="x" onclick="closeM('ov-vendor')">×</span></div>
+  <div class="modal-b">
+    <div class="vend" style="margin-bottom:10px;">Goes to <b>HOD → Finance</b> for approval; it draws down the line once approved.</div>
+    <div class="field"><label>Line item</label><select id="v-line" class="inp" onchange="vCheck()"></select></div>
+    <div class="field"><label>Expense / purpose *</label><input id="v-note" class="inp" placeholder="What this spend is for (required)"></div>
+    <div class="field"><label>Amount *</label><input id="v-amount" type="number" min="0" class="inp" placeholder="0" oninput="vCheck()"><div class="vend" id="v-warn" style="margin-top:5px;"></div></div>
+    <div class="field"><label>Vendor (optional)</label><input id="v-vendor" class="inp" placeholder="Add later if not yet known"></div>
+  </div>
+  <div class="modal-f"><button class="btn" style="background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);" onclick="closeM('ov-vendor')">Cancel</button><button class="btn btn-v" onclick="submitVendor()">Submit claim</button></div>
+</div></div>
+
+<!-- Reallocation modal -->
+<div class="ov" id="ov-realloc"><div class="modal">
+  <div class="modal-h"><span id="r-title">Reallocate budget</span><span class="x" onclick="closeM('ov-realloc')">×</span></div>
+  <div class="modal-b">
+    <label style="display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:13px;"><input type="checkbox" id="r-drop" onchange="onDropToggle()"> Drop / release instead of moving to another line</label>
+    <div class="field"><label>From line item (unused budget)</label><select id="r-from" class="inp"></select></div>
+    <div class="field" id="r-to-wrap"><label>To line item</label><select id="r-to" class="inp"></select></div>
+    <div class="field"><label>Amount</label><input id="r-amount" type="number" min="0" class="inp" placeholder="0"></div>
+    <div class="field"><label>Why was the budget unused?</label><textarea id="r-ru" class="inp" rows="2"></textarea></div>
+    <div class="field" id="r-rn-wrap"><label>Why is it needed for the To item?</label><textarea id="r-rn" class="inp" rows="2"></textarea></div>
+  </div>
+  <div class="modal-f"><button class="btn" style="background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);" onclick="closeM('ov-realloc')">Cancel</button><button class="btn btn-r" id="r-submit" onclick="submitRealloc()">Request reallocation</button></div>
+</div></div>
+
+<!-- Close-out modal -->
+<div class="ov" id="ov-close"><div class="modal">
+  <div class="modal-h"><span>Close out budget</span><span class="x" onclick="closeM('ov-close')">×</span></div>
+  <div class="modal-b">
+    <div class="field"><label>What to close</label><select id="cl-scope" class="inp" onchange="closeScopeInfo()"><option value="">Entire budget</option></select></div>
+    <p style="font-size:13px;color:var(--gray-7);line-height:1.5;" id="cl-desc">Closing locks the budget for the period — no further claims or reallocation. <span id="close-info" style="font-weight:700;"></span></p>
+    <label style="display:flex;align-items:center;gap:8px;margin:14px 0;font-size:13px;"><input type="checkbox" id="cl-carry" onchange="document.getElementById('cl-period-wrap').style.display=this.checked?'':'none';"> Carry the unused remaining forward into a new budget (needs fresh HOD → CEO → Finance approval)</label>
+    <div class="field" id="cl-period-wrap" style="display:none;"><label>New period</label><select id="cl-period" class="inp"></select></div>
+  </div>
+  <div class="modal-f"><button class="btn" style="background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);" onclick="closeM('ov-close')">Cancel</button><button class="btn" style="background:var(--gray-7);color:#fff;" id="cl-submit" onclick="submitClose()">Close budget</button></div>
+</div></div>
+
+<!-- Finance direct-add modal (no approval) -->
+<div class="ov" id="ov-finadd"><div class="modal">
+  <div class="modal-h"><span>Add expense to budget (Finance)</span><span class="x" onclick="closeM('ov-finadd')">×</span></div>
+  <div class="modal-b">
+    <div class="vend" style="margin-bottom:10px;">Finance-only · <b>no approval</b>. For an actual expense that wasn't claimed — it's recorded directly against the line (may push it over allocation).</div>
+    <div class="field"><label>Line item</label><select id="fa-line" class="inp" onchange="faCheck()"></select></div>
+    <div class="field"><label>Expense / purpose *</label><input id="fa-note" class="inp" placeholder="What this spend was for (required)"></div>
+    <div class="field"><label>Amount *</label><input id="fa-amount" type="number" min="0" class="inp" placeholder="0" oninput="faCheck()"><div class="vend" id="fa-warn" style="margin-top:5px;"></div></div>
+    <div class="field"><label>Vendor (optional)</label><input id="fa-vendor" class="inp" placeholder="Vendor name, if known"></div>
+  </div>
+  <div class="modal-f"><button class="btn" style="background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);" onclick="closeM('ov-finadd')">Cancel</button><button class="btn btn-ap" onclick="submitFinAdd()">Add expense</button></div>
+</div></div>
+
+<script>
+var DATA={rows:[],periods:[]},CFG=null,RMAP={},PAGE=1,PAGESIZE=8,AUTO=false,AUTOID=null,PRINTING=false;
+function nfmt(x){x=Number(x)||0;if(x>=1e7)return '₹'+(x/1e7).toFixed(2)+' Cr';if(x>=1e5)return '₹'+(x/1e5).toFixed(2)+' L';if(x>=1e3)return '₹'+Math.round(x/1e3)+'k';return '₹'+Math.round(x);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function n(x){return Number(x||0).toLocaleString('en-IN');}
+var FX=92; // USD→INR for cross-currency KPI rollup
+function sym(c){return c==='USD'?'$':'₹';}
+function m(x,c){return sym(c)+n(x);}
+function toINR(x,c){return c==='USD'?Math.round((Number(x)||0)*FX):(Number(x)||0);}
+function $(id){return document.getElementById(id);}
+function load(){
+  console.log('Budget dashboard build: per-line-actions-2026-06-24');
+  $('loading').classList.remove('hidden');$('list').innerHTML='';$('empty').classList.add('hidden');
+  fetch('/api/budget',{credentials:'same-origin'}).then(function(r){return r.json();}).then(onData).catch(function(e){$('loading').textContent='Could not load: '+(e&&e.message||e);});
+}
+function onData(d){
+  DATA=d||{rows:[],periods:[]};
+  $('loading').classList.add('hidden');
+  if(!(DATA.rows||[]).length){$('empty').classList.remove('hidden');$('empty').innerHTML='No budgets yet. <a href="#" onclick="openCreate();return false;" style="color:var(--sky);font-weight:700;">Create one →</a>';$('kpis').innerHTML='';$('atrisk').innerHTML='';$('charts-wrap').style.display='none';$('list').innerHTML='';$('pager').innerHTML='';return;}
+  // Render the cards (with their action buttons) FIRST and isolate every other step,
+  // so a glitch in KPIs/at-risk/charts can never blank out the budget list or its actions.
+  try{populateFilters();}catch(e){console.error('populateFilters',e);}
+  try{render();}catch(e){console.error('render',e);}
+  try{renderKpis();}catch(e){console.error('renderKpis',e);}
+  try{renderAtRisk();}catch(e){console.error('renderAtRisk',e);}
+  try{renderCharts();}catch(e){console.error('renderCharts',e);}
+  var u=$('updated');if(u)u.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function lineAtRisk(l){return !l.closed&&l.amount>0&&(l.spent/l.amount)>=0.9;}
+function renderKpis(){
+  var b=DATA.rows.filter(function(r){return r.type==='budget';});
+  var locked=b.filter(function(r){return r.locked;});
+  var pending=DATA.rows.filter(function(r){return r.pending;}).length;
+  var alloc=0,spent=0,atrisk=0;
+  locked.forEach(function(r){alloc+=toINR(r.total,r.currency);spent+=toINR(r.spent,r.currency);(r.lines||[]).forEach(function(l){if(lineAtRisk(l))atrisk++;});});
+  var rem=alloc-spent,util=alloc>0?Math.round(spent/alloc*100):0;
+  function sub(t){return '<div class="sub" style="font-size:11px;color:var(--gray-5);margin-top:3px;">'+t+'</div>';}
+  $('kpis').innerHTML=''
+    +'<div class="kpi"><div class="lb">Budgets</div><div class="num">'+b.length+'</div>'+sub(locked.length+' locked · '+pending+' pending')+'</div>'
+    +'<div class="kpi sky"><div class="lb">Allocated (₹)</div><div class="num">'+nfmt(alloc)+'</div></div>'
+    +'<div class="kpi"><div class="lb">Spent (₹)</div><div class="num">'+nfmt(spent)+'</div>'+sub(util+'% utilised')+'</div>'
+    +'<div class="kpi green"><div class="lb">Remaining (₹)</div><div class="num">'+nfmt(rem)+'</div></div>'
+    +'<div class="kpi '+(atrisk?'red':'')+'"><div class="lb">At-risk lines</div><div class="num">'+atrisk+'</div>'+sub('≥90% used')+'</div>'
+    +'<div class="kpi amber"><div class="lb">Awaiting approval</div><div class="num">'+pending+'</div></div>';
+}
+function renderAtRisk(){
+  var items=[];
+  DATA.rows.filter(function(r){return r.type==='budget'&&r.locked;}).forEach(function(r){
+    (r.lines||[]).forEach(function(l){if(lineAtRisk(l))items.push({r:r,l:l,pct:Math.round(l.spent/l.amount*100)});});});
+  items.sort(function(a,b){return b.pct-a.pct;});
+  var el=$('atrisk');if(!items.length){el.innerHTML='';return;}
+  el.innerHTML='<div class="atrisk"><h4>⚠ '+items.length+' line(s) at / over budget</h4>'+items.map(function(x){return '<div class="ar">• <b>'+esc(x.r.dept)+'</b> · '+esc(x.l.head)+' — '+x.pct+'% ('+m(x.l.spent,x.r.currency)+' of '+m(x.l.amount,x.r.currency)+(x.l.remaining<0?', over by '+m(-x.l.remaining,x.r.currency):'')+') · '+esc(x.r.id)+'</div>';}).join('')+'</div>';
+}
+function populateFilters(){
+  var depts={},periods={};DATA.rows.forEach(function(r){if(r.dept)depts[r.dept]=1;if(r.period)periods[r.period]=1;});
+  var dsel=$('f-dept'),psel=$('f-period');if(!dsel)return;var dc=dsel.value,pc=psel.value;
+  dsel.innerHTML='<option value="">All departments</option>'+Object.keys(depts).sort().map(function(d){return'<option'+(d===dc?' selected':'')+'>'+esc(d)+'</option>';}).join('');
+  psel.innerHTML='<option value="">All periods</option>'+Object.keys(periods).sort().map(function(p){return'<option'+(p===pc?' selected':'')+'>'+esc(p)+'</option>';}).join('');
+}
+function statusBucket(r){if(/Reject/i.test(r.status))return'rejected';if(r.closed||/closed/i.test(r.status))return'closed';if(r.locked||/Locked|Applied|Recorded/i.test(r.status))return'locked';return'pending';}
+function filteredRows(){
+  var q=($('search').value||'').trim().toLowerCase(),df=$('f-dept').value,pf=$('f-period').value,tf=$('f-type').value,sf=$('f-status').value;
+  return (DATA.rows||[]).filter(function(r){
+    if(df&&r.dept!==df)return false;if(pf&&r.period!==pf)return false;
+    if(tf&&(r.type||'budget')!==tf)return false;if(sf&&statusBucket(r)!==sf)return false;
+    if(q){var hay=(r.id+' '+(r.title||'')+' '+r.dept+' '+r.period).toLowerCase();if(hay.indexOf(q)<0)return false;}
+    return true;});
+}
+function utilPct(r){return r.total>0?Math.round(r.spent/r.total*100):0;}
+function sortRows(rows){var k=$('sort').value;
+  if(k==='util')return rows.slice().sort(function(a,b){return utilPct(b)-utilPct(a);});
+  if(k==='rem')return rows.slice().sort(function(a,b){return toINR(b.remaining,b.currency)-toINR(a.remaining,a.currency);});
+  if(k==='dept')return rows.slice().sort(function(a,b){return String(a.dept).localeCompare(String(b.dept));});
+  return rows;
+}
+function applyFilters(){PAGE=1;render();}
+function changePage(d){PAGE+=d;render();}
+function renderPager(nn,start,end,pages){var el=$('pager');if(!el)return;if(nn<=PAGESIZE){el.innerHTML='';return;}
+  el.innerHTML='<div class="pginfo">Showing '+(start+1)+'–'+end+' of '+nn+'</div><div class="pgbtns"><button class="pgbtn"'+(PAGE<=1?' disabled':'')+' onclick="changePage(-1)">‹ Prev</button><span class="pginfo">Page '+PAGE+' / '+pages+'</span><button class="pgbtn"'+(PAGE>=pages?' disabled':'')+' onclick="changePage(1)">Next ›</button></div>';}
+function render(){
+  var rows=sortRows(filteredRows());var nn=rows.length;
+  if(!nn){$('list').innerHTML='';$('pager').innerHTML='';$('empty').classList.remove('hidden');$('empty').innerHTML='No budgets match these filters.';return;}
+  $('empty').classList.add('hidden');
+  var pages=Math.max(1,Math.ceil(nn/PAGESIZE));if(PAGE>pages)PAGE=pages;if(PAGE<1)PAGE=1;
+  var start=PRINTING?0:(PAGE-1)*PAGESIZE,end=PRINTING?nn:Math.min(nn,start+PAGESIZE);
+  $('list').innerHTML=rows.slice(start,end).map(function(r,i){try{return r.type==='realloc'?reallocCard(r,i):(r.type==='claim'?claimCard(r,i):budgetCard(r,i));}catch(e){console.error('card render failed',r&&r.id,e);return '<div class="budget"><div class="b-id">'+esc((r&&r.id)||'?')+'</div><div class="b-sub" style="color:var(--red2);">This card could not render — '+esc(e&&e.message||e)+'</div></div>';}}).join('');
+  renderPager(nn,start,end,pages);
+}
+function barPct(obj){var keys=Object.keys(obj);if(!keys.length)return '<div class="cempty">No locked budgets yet.</div>';
+  return keys.map(function(k){var o=obj[k];var pct=o.alloc>0?Math.round(o.spent/o.alloc*100):0;var col=pct>=100?'var(--red2)':(pct>=90?'var(--amber)':'#0077CC');
+    return '<div class="crow"><div class="cr-top"><span class="cl">'+esc(k)+'</span><span class="cv">'+pct+'%</span></div><div class="ctrack"><div class="cfill" style="width:'+Math.min(100,pct)+'%;background:'+col+';"></div></div></div>';}).join('');}
+function barVal(obj,color){var keys=Object.keys(obj).filter(function(k){return obj[k]>0;}).sort(function(a,b){return obj[b]-obj[a];}).slice(0,6);if(!keys.length)return '<div class="cempty">No vendor spend yet.</div>';var max=Math.max.apply(null,keys.map(function(k){return obj[k];}));
+  return keys.map(function(k){var v=obj[k];var w=max>0?Math.max(2,Math.round(v/max*100)):0;return '<div class="crow"><div class="cr-top"><span class="cl">'+esc(k)+'</span><span class="cv">'+nfmt(v)+'</span></div><div class="ctrack"><div class="cfill" style="width:'+w+'%;background:'+color+';"></div></div></div>';}).join('');}
+function renderCharts(){
+  var wrap=$('charts-wrap');if(!wrap)return;
+  var locked=DATA.rows.filter(function(r){return r.type==='budget'&&r.locked;});
+  var util={},vend={};
+  locked.forEach(function(r){util[r.id.replace(/^BUD-?/,'')+' · '+r.dept]={alloc:toINR(r.total,r.currency),spent:toINR(r.spent,r.currency)};
+    (r.lines||[]).forEach(function(l){(l.vendors||[]).forEach(function(v){var nm=v.vendor||v.note||'(unnamed)';vend[nm]=(vend[nm]||0)+toINR(v.amount,r.currency);});});});
+  wrap.style.display=locked.length?'':'none';if(!locked.length)return;
+  $('ch-util').innerHTML=barPct(util);$('ch-vendor').innerHTML=barVal(vend,'#0EA5A0');
+}
+function ageBadge(r){if(r.ageDays==null)return'';var c=r.ageDays>=7?'late':(r.ageDays>=3?'warn':'ok');return '<span class="age '+c+'" title="'+r.ageDays+' day(s) awaiting approval">'+r.ageDays+'d</span>';}
+function isOverdue(r){return r.ageDays!=null&&r.ageDays>=3;}
+function periodRange(p){p=String(p||'');var fy=p.match(/FY\s*(\d{4})/);if(!fy)return null;var y=+fy[1];var qm=p.match(/Q([1-4])/);
+  if(qm){var q=+qm[1];var sm=[3,6,9,0][q-1];var sy=q===4?y+1:y;return {s:new Date(sy,sm,1),e:new Date(q===4?y+1:y,sm+3,0)};}
+  return {s:new Date(y,3,1),e:new Date(y+1,2,31)};}
+function paceBadge(r){if(!r.locked)return'';var rg=periodRange(r.period);if(!rg)return'';var now=new Date();if(now<rg.s||now>rg.e)return'';var elapsed=(now-rg.s)/(rg.e-rg.s);var util=r.total>0?r.spent/r.total:0;if(elapsed<=0)return'';
+  var t=Math.round(util*100)+'% spent vs '+Math.round(elapsed*100)+'% of period elapsed';
+  return util>elapsed+0.1?'<span class="pace ahead" title="'+t+'">⚡ ahead of pace</span>':'<span class="pace ontrack" title="'+t+'">on track</span>';}
+function lineageHtml(r){var out=[];if(r.parent)out.push('↑ carried from '+esc(r.parent));
+  var kids=DATA.rows.filter(function(x){return x.parent===r.id&&x.type==='budget';});
+  if(kids.length)out.push('↓ carried to '+kids.map(function(k){return esc(k.id);}).join(', '));
+  return out.length?'<div class="lineage">'+out.join(' · ')+'</div>':'';}
+function tlHtml(r){
+  var items=[{h:'Created',meta:r.submission,txt:''}];
+  (r.comments||'').split('\n').forEach(function(l){l=l.trim();if(!l)return;var mm=l.match(/^\[([^\]]+)\]\s*(.*)$/);
+    if(mm){var parts=mm[1].split('·');items.push({h:(parts[0]||'').trim(),meta:parts.slice(1).join('·').trim(),txt:mm[2]});}else items.push({h:'',meta:'',txt:l});});
+  return '<div class="tl">'+items.map(function(s){var dot=/reject/i.test((s.h||'')+(s.txt||''))?'no':'ok';
+    return '<div class="tl-item"><span class="tl-dot '+dot+'"></span>'+(s.h?'<div class="tl-h">'+esc(s.h)+'</div>':'')+(s.meta?'<div class="tl-meta">'+esc(s.meta)+'</div>':'')+(s.txt?'<div class="tl-txt">'+esc(s.txt)+'</div>':'')+'</div>';}).join('')+'</div>';}
+function toggleCharts(){var b=$('charts-body'),t=$('charts-toggle');var show=b.style.display==='none';b.style.display=show?'':'none';t.textContent=show?'Hide ▴':'Show ▾';}
+function toggleAuto(){AUTO=!AUTO;$('auto-btn').textContent='⏱ Auto: '+(AUTO?'On':'Off');if(AUTOID){clearInterval(AUTOID);AUTOID=null;}if(AUTO)AUTOID=setInterval(load,60000);}
+function printReport(){PRINTING=true;render();setTimeout(function(){window.print();},120);}
+window.addEventListener('afterprint',function(){if(PRINTING){PRINTING=false;render();}});
+function chainmini(r){
+  function c(lbl,st,active){var cl=/Rejected/.test(st)?'rej':(/Approved/.test(st)?'done':(active?'cur':''));return'<span class="cm '+cl+'">'+lbl+(st?' '+(/Approved/.test(st)?'✓':(/Rejected/.test(st)?'✕':'')):'')+'</span>';}
+  var mid,tail;
+  if(r.type==='claim'){mid=c('Finance',r.finance,r.stage==='finance');tail='<span class="cm '+(r.stage==='recorded'?'done':'')+'">'+(r.stage==='recorded'?'Recorded ✓':'Record')+'</span>';}
+  else if(r.type==='realloc'){mid=c('Finance',r.finance,r.stage==='finance')+c('Management',r.mgmt,r.stage==='mgmt');tail='<span class="cm '+(r.stage==='applied'?'done':'')+'">'+(r.stage==='applied'?'Applied ✓':'Apply')+'</span>';}
+  else{mid=c('CEO',r.mgmt,r.stage==='mgmt')+c('Finance',r.finance,r.stage==='finance');tail='<span class="cm '+(r.locked?'done':'')+'">'+(r.locked?'Locked ✓':'Lock')+'</span>';}
+  return'<div class="chainmini">'+c('HOD',r.hod,r.stage==='dept')+mid+tail+'</div>';}
+function statusPill(r){var c=/Reject/.test(r.status)?'rejected':(/Locked|Applied|Recorded/.test(r.status)?'approved':'pending');return'<span class="st '+c+'">'+esc(r.status)+'</span>';}
+function approveBtns(r){
+  if(!r.canApprove)return'';
+  return'<button class="btn btn-ap" onclick="decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="decide(\''+esc(r.id)+'\',\'reject\')">Reject</button>';
+}
+function budgetCard(r,i){
+  var lt='<table class="lt"><thead><tr><th>Line item</th><th class="r">Budget</th><th class="r">Spent</th><th class="r">Remaining</th></tr></thead><tbody>'
+    +r.lines.map(function(l){
+      var pct=l.amount>0?Math.min(100,Math.round((l.spent/l.amount)*100)):0;
+      var vend=(l.vendors||[]).map(function(v){var nm=v.vendor||v.note||'spend';return esc(nm)+' ('+m(v.amount,r.currency)+')'+(v.expense?' ·'+esc(v.expense):'');}).join(', ');
+      var raise=r.locked?'<div class="vend"><a href="/?budget='+encodeURIComponent(r.id)+'&line='+encodeURIComponent(l.id)+'&dept='+encodeURIComponent(r.dept)+'" style="color:var(--sky);font-weight:700;">+ Raise expense against this line ↗</a></div>':'';
+      var fl=(l.frequency&&l.frequency!=='One-time')?' <span class="muted">· '+esc(l.frequency.toLowerCase())+'</span>':'';
+      var cl=l.closed?' <span class="st rejected" style="font-size:10px;padding:1px 6px;">Closed'+(l.carried?' · carried':'')+'</span>':'';
+      var la='';
+      if(!l.closed){
+        if(r.locked)la+='<a onclick="openVendor(\''+esc(r.id)+'\',\''+esc(l.id)+'\')">＋ Map vendor</a><a onclick="openRealloc(\''+esc(r.id)+'\',\''+esc(l.id)+'\',false)">⇄ Reallocate</a><a onclick="openRealloc(\''+esc(r.id)+'\',\''+esc(l.id)+'\',true)">⊘ Drop</a>';
+        if(r.canFinanceAdd)la+='<a onclick="openFinAdd(\''+esc(r.id)+'\',\''+esc(l.id)+'\')">＋ Add expense</a>';
+        if(r.canClose)la+='<a onclick="openClose(\''+esc(r.id)+'\',\''+esc(l.id)+'\')">⏹ Close line</a>';
+      }
+      var lactBar=la?'<div class="lact"><span class="lact-lbl">Line actions:</span>'+la+'</div>':'';
+      return'<tr'+(l.closed?' style="opacity:.6;"':'')+'><td>'+esc(l.head)+fl+cl+(vend?'<div class="vend">'+vend+'</div>':'')+(l.closed?'':raise)+lactBar+'</td><td class="r">'+m(l.amount,r.currency)+'</td><td class="r">'+m(l.spent,r.currency)+'<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div></td><td class="r" style="font-weight:700;">'+m(l.remaining,r.currency)+'</td></tr>';
+    }).join('')
+    +'</tbody><tfoot><tr><td style="font-weight:800;">Total</td><td class="r" style="font-weight:800;">'+m(r.total,r.currency)+'</td><td class="r" style="font-weight:800;">'+m(r.spent,r.currency)+'</td><td class="r" style="font-weight:800;">'+m(r.remaining,r.currency)+'</td></tr></tfoot></table>';
+  var act=approveBtns(r);
+  if(r.locked)act+='<button class="btn btn-v" onclick="openVendor(\''+esc(r.id)+'\')">＋ Map vendor</button><button class="btn btn-r" onclick="openRealloc(\''+esc(r.id)+'\')">⇄ Reallocate</button>';
+  if(r.canFinanceAdd)act+='<button class="btn" style="background:var(--sky);color:#fff;" onclick="openFinAdd(\''+esc(r.id)+'\')">＋ Add expense (Finance)</button>';
+  if(r.canClose)act+='<button class="btn" style="background:var(--gray-7);color:#fff;" onclick="openClose(\''+esc(r.id)+'\')">⏹ Close / carry-forward</button>';
+  return'<div class="budget'+(isOverdue(r)?' overdue':'')+'"><div class="b-h"><div><div class="b-id">'+esc(r.id)+' · '+esc(r.title)+paceBadge(r)+'</div><div class="b-sub">'+esc(r.dept)+' · '+esc(r.period)+' · created '+esc(r.submission)+'</div>'+lineageHtml(r)+'</div><div style="text-align:right;white-space:nowrap;">'+ageBadge(r)+statusPill(r)+'</div></div>'
+    +chainmini(r)+lt+tlHtml(r)+(act?'<div class="actions">'+act+'</div>':'')+'</div>';
+}
+function reallocCard(r,i){
+  var d=r.detail||{};var drop=!!d.drop;
+  var body='<table class="lt"><tbody>'
+    +(drop?'<tr><td>Action</td><td style="font-weight:700;">Drop / release</td></tr>':'')
+    +'<tr><td>'+(drop?'Line':'From')+'</td><td style="font-weight:700;">'+esc(d.fromHead||'')+'</td></tr>'
+    +(drop?'':'<tr><td>To</td><td style="font-weight:700;">'+esc(d.toHead||'')+'</td></tr>')
+    +'<tr><td>Amount</td><td style="font-weight:700;">'+m(d.amount,r.currency)+'</td></tr>'
+    +'<tr><td>Why unused</td><td>'+esc(d.reasonUnused||'')+'</td></tr>'
+    +(drop?'':'<tr><td>Why needed</td><td>'+esc(d.reasonNeeded||'')+'</td></tr>')+'</tbody></table>';
+  var act=approveBtns(r);
+  return'<div class="budget realloc'+(isOverdue(r)?' overdue':'')+'"><div class="b-h"><div><div class="b-id">'+esc(r.id)+' · '+(drop?'Budget drop':'Reallocation')+'</div><div class="b-sub">'+esc(r.dept)+' · '+esc(r.period)+' · parent '+esc(r.parent)+'</div></div><div style="text-align:right;white-space:nowrap;">'+ageBadge(r)+statusPill(r)+'</div></div>'
+    +chainmini(r)+body+tlHtml(r)+(act?'<div class="actions">'+act+'</div>':'')+'</div>';
+}
+function claimCard(r,i){
+  var d=r.detail||{};
+  var body='<table class="lt"><tbody>'
+    +'<tr><td>Line item</td><td style="font-weight:700;">'+esc(d.lineHead||'')+'</td></tr>'
+    +'<tr><td>Expense</td><td style="font-weight:700;">'+esc(d.expense||'')+'</td></tr>'
+    +'<tr><td>Vendor</td><td>'+(d.vendor?esc(d.vendor):'<span class="muted">— optional —</span>')+'</td></tr>'
+    +'<tr><td>Amount</td><td style="font-weight:700;">'+m(d.amount,r.currency)+'</td></tr></tbody></table>';
+  var act=approveBtns(r);
+  return'<div class="budget'+(isOverdue(r)?' overdue':'')+'" style="border-left:4px solid var(--sky);"><div class="b-h"><div><div class="b-id">'+esc(r.id)+' · Budget claim</div><div class="b-sub">'+esc(r.dept)+' · '+esc(r.period)+' · parent '+esc(r.parent)+'</div></div><div style="text-align:right;white-space:nowrap;">'+ageBadge(r)+statusPill(r)+'</div></div>'
+    +chainmini(r)+body+tlHtml(r)+(act?'<div class="actions">'+act+'</div>':'')+'</div>';
+}
+function decide(id,decision){
+  var comment=prompt('Justification for this '+decision+' (required):','');
+  if(comment===null)return; if(!comment.trim()){toast('A justification is required.');return;}
+  fetch('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'decision',id:id,decision:decision,comment:comment.trim()})})
+    .then(function(r){return r.json();}).then(function(res){toast(res.ok?(res.title||'Done'):'Error: '+(res.error||'failed'));if(res.ok)load();}).catch(function(){toast('Error');});
+}
+// ---- create ----
+function openCreate(){
+  $('c-dept').innerHTML=Object.keys(CFG.departments).map(function(d){return'<option>'+esc(d)+'</option>';}).join('');
+  $('c-period').innerHTML=(DATA.periods||[]).map(function(p){return'<option>'+esc(p)+'</option>';}).join('');
+  $('c-title').value='';$('c-lines').innerHTML='';addLine();addLine();calcTotal();
+  openM('ov-create');
+}
+function addLine(){
+  var d=document.createElement('div');d.className='lrow';
+  d.innerHTML='<input class="inp l-head" placeholder="Expense head (e.g. SaaS tools)"><input class="inp l-amt" type="number" min="0" placeholder="Amount" oninput="calcTotal()">'
+    +'<select class="inp l-freq"><option>One-time</option><option>Monthly</option><option>Quarterly</option><option>Half-yearly</option><option>Yearly</option></select>'
+    +'<button class="lrm" onclick="this.closest(\'.lrow\').remove();calcTotal();">×</button>';
+  $('c-lines').appendChild(d);
+}
+function calcTotal(){var t=0;document.querySelectorAll('#c-lines .l-amt').forEach(function(e){t+=Number(e.value)||0;});$('c-total').textContent=n(t);}
+function submitCreate(){
+  var lines=[];document.querySelectorAll('#c-lines .lrow').forEach(function(row){var h=row.querySelector('.l-head').value.trim(),a=Number(row.querySelector('.l-amt').value)||0,f=row.querySelector('.l-freq').value;if(h&&a>0)lines.push({head:h,amount:a,frequency:f});});
+  if(!lines.length){toast('Add at least one line item with an amount.');return;}
+  doCreate(lines,false);
+}
+function doCreate(lines,force){
+  fetch('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'create',dept:$('c-dept').value,period:$('c-period').value,currency:$('c-currency').value,title:$('c-title').value.trim(),lines:lines,allowDuplicate:force})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.duplicate){if(confirm('⚠ '+res.error+'\n\nClick OK to create anyway, or Cancel to review.')){doCreate(lines,true);}else{toast('Cancelled — '+res.dupId+' already covers this.');}return;}
+      if(res.ok){toast('Budget submitted');closeM('ov-create');load();}else toast('Error: '+(res.error||'failed'));}).catch(function(){toast('Error');});
+}
+// ---- vendor ----
+var curBudget=null;
+function openVendor(id,lineId){curBudget=DATA.rows.find(function(r){return r.id===id;});if(!curBudget)return;
+  $('v-line').innerHTML=curBudget.lines.filter(function(l){return !l.closed;}).map(function(l){return'<option value="'+esc(l.id)+'">'+esc(l.head)+' (remaining '+m(l.remaining,curBudget.currency)+')</option>';}).join('');
+  if(lineId)$('v-line').value=lineId;
+  $('v-vendor').value='';$('v-amount').value='';$('v-note').value='';vCheck();openM('ov-vendor');}
+function vRemain(){var l=curBudget&&curBudget.lines.find(function(x){return x.id===$('v-line').value;});return l?Number(l.remaining||0):null;}
+function vCheck(){var cur=curBudget&&curBudget.currency;var rem=vRemain();var amt=Number($('v-amount').value)||0;var w=$('v-warn');if(rem==null){w.textContent='';return true;}if(amt>rem){w.style.color='var(--red2)';w.textContent='⚠ Exceeds remaining ('+m(rem,cur)+') on this line.';return false;}w.style.color='var(--gray-5)';w.textContent='Remaining on this line: '+m(rem,cur);return true;}
+function submitVendor(){
+  if(!$('v-note').value.trim()){toast('Enter the expense / purpose (required).');return;}
+  if(!vCheck()){toast('Amount exceeds the line’s remaining balance.');return;}
+  fetch('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'claim',parentId:curBudget.id,lineId:$('v-line').value,expense:$('v-note').value.trim(),vendor:$('v-vendor').value.trim(),amount:Number($('v-amount').value)||0})})
+    .then(function(r){return r.json();}).then(function(res){toast(res.ok?'Claim submitted for approval':'Error: '+(res.error||'failed'));if(res.ok){closeM('ov-vendor');load();}}).catch(function(){toast('Error');});
+}
+// ---- realloc ----
+function openRealloc(id,lineId,drop){curBudget=DATA.rows.find(function(r){return r.id===id;});if(!curBudget)return;
+  var opts=curBudget.lines.filter(function(l){return !l.closed;}).map(function(l){return'<option value="'+esc(l.id)+'">'+esc(l.head)+' (remaining '+m(l.remaining,curBudget.currency)+')</option>';}).join('');
+  $('r-from').innerHTML=opts;$('r-to').innerHTML=opts;if(lineId)$('r-from').value=lineId;$('r-amount').value='';$('r-ru').value='';$('r-rn').value='';$('r-drop').checked=!!drop;onDropToggle();openM('ov-realloc');}
+function onDropToggle(){var drop=$('r-drop').checked;$('r-to-wrap').style.display=drop?'none':'';$('r-rn-wrap').style.display=drop?'none':'';$('r-title').textContent=drop?'Drop / release budget':'Reallocate budget';$('r-submit').textContent=drop?'Request drop':'Request reallocation';}
+function submitRealloc(){
+  var drop=$('r-drop').checked;
+  fetch('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'realloc',parentId:curBudget.id,drop:drop,fromId:$('r-from').value,toId:drop?'':$('r-to').value,amount:Number($('r-amount').value)||0,reasonUnused:$('r-ru').value.trim(),reasonNeeded:drop?'':$('r-rn').value.trim()})})
+    .then(function(r){return r.json();}).then(function(res){toast(res.ok?(drop?'Drop requested':'Reallocation requested'):'Error: '+(res.error||'failed'));if(res.ok){closeM('ov-realloc');load();}}).catch(function(){toast('Error');});
+}
+// ---- close-out / carry-forward (whole budget or a single line) ----
+var closeId=null;
+function openClose(id,lineId){closeId=id;var r=DATA.rows.find(function(x){return x.id===id;});if(!r)return;
+  var open=(r.lines||[]).filter(function(l){return !l.closed;});
+  $('cl-scope').innerHTML='<option value="">Entire budget</option>'+open.map(function(l){return'<option value="'+esc(l.id)+'">Line: '+esc(l.head)+' ('+m(l.remaining,r.currency)+' left)</option>';}).join('');
+  if(lineId)$('cl-scope').value=lineId;
+  $('cl-carry').checked=false;$('cl-period-wrap').style.display='none';$('cl-period').innerHTML=(DATA.periods||[]).map(function(p){return'<option>'+esc(p)+'</option>';}).join('');
+  closeScopeInfo();openM('ov-close');}
+function closeScopeInfo(){var r=DATA.rows.find(function(x){return x.id===closeId;});if(!r)return;var lid=$('cl-scope').value;
+  if(lid){var l=r.lines.find(function(x){return x.id===lid;});$('close-info').textContent=l?('Closes just "'+l.head+'" — '+m(l.remaining,r.currency)+' remaining.'):'';$('cl-desc').firstChild.textContent='Closes this line item only; the rest of the budget stays open. ';$('cl-submit').textContent='Close line';}
+  else{$('close-info').textContent='Remaining '+m(r.remaining,r.currency)+' across '+r.lines.length+' line(s).';$('cl-desc').firstChild.textContent='Closing locks the budget for the period — no further claims or reallocation. ';$('cl-submit').textContent='Close budget';}}
+function submitClose(){
+  fetch('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'close',id:closeId,lineId:$('cl-scope').value||undefined,carryForward:$('cl-carry').checked,newPeriod:$('cl-period').value})})
+    .then(function(r){return r.json();}).then(function(res){toast(res.ok?(res.title||'Closed'):'Error: '+(res.error||'failed'));if(res.ok){closeM('ov-close');load();}}).catch(function(){toast('Error');});
+}
+// ---- Finance direct-add (no approval) ----
+function openFinAdd(id,lineId){curBudget=DATA.rows.find(function(r){return r.id===id;});if(!curBudget)return;
+  var open=(curBudget.lines||[]).filter(function(l){return !l.closed;});
+  $('fa-line').innerHTML=open.map(function(l){return'<option value="'+esc(l.id)+'">'+esc(l.head)+' (remaining '+m(l.remaining,curBudget.currency)+')</option>';}).join('');
+  if(lineId)$('fa-line').value=lineId;
+  $('fa-vendor').value='';$('fa-amount').value='';$('fa-note').value='';faCheck();openM('ov-finadd');}
+function faCheck(){var l=curBudget&&curBudget.lines.find(function(x){return x.id===$('fa-line').value;});var rem=l?Number(l.remaining||0):null;var amt=Number($('fa-amount').value)||0;var w=$('fa-warn');if(rem==null){w.textContent='';return;}if(amt>rem){w.style.color='var(--amber)';w.textContent='⚠ This pushes the line '+m(amt-rem,curBudget.currency)+' over its allocation (allowed for Finance).';}else{w.style.color='var(--gray-5)';w.textContent='Remaining on this line: '+m(rem,curBudget.currency);}}
+function submitFinAdd(){
+  if(!$('fa-note').value.trim()){toast('Enter the expense / purpose (required).');return;}
+  if(!(Number($('fa-amount').value)>0)){toast('Enter the expense amount.');return;}
+  fetch('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'financeadd',id:curBudget.id,lineId:$('fa-line').value,note:$('fa-note').value.trim(),vendor:$('fa-vendor').value.trim(),amount:Number($('fa-amount').value)||0})})
+    .then(function(r){return r.json();}).then(function(res){toast(res.ok?(res.title||'Added'):'Error: '+(res.error||'failed'));if(res.ok){closeM('ov-finadd');load();}}).catch(function(){toast('Error');});
+}
+// ---- CSV export of budget utilisation ----
+function downloadCSV(){
+  var head=['Budget ID','Title','Department','Period','Currency','Status','Line Item','Frequency','Allocated','Spent','Remaining','% Used','Vendors'];
+  var out=[];
+  (DATA.rows||[]).filter(function(r){return r.type==='budget';}).forEach(function(b){
+    var cur=b.currency||'INR';
+    if(!b.lines||!b.lines.length){out.push([b.id,b.title,b.dept,b.period,cur,b.status,'(no lines)','','','','','','']);return;}
+    b.lines.forEach(function(l){var pct=l.amount>0?Math.round((l.spent/l.amount)*100):0;var vend=(l.vendors||[]).map(function(v){return v.vendor+'='+v.amount+(v.expense?'('+v.expense+')':'');}).join('; ');out.push([b.id,b.title,b.dept,b.period,cur,(l.closed?'Closed line':b.status),l.head,l.frequency||'One-time',l.amount,l.spent,l.remaining,pct+'%',vend]);});
+  });
+  // Claims & reallocations history
+  (DATA.rows||[]).filter(function(r){return r.type==='realloc'||r.type==='claim';}).forEach(function(r){var cur=r.currency||'INR';var d=r.detail||{};
+    var desc=r.type==='claim'?('Claim: '+(d.lineHead||'')+' — '+(d.expense||'')):(d.drop?('Drop from '+(d.fromHead||'')):('Realloc '+(d.fromHead||'')+'→'+(d.toHead||'')));
+    out.push([r.id,(r.type==='claim'?'Budget claim':'Reallocation'),r.dept,r.period,cur,r.status,desc,'',d.amount||'','','','',d.vendor||'']);});
+  function cell(v){v=(v==null?'':String(v));return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+  var lines=[head.map(cell).join(',')].concat(out.map(function(r){return r.map(cell).join(',');}));
+  var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='budget-utilisation-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();
+}
+function openM(id){$(id).classList.add('open');}function closeM(id){$(id).classList.remove('open');}
+var toastT;function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},2800);}
+requireView('requester', function(me){
+  renderUserbar(me);
+  fetch('/api/config').then(function(r){return r.json();}).then(function(c){CFG=c;load();}).catch(function(){CFG={departments:{}};load();});
+});
+</script>
+</body>
+</html>

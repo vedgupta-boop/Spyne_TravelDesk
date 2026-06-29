@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · Reconciliation</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px;}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:18px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:13px 16px;}
+.kpi .lb{font-size:11px;color:var(--gray-5);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.kpi .num{font-size:20px;font-weight:800;color:var(--navy);margin-top:3px;}
+.kpi .sub{font-size:11px;color:var(--gray-5);margin-top:2px;}
+.kpi.green{background:var(--grn-l);}.kpi.sky{background:var(--sky-l);}.kpi.amber{background:var(--amb-l);}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:880px;}
+th{background:var(--gray-1);color:var(--gray-7);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid var(--gray-2);white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid var(--gray-2);}
+td.r,th.r{text-align:right;}
+tr.trip{cursor:pointer;}tr.trip:hover{background:var(--gray-1);}
+.under{color:var(--green);font-weight:700;}.over{color:var(--red2);font-weight:700;}
+.muted{color:var(--gray-5);}
+.itrow td{background:var(--gray-1);font-size:12px;color:var(--gray-7);}
+.loading,.empty{padding:50px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.pill{display:inline-block;background:var(--sky-l);color:var(--sky);border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Reconciliation — estimate vs ExpenseDesk actuals</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div id="kpis" class="cards"></div>
+  <div class="bar">
+    <div class="title">Trips</div>
+    <div style="display:flex;gap:8px;">
+      <span class="chip active" data-f="linked" onclick="setFilter('linked')">With claims</span>
+      <span class="chip" data-f="all" onclick="setFilter('all')">All trips</span>
+    </div>
+  </div>
+  <div id="loading" class="loading">Loading…</div>
+  <div class="panel hidden" id="tbl-wrap">
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th>Request</th><th>Traveller</th><th>Dept</th><th>Route</th>
+        <th class="r">Estimate ₹</th><th class="r">Actual ₹</th><th class="r">Paid ₹</th>
+        <th class="r">Variance</th><th class="r">Advance settlement</th><th class="r">Claims</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+      <tfoot id="foot"></tfoot>
+    </table></div>
+  </div>
+  <div id="empty" class="empty hidden">No trips with linked ExpenseDesk claims yet. Tag an expense with its TRF id in ExpenseDesk to reconcile.</div>
+  <div class="muted" style="font-size:11px;margin-top:12px;" id="note"></div>
+</div>
+
+<script>
+var DATA={rows:[],reconciliation:{}}, FILTER='linked';
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function inr(n){ return '₹'+Math.round(Number(n||0)).toLocaleString('en-IN'); }
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  fetch('/api/finance',{credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('finance '+r.status); return r.json(); }).then(onData).catch(onFail);
+}
+function onFail(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); }
+function setFilter(f){ FILTER=f; document.querySelectorAll('.chip').forEach(function(c){ c.classList.toggle('active', c.dataset.f===f); }); render(); }
+function onData(d){
+  DATA=d||{rows:[],reconciliation:{}};
+  document.getElementById('loading').classList.add('hidden');
+  renderKpis(); render();
+  var rc=DATA.reconciliation||{};
+  document.getElementById('note').textContent = rc.available ? ('Actuals read live from ExpenseDesk · normalised to INR @ ₹'+(rc.fx||92)+'/USD. Variance = estimate − actual. Settlement = advance − actual.') : 'ExpenseDesk link not configured (EXPENSE_SHEET_ID).';
+}
+function renderKpis(){
+  var rc=DATA.reconciliation||{};
+  var v=Number(rc.estimateINR||0)-Number(rc.actualINR||0), over=v<0;
+  document.getElementById('kpis').innerHTML=
+     '<div class="kpi"><div class="lb">Trips with claims</div><div class="num">'+(rc.linked||0)+'</div><div class="sub">linked to ExpenseDesk</div></div>'
+    +'<div class="kpi sky"><div class="lb">Estimated (linked)</div><div class="num">'+inr(rc.estimateINR)+'</div></div>'
+    +'<div class="kpi"><div class="lb">Actual claimed</div><div class="num">'+inr(rc.actualINR)+'</div><div class="sub">'+inr(rc.paidINR)+' paid</div></div>'
+    +'<div class="kpi '+(over?'amber':'green')+'"><div class="lb">Net variance</div><div class="num">'+(over?'over ':'under ')+inr(Math.abs(v))+'</div></div>';
+}
+function rowsToShow(){
+  return (DATA.rows||[]).filter(function(r){ return FILTER==='all' ? true : (r.recon && r.recon.linked>0); });
+}
+function render(){
+  var rows=rowsToShow();
+  if(!rows.length){ document.getElementById('tbl-wrap').classList.add('hidden'); document.getElementById('empty').classList.remove('hidden'); return; }
+  document.getElementById('empty').classList.add('hidden');
+  document.getElementById('tbl-wrap').classList.remove('hidden');
+  document.getElementById('rows').innerHTML=rows.map(rowHtml).join('');
+}
+function rowHtml(r,i){
+  var rc=r.recon||{}; var v=Number(rc.varianceINR||0), over=v<0, linked=rc.linked||0;
+  var settle=Number(rc.settlementINR||0);
+  var main='<tr class="trip" onclick="toggle('+i+')">'
+    +'<td><b>'+esc(r.id)+'</b></td><td>'+esc(r.name||'')+'</td><td class="muted">'+esc(r.dept||'')+'</td><td class="muted">'+esc(r.route||'')+'</td>'
+    +'<td class="r">'+inr(rc.estimateINR)+'</td>'
+    +'<td class="r">'+(linked?inr(rc.actualINR):'<span class="muted">—</span>')+'</td>'
+    +'<td class="r">'+(linked?inr(rc.paidINR):'<span class="muted">—</span>')+'</td>'
+    +'<td class="r">'+(linked?('<span class="'+(over?'over':'under')+'">'+(over?'over ':'under ')+inr(Math.abs(v))+'</span>'):'<span class="muted">—</span>')+'</td>'
+    +'<td class="r">'+(linked?(esc(settle>=0?'refund ':'reimburse ')+inr(Math.abs(settle))):'<span class="muted">—</span>')+'</td>'
+    +'<td class="r">'+(linked?'<span class="pill">'+linked+'</span>':'<span class="muted">0</span>')+'</td></tr>';
+  var items=(rc.items||[]).map(function(it){
+    return '<tr class="itrow hidden g'+i+'"><td></td><td colspan="3">'+esc(it.item||it.id||'expense')+' <span class="muted">· '+esc(it.vendor||'')+(it.category?' · '+esc(it.category):'')+'</span></td>'
+      +'<td class="r muted">'+esc(it.currency||'')+' '+Number(it.amount||0).toLocaleString('en-US')+'</td><td class="r">'+inr(it.amountINR)+'</td>'
+      +'<td class="r">'+(it.paid?inr(it.amountINR):'<span class="muted">—</span>')+'</td><td colspan="3" class="muted">'+esc(it.status||'')+(it.paid?' ✓ paid':'')+'</td></tr>';
+  }).join('');
+  return main + items;
+}
+function toggle(i){ document.querySelectorAll('.g'+i).forEach(function(el){ el.classList.toggle('hidden'); }); }
+requireView('finance', function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

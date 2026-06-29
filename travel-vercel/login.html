@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in · Spyne TravelDesk</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  :root{--red:#E8232A;--red-d:#B01820;--red-l:#FEF0F0;--navy:#0D1B2A;--navy2:#1C3148;--ink:#0D1B2A;--gray-1:#F4F6FA;--gray-3:#D6DCE8;--gray-5:#8A97AA;--sky:#2563EB;--ok:#157347;--radius:9px;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(160deg,#0D1B2A 0%,#1C3148 100%);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .card{width:100%;max-width:400px;background:#fff;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.35);overflow:hidden;}
+  .head{background:var(--navy);padding:24px 28px;display:flex;align-items:center;gap:11px;}
+  .logo-sq{width:38px;height:38px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;}
+  .logo-txt{font-size:16px;font-weight:900;color:#fff;line-height:1.1;}
+  .logo-sub{font-size:11px;color:#9fb0c4;}
+  .body{padding:26px 28px 30px;}
+  h1{font-size:18px;margin:0 0 3px;color:var(--ink);}
+  .lede{font-size:13px;color:#5a6b80;margin:0 0 20px;}
+  .gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:11px;border:1.5px solid var(--gray-3);border-radius:var(--radius);background:#fff;font-size:14px;font-weight:700;color:#3c4a5e;cursor:pointer;text-decoration:none;transition:background .15s;}
+  .gbtn:hover{background:#f7f9fc;}
+  .gbtn svg{width:18px;height:18px;}
+  .sep{display:flex;align-items:center;gap:10px;color:var(--gray-5);font-size:12px;margin:18px 0;}
+  .sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--gray-3);}
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:#3c4a5e;margin-bottom:5px;}
+  .field input{width:100%;padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);font-size:14px;font-family:inherit;color:var(--ink);outline:none;transition:border-color .15s;}
+  .field input:focus{border-color:var(--red);}
+  .submit{width:100%;padding:12px;border:none;border-radius:var(--radius);background:var(--red);color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-top:4px;}
+  .submit:hover{background:var(--red-d);}
+  .submit:disabled{opacity:.6;cursor:default;}
+  .toggle{text-align:center;font-size:13px;color:#5a6b80;margin-top:16px;}
+  .toggle button{background:none;border:none;color:var(--sky);font-weight:800;cursor:pointer;font-family:inherit;font-size:13px;padding:0;text-decoration:underline;}
+  .msg{font-size:13px;border-radius:8px;padding:9px 12px;margin-bottom:14px;display:none;}
+  .msg.err{display:block;background:var(--red-l);color:var(--red-d);border:1px solid #f3c4c4;}
+  .msg.ok{display:block;background:#E8F5EE;color:var(--ok);border:1px solid #b6e0c6;}
+  .hint{font-size:11px;color:var(--gray-5);margin-top:-6px;margin-bottom:12px;}
+  .foot{text-align:center;font-size:11px;color:#9fb0c4;margin-top:18px;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="head">
+      <div class="logo-sq">S</div>
+      <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Travel Request &amp; Approvals</div></div>
+    </div>
+    <div class="body">
+      <h1 id="title">Sign in</h1>
+      <p class="lede" id="lede">Welcome back — sign in to manage your travel requests.</p>
+
+      <a class="gbtn" id="gbtn" href="#">
+        <svg viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.89 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+        Continue with Google
+      </a>
+
+      <div class="sep">or</div>
+
+      <div class="msg" id="msg"></div>
+
+      <form id="form" autocomplete="on">
+        <div class="field" id="nameField" style="display:none;">
+          <label for="name">Full name</label>
+          <input type="text" id="name" autocomplete="name" placeholder="e.g. Ved Prakash">
+        </div>
+        <div class="field">
+          <label for="email">Work email</label>
+          <input type="email" id="email" autocomplete="email" placeholder="you@spyne.ai">
+        </div>
+        <div class="field" id="passwordField">
+          <label for="password">Password</label>
+          <input type="password" id="password" autocomplete="current-password" placeholder="••••••••">
+        </div>
+        <div class="hint" id="pwHint" style="display:none;">At least 8 characters.</div>
+        <div id="forgotRow" style="text-align:right;margin:-4px 0 12px;"><button type="button" id="forgotBtn" style="background:none;border:none;color:#5a6b80;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0;">Forgot password?</button></div>
+        <button class="submit" id="submit" type="submit">Sign in</button>
+      </form>
+
+      <div class="toggle" id="toggle">
+        New here? <button type="button" id="toggleBtn">Create an account</button>
+      </div>
+      <div class="foot">Only @spyne.ai email addresses can sign up.</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  var mode = 'login'; // 'login' | 'register'
+  function qNext(){ var m=location.search.match(/[?&]next=([^&]+)/); var n=m?decodeURIComponent(m[1]):'/'; return (n.charAt(0)==='/'&&n.charAt(1)!=='/')?n:'/'; }
+  var NEXT = qNext();
+  document.getElementById('gbtn').href = '/api/auth/login?next=' + encodeURIComponent(NEXT);
+
+  var els = {
+    title: document.getElementById('title'), lede: document.getElementById('lede'),
+    nameField: document.getElementById('nameField'), name: document.getElementById('name'),
+    email: document.getElementById('email'), password: document.getElementById('password'),
+    passwordField: document.getElementById('passwordField'), forgotRow: document.getElementById('forgotRow'),
+    submit: document.getElementById('submit'), toggle: document.getElementById('toggle'),
+    toggleBtn: document.getElementById('toggleBtn'), msg: document.getElementById('msg'),
+    pwHint: document.getElementById('pwHint'), form: document.getElementById('form')
+  };
+  var LABEL = { login:'Sign in', register:'Create account', forgot:'Send reset link' };
+
+  function setMode(m){
+    mode = m;
+    var reg = m==='register', forgot = m==='forgot';
+    els.title.textContent = forgot ? 'Reset your password' : (reg ? 'Create your account' : 'Sign in');
+    els.lede.textContent = forgot ? 'Enter your work email and we’ll send you a reset link.'
+      : (reg ? 'Sign up with your @spyne.ai email to get started.' : 'Welcome back — sign in to manage your travel requests.');
+    els.nameField.style.display = reg ? '' : 'none';
+    els.passwordField.style.display = forgot ? 'none' : '';
+    els.pwHint.style.display = reg ? '' : 'none';
+    els.forgotRow.style.display = (m==='login') ? '' : 'none';
+    els.submit.textContent = LABEL[m];
+    els.password.setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
+    els.toggle.innerHTML = forgot
+      ? '<button type="button" id="toggleBtn">← Back to sign in</button>'
+      : (reg ? 'Already have an account? <button type="button" id="toggleBtn">Sign in</button>'
+             : 'New here? <button type="button" id="toggleBtn">Create an account</button>');
+    document.getElementById('toggleBtn').onclick = function(){ setMode(forgot ? 'login' : (reg ? 'login' : 'register')); };
+    hideMsg();
+  }
+  function showMsg(text, ok){ els.msg.textContent = text; els.msg.className = 'msg ' + (ok?'ok':'err'); }
+  function hideMsg(){ els.msg.className = 'msg'; els.msg.textContent=''; }
+
+  els.toggleBtn.onclick = function(){ setMode('register'); };
+  document.getElementById('forgotBtn').onclick = function(){ setMode('forgot'); };
+
+  els.form.addEventListener('submit', function(e){
+    e.preventDefault();
+    hideMsg();
+    var email = els.email.value.trim(), password = els.password.value, name = els.name.value.trim();
+    if(!email){ showMsg('Enter your email address.', false); return; }
+    if(mode!=='forgot' && !password){ showMsg('Enter your password.', false); return; }
+    if(mode==='register' && password.length < 8){ showMsg('Password must be at least 8 characters.', false); return; }
+    var busy = { login:'Signing in…', register:'Creating…', forgot:'Sending…' };
+    els.submit.disabled = true; els.submit.textContent = busy[mode];
+    fetch('/api/auth/login', {
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+      body: JSON.stringify({ action: mode, email: email, password: password, name: name, next: NEXT })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if(mode==='forgot'){
+        showMsg((d && d.message) || 'If an account exists for that email, a reset link is on its way.', true);
+        els.submit.disabled = false; els.submit.textContent = LABEL[mode];
+        return;
+      }
+      if(d && d.ok){ showMsg(mode==='register'?'Account created — taking you in…':'Signed in — redirecting…', true); location.href = d.next || NEXT; return; }
+      showMsg((d && d.error) || 'Something went wrong. Try again.', false);
+      els.submit.disabled = false; els.submit.textContent = LABEL[mode];
+    }).catch(function(){
+      showMsg('Network error — please try again.', false);
+      els.submit.disabled = false; els.submit.textContent = LABEL[mode];
+    });
+  });
+
+  if((location.search||'').indexOf('signup')>-1) setMode('register');
+})();
+</script>
+</body>
+</html>

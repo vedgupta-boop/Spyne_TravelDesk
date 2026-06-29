@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne Expense Approval · Approvals</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1340px;margin:0 auto;padding:22px 20px 60px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;}
+.kpi .num{font-size:24px;font-weight:900;color:var(--navy);margin-top:6px;}
+.kpi.amber .num{color:#B45309;}.kpi.green .num{color:var(--green);}.kpi.sky .num{color:var(--sky);}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.scopechip{background:var(--amb-l);color:#92400E;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:800;}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:1200px;}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+th.r,td.r{text-align:right;}
+td{padding:10px 12px;border-bottom:1px solid var(--gray-2);white-space:nowrap;vertical-align:top;}
+tr:hover td{background:var(--gray-1);}
+.id{font-weight:800;color:var(--navy);}.muted{color:var(--gray-5);}.amt{font-variant-numeric:tabular-nums;font-weight:700;}
+.cost-link{cursor:pointer;border-bottom:1px dashed var(--sky);color:var(--navy);}.cost-link:hover{color:var(--sky);}.caret{font-size:9px;color:var(--sky);margin-left:3px;}
+.st{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.approved{background:var(--grn-l);color:#065F46;}.st.rejected{background:var(--red2-l);color:var(--red2);}.st.hold{background:#EDE9FE;color:#5B21B6;}
+.tier-high{color:var(--red2);font-weight:800;}.tier-std{color:var(--green);font-weight:700;}.oob{color:var(--red2);font-weight:800;}
+.cmt{font-size:10px;color:var(--sky);cursor:pointer;margin-top:3px;display:inline-block;}
+.btn{border:none;border-radius:7px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;}
+.btn-ap{background:var(--green);color:#fff;}.btn-rj{background:var(--red2);color:#fff;}.btn-hold{background:#7C3AED;color:#fff;}.btn-po{background:var(--sky);color:#fff;}
+.empty,.loading{padding:50px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+.drawer-ov{position:fixed;inset:0;background:rgba(13,27,42,.45);opacity:0;visibility:hidden;transition:opacity .2s;z-index:40;}
+.drawer-ov.open{opacity:1;visibility:visible;}
+.drawer{position:fixed;top:0;right:0;height:100%;width:430px;max-width:92vw;background:#fff;box-shadow:-8px 0 30px rgba(13,27,42,.25);transform:translateX(100%);transition:transform .25s ease;z-index:41;display:flex;flex-direction:column;}
+.drawer.open{transform:translateX(0);}
+.drawer-hd{background:var(--navy);color:#fff;padding:18px 20px;}.drawer-hd .x{float:right;cursor:pointer;font-size:20px;line-height:1;color:rgba(255,255,255,.8);}
+.drawer-hd .did{font-size:15px;font-weight:900;}.drawer-hd .dsub{font-size:12px;color:var(--gray-5);margin-top:3px;}
+.drawer-bd{padding:18px 20px;overflow-y:auto;flex:1;}
+.bd-amt{background:var(--gray-1);border-radius:10px;padding:14px 16px;}.bd-amt .big{font-size:22px;font-weight:900;color:var(--navy);}.bd-amt .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.4px;}
+.kvbox{margin-top:8px;}.kv{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:13px;line-height:1.35;}.kv .kk{color:var(--gray-7);font-weight:600;white-space:nowrap;}.kv .vv{font-weight:700;text-align:right;color:var(--ink);}
+.bd-sec{margin-top:16px;font-size:11px;font-weight:800;color:var(--gray-5);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.bd-cmt{font-size:12px;color:var(--gray-7);background:var(--gray-1);border-radius:8px;padding:9px 12px;margin-top:6px;white-space:pre-wrap;line-height:1.5;}
+.bd-doc{display:inline-block;margin:6px 10px 0 0;color:var(--sky);font-weight:700;font-size:13px;}
+.tierbox{margin-top:14px;border-radius:8px;padding:11px 13px;font-size:12px;font-weight:600;line-height:1.45;}.tierbox.high{background:var(--amb-l);color:#78350F;}.tierbox.std{background:var(--grn-l);color:#065F46;}
+th.sortable{cursor:pointer;user-select:none;}th.sortable:hover{background:#13263b;}
+.sort-i{font-size:9px;opacity:.45;margin-left:3px;}th.sorted .sort-i{opacity:1;}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 16px;border-top:1px solid var(--gray-2);flex-wrap:wrap;}
+.pager .pginfo{font-size:12px;color:var(--gray-5);}
+.pgbtns{display:flex;gap:6px;align-items:center;}
+.pgbtn{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:7px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.pgbtn:disabled{opacity:.4;cursor:default;}
+.updated{font-size:11px;color:var(--gray-5);}
+.search{padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;min-width:200px;}
+#cards-view{display:none;flex-direction:column;gap:12px;padding:12px;}
+.ecard{border:1px solid var(--gray-3);border-radius:11px;padding:13px 14px;background:#fff;}
+.ec-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;}
+.ec-id{font-weight:800;color:var(--navy);font-size:13px;}
+.ec-item{font-weight:700;font-size:14px;cursor:pointer;}
+.ec-meta{font-size:12px;color:var(--gray-5);margin-top:2px;}
+.ec-row{display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:12px;color:var(--gray-7);}
+.ec-amt{font-weight:800;color:var(--navy);}
+.ec-act{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+@media(max-width:760px){.tbl-scroll{display:none!important;}#cards-view{display:flex;}.wrap{padding:14px 12px 50px;}}
+@media print{.topbar,.filters,#pager,.drawer,.drawer-ov,.btn-refresh,.search,#cards-view,#budget-bar,#budget-panel,.caret,.cmt,.btn,#bulkbar{display:none!important;}.panel,.kpi{break-inside:avoid;}table{min-width:0!important;font-size:10px;}th{background:#222!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}.wrap{max-width:none;padding:0;}body{background:#fff;}}
+#bulkbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--navy);color:#fff;border-radius:10px;padding:10px 16px;margin-bottom:14px;}
+#bulkbar #bulk-count{font-weight:800;font-size:13px;}
+.selbox{width:16px;height:16px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne Expense Approval Dashboard</div><div class="logo-sub" id="subtitle">Approvals</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="exp-userbar"></div>
+    <span class="updated" id="updated"></span>
+    <button class="btn-refresh" id="auto-btn" onclick="toggleAuto()">⏱ Auto: Off</button>
+    <button class="btn-refresh" onclick="printReport()">🖨 Print / PDF</button>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div id="kpis" class="cards"></div>
+  <div class="bar">
+    <div class="title">Expense Requests <span class="scopechip" id="scopechip">—</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input id="search" class="search" placeholder="Search requester / item / vendor" oninput="applyFilters()">
+      <div class="filters" id="filters">
+        <span class="chip active" data-f="todo" onclick="setFilter('todo')">My to-do</span>
+        <span class="chip" data-f="hold" onclick="setFilter('hold')">On Hold</span>
+        <span class="chip" data-f="decided" onclick="setFilter('decided')">Decided</span>
+        <span class="chip" data-f="all" onclick="setFilter('all')">All</span>
+      </div>
+    </div>
+  </div>
+  <div id="bulkbar" class="hidden">
+    <span id="bulk-count">0 selected</span>
+    <button class="btn btn-ap" onclick="bulkDecide('approve')">✓ Approve selected</button>
+    <button class="btn btn-rj" onclick="bulkDecide('reject')">✕ Reject selected</button>
+    <button class="btn" style="background:rgba(255,255,255,.18);color:#fff;" onclick="clearSel()">Clear</button>
+  </div>
+  <div class="panel">
+    <div id="loading" class="loading">Loading…</div>
+    <div class="tbl-scroll hidden" id="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:30px;"><input type="checkbox" class="selbox" onclick="toggleSelAll(this.checked)" title="Select all on this page"></th>
+          <th class="r">Sr.</th>
+          <th class="sortable" data-sort="name" onclick="setSort('name')">Requester<span class="sort-i">↕</span></th>
+          <th class="sortable" data-sort="item" onclick="setSort('item')">Item / Service<span class="sort-i">↕</span></th>
+          <th class="sortable" data-sort="vendor" onclick="setSort('vendor')">Vendor<span class="sort-i">↕</span></th>
+          <th class="sortable" data-sort="reqType" onclick="setSort('reqType')">Type<span class="sort-i">↕</span></th>
+          <th class="r sortable" data-sort="_amt" onclick="setSort('_amt')">Amount<span class="sort-i">↕</span></th>
+          <th class="sortable" data-sort="nature" onclick="setSort('nature')">Nature<span class="sort-i">↕</span></th>
+          <th>Tier</th>
+          <th class="sortable" data-sort="stage" onclick="setSort('stage')">Stage<span class="sort-i">↕</span></th>
+          <th id="actCol">Action</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="cards-view"></div>
+    <div id="empty" class="empty hidden">No requests in this view.</div>
+    <div class="pager" id="pager"></div>
+  </div>
+
+  <div class="bar" id="budget-bar" style="margin-top:28px;display:none;"><div class="title">Budget &amp; Reallocation Approvals <span class="scopechip">awaiting you</span></div></div>
+  <div class="panel" id="budget-panel" style="display:none;"><div class="tbl-scroll"><table style="min-width:980px;">
+    <thead><tr><th>ID</th><th>Type</th><th>Department</th><th>Period</th><th>Title</th><th class="r">Amount</th><th>Stage</th><th>Action</th></tr></thead>
+    <tbody id="brows"></tbody>
+  </table></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="drawer-ov" id="cost-ov" onclick="closeCost()"></div>
+<aside class="drawer" id="cost-drawer" aria-hidden="true">
+  <div class="drawer-hd"><span class="x" onclick="closeCost()">×</span><div class="did" id="cd-id"></div><div class="dsub" id="cd-sub"></div></div>
+  <div class="drawer-bd" id="cd-body"></div>
+</aside>
+
+<script>
+var AS=(location.search.match(/as=(\w+)/)||[])[1]||'';
+var DATA={rows:[]},VIEW=[],FILTER='todo',RO=false;
+var SORT={key:'',dir:1},PAGE=1,PAGESIZE=25,AUTO=false,AUTOID=null,PRINTING=false;
+function tINR(x,c){return c==='USD'?Math.round((Number(x)||0)*92):(Number(x)||0);}
+function setSort(k){if(SORT.key===k)SORT.dir=-SORT.dir;else{SORT.key=k;SORT.dir=1;}PAGE=1;render();}
+function sortRows(rows){if(!SORT.key)return rows;var k=SORT.key,dir=SORT.dir,num=(k==='_amt');return rows.slice().sort(function(a,b){var x,y;if(num){x=tINR(a.amount,a.currency);y=tINR(b.amount,b.currency);}else{x=String(a[k]||'').toLowerCase();y=String(b[k]||'').toLowerCase();}return x<y?-dir:(x>y?dir:0);});}
+function updateSortIndicators(){document.querySelectorAll('th.sortable').forEach(function(th){var on=SORT.key===th.dataset.sort;th.classList.toggle('sorted',on);var i=th.querySelector('.sort-i');if(i)i.textContent=on?(SORT.dir>0?'▲':'▼'):'↕';});}
+function applyFilters(){PAGE=1;render();}
+function changePage(d){PAGE+=d;render();}
+function renderPager(n,start,end,pages){var el=document.getElementById('pager');if(!el)return;if(n<=PAGESIZE){el.innerHTML='<div class="pginfo">'+n+' request(s)</div>';return;}
+  el.innerHTML='<div class="pginfo">Showing '+(start+1)+'–'+end+' of '+n+'</div><div class="pgbtns"><button class="pgbtn"'+(PAGE<=1?' disabled':'')+' onclick="changePage(-1)">‹ Prev</button><span class="pginfo">Page '+PAGE+' / '+pages+'</span><button class="pgbtn"'+(PAGE>=pages?' disabled':'')+' onclick="changePage(1)">Next ›</button></div>';}
+function toggleAuto(){AUTO=!AUTO;document.getElementById('auto-btn').textContent='⏱ Auto: '+(AUTO?'On':'Off');if(AUTOID){clearInterval(AUTOID);AUTOID=null;}if(AUTO)AUTOID=setInterval(load,60000);}
+function printReport(){PRINTING=true;render();setTimeout(function(){window.print();},120);}
+window.addEventListener('afterprint',function(){if(PRINTING){PRINTING=false;render();}});
+var SUBT={dept:'Department Head',finance:'Finance',mgmt:'Sanjay (CEO)'};
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(cur,x){cur=cur||'INR';return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0});}
+function load(){
+  SEL={};renderBulk();
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden');document.getElementById('empty').classList.add('hidden');
+  fetch('/api/decision?view=approvals'+(AS?'&as='+AS:''),{credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('approvals '+r.status);return r.json();}).then(onData).catch(onFail);
+  if(!AS) loadBudgetApprovals();
+}
+var BVIEW=[];
+function fmtIN(x){return '₹'+Number(x||0).toLocaleString('en-IN');}
+function stagePillB(s){var m={dept:'At HOD',mgmt:'At CEO',finance:'At Finance'};return '<span class="st pending">'+(m[s]||s)+'</span>';}
+function loadBudgetApprovals(){
+  fetch('/api/budget',{credentials:'same-origin'}).then(function(r){return r.ok?r.json():{rows:[]};}).then(function(d){
+    BVIEW=((d&&d.rows)||[]).filter(function(r){return r.canApprove;});
+    var show=BVIEW.length>0;
+    document.getElementById('budget-bar').style.display=show?'':'none';
+    document.getElementById('budget-panel').style.display=show?'':'none';
+    if(show)document.getElementById('brows').innerHTML=BVIEW.map(brow).join('');
+  }).catch(function(){});
+}
+function brow(r){
+  var label=r.type==='realloc'?'Reallocation':(r.type==='claim'?'Claim':'Budget');
+  var amt;
+  if(r.type==='realloc')amt=r.detail?fmtIN(r.detail.amount)+' <span class="muted">'+(r.detail.drop?'(drop)':'('+esc(r.detail.fromHead)+'→'+esc(r.detail.toHead)+')')+'</span>':'';
+  else if(r.type==='claim')amt=r.detail?fmtIN(r.detail.amount)+' <span class="muted">('+esc(r.detail.lineHead)+')</span>':'';
+  else amt=fmtIN(r.total);
+  return '<tr><td class="id">'+esc(r.id)+'</td><td>'+label+'</td><td class="muted">'+esc(r.dept)+'</td><td class="muted">'+esc(r.period)+'</td><td>'+esc(r.title)+'</td><td class="r amt">'+amt+'</td><td>'+stagePillB(r.stage)+'</td>'
+    +'<td><button class="btn btn-ap" onclick="decideBudget(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="decideBudget(\''+esc(r.id)+'\',\'reject\')">Reject</button></td></tr>';
+}
+function decideBudget(id,decision){
+  var c=prompt('Justification for this '+decision+' (required):','');
+  if(c===null)return; if(!c.trim()){toast('A justification is required.');return;}
+  fetch('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'decision',id:id,decision:decision,comment:c.trim()})})
+    .then(function(r){return r.json();}).then(function(res){toast(res.ok?(res.title||'Done'):'Error: '+(res.error||'failed'));if(res.ok)loadBudgetApprovals();}).catch(function(){toast('Error');});
+}
+function onFail(e){document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e);}
+function onData(d){
+  DATA=d||{rows:[]};RO=!!DATA.readOnly;var lens=DATA.lens||AS;
+  document.getElementById('subtitle').textContent=(lens?SUBT[lens]:'Approvals')+(RO?' · monitor':'');
+  document.getElementById('scopechip').textContent=(DATA.scope||'Approvals')+(RO?' (read-only)':'');
+  document.getElementById('actCol').textContent=RO?'Decision':'Action';
+  if(RO&&FILTER==='todo'){FILTER='all';document.querySelectorAll('#filters .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f==='all');});}
+  document.getElementById('loading').classList.add('hidden');renderKpis();render();
+  var u=document.getElementById('updated');if(u)u.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function renderKpis(){
+  var rows=DATA.rows||[];
+  var todo=rows.filter(function(r){return r.pending||r.canPO;}).length;
+  var held=rows.filter(function(r){return r.held;}).length;
+  var done=rows.filter(function(r){return /approv/i.test(r.decision);}).length;
+  if(RO){
+    var here=rows.filter(function(r){return r.stage===(DATA.lens||AS);}).length;
+    document.getElementById('kpis').innerHTML='<div class="kpi amber"><div class="lb">Awaiting at stage</div><div class="num">'+here+'</div></div>'
+      +'<div class="kpi green"><div class="lb">Approved</div><div class="num">'+done+'</div></div>'
+      +'<div class="kpi"><div class="lb">Total in view</div><div class="num">'+rows.length+'</div></div>';
+  } else {
+    document.getElementById('kpis').innerHTML='<div class="kpi amber"><div class="lb">My to-do</div><div class="num">'+todo+'</div></div>'
+      +'<div class="kpi sky"><div class="lb">On Hold</div><div class="num">'+held+'</div></div>'
+      +'<div class="kpi green"><div class="lb">Approved by me</div><div class="num">'+done+'</div></div>'
+      +'<div class="kpi"><div class="lb">In my scope</div><div class="num">'+rows.length+'</div></div>';
+  }
+}
+var SEL={};
+function selCount(){return Object.keys(SEL).length;}
+function renderBulk(){var b=document.getElementById('bulkbar');if(!b)return;var n=selCount();document.getElementById('bulk-count').textContent=n+' selected';b.classList.toggle('hidden',n===0);}
+function toggleSel(id,checked,ev){if(ev)ev.stopPropagation();if(checked)SEL[id]=true;else delete SEL[id];renderBulk();}
+function toggleSelAll(checked){document.querySelectorAll('#rows .selbox').forEach(function(cb){cb.checked=checked;var id=cb.dataset.id;if(!id)return;if(checked)SEL[id]=true;else delete SEL[id];});renderBulk();}
+function clearSel(){SEL={};document.querySelectorAll('.selbox').forEach(function(c){c.checked=false;});renderBulk();}
+function bulkDecide(decision){
+  var ids=Object.keys(SEL);if(!ids.length){toast('Select at least one request first.');return;}
+  var c=prompt('Add a remark for this bulk '+decision+' on '+ids.length+' request(s) (optional):','');
+  if(c===null)return;
+  if(decision==='reject'&&!confirm('Reject '+ids.length+' request(s)?'))return;
+  toast((decision==='approve'?'Approving ':'Rejecting ')+ids.length+'…');
+  Promise.all(ids.map(function(id){return fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,decision:decision,comment:c})}).then(function(r){return r.json();}).catch(function(){return {ok:false};});}))
+    .then(function(results){var ok=results.filter(function(x){return x&&x.ok;}).length;toast(ok+' of '+ids.length+' '+decision+'d');SEL={};load();});
+}
+function setFilter(f){FILTER=f;PAGE=1;document.querySelectorAll('#filters .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f===f);});render();}
+function filtered(){var q=(document.getElementById('search').value||'').trim().toLowerCase();return(DATA.rows||[]).filter(function(r){
+  if(FILTER==='todo'){if(!(r.pending||r.canPO))return false;}
+  else if(FILTER==='hold'){if(!r.held)return false;}
+  else if(FILTER==='decided'){if(!(!!r.decision&&!r.pending&&!r.canPO&&!r.held))return false;}
+  if(q){var hay=(r.id+' '+r.name+' '+r.dept+' '+r.item+' '+r.vendor+' '+r.reqType).toLowerCase();if(hay.indexOf(q)<0)return false;}
+  return true;});}
+function shortStage(s){return{dept:'Awaiting HOD',finance:'At Finance',mgmt:'At Sanjay',po:'PO to issue',delivery:'Delivery',invoice:'e-Invoice',payment:'Payment (Fin)',payment_mgmt:'Payment (Mgmt)',done:'Paid & closed',rejected:'Rejected'}[s]||s;}
+function stPill(stage){var c=stage==='rejected'?'rejected':(stage==='done'?'approved':'pending');return'<span class="st '+c+'">'+esc(shortStage(stage))+'</span>';}
+function render(){
+  var rows=sortRows(filtered());VIEW=rows;var n=rows.length;
+  var tbl=document.getElementById('tbl-wrap'),cards=document.getElementById('cards-view'),pager=document.getElementById('pager');
+  if(!n){tbl.classList.add('hidden');cards.innerHTML='';document.getElementById('empty').classList.remove('hidden');pager.innerHTML='';return;}
+  document.getElementById('empty').classList.add('hidden');tbl.classList.remove('hidden');
+  var pages=Math.max(1,Math.ceil(n/PAGESIZE));if(PAGE>pages)PAGE=pages;if(PAGE<1)PAGE=1;
+  var start=PRINTING?0:(PAGE-1)*PAGESIZE,end=PRINTING?n:Math.min(n,start+PAGESIZE);
+  var pageRows=rows.slice(start,end);
+  document.getElementById('rows').innerHTML=pageRows.map(function(r,j){return row(r,start+j);}).join('');
+  cards.innerHTML=pageRows.map(function(r,j){return cardHtml(r,start+j);}).join('');
+  updateSortIndicators();renderPager(n,start,end,pages);
+  var sa=document.querySelector('thead .selbox');if(sa)sa.checked=false;
+  renderBulk();
+}
+function cardHtml(r,i){
+  var act;
+  if(r.pending){act='<button class="btn btn-ap" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'reject\')">Reject</button>'+(r.held?'':'<button class="btn btn-hold" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'hold\')">Hold</button>');}
+  else if(r.canPO){act='<button class="btn btn-po" onclick="event.stopPropagation();issuePO(\''+esc(r.id)+'\')">＋ Issue PO</button>';}
+  else{act=/reject/i.test(r.decision)?'<span class="st rejected">Rejected</span>':(/approv/i.test(r.decision)?'<span class="st approved">Approved</span>':'<span class="muted">—</span>');}
+  var freq=(r.frequency&&r.frequency!=='One-time')?' / '+esc(r.frequency.toLowerCase()):'';
+  var sb=(!RO&&r.pending)?'<input type="checkbox" class="selbox" data-id="'+esc(r.id)+'" '+(SEL[r.id]?'checked':'')+' onclick="toggleSel(\''+esc(r.id)+'\',this.checked,event)" style="margin-right:6px;">':'';
+  return '<div class="ecard">'
+    +'<div class="ec-top"><span class="ec-id">'+sb+esc(r.id||'')+'</span>'+stPill(r.stage)+'</div>'
+    +'<div class="ec-item" onclick="openCost('+i+')">'+esc(r.item)+' ▸</div>'
+    +'<div class="ec-meta">'+esc(r.name)+' · '+esc(r.dept)+' · '+esc(r.reqType)+'</div>'
+    +'<div class="ec-row"><span>'+esc(r.vendor||'—')+'</span><span class="ec-amt">'+esc(r.amountLabel)+freq+'</span></div>'
+    +'<div class="ec-meta">'+esc(r.nature||'Expense')+(r.mgmt?' · + CEO':'')+(r.comments?' · 💬 remarks':'')+'</div>'
+    +'<div class="ec-act">'+act+'</div></div>';
+}
+function row(r,i){
+  var tier=r.mgmt?'<span class="tier-high">+ CEO</span>':'<span class="tier-std">HOD→Fin</span>';
+  var budget=esc(r.nature||'Expense')+(r.budgeted?' <span class="muted">· budgeted</span>':'');
+  var act;
+  if(r.pending){
+    act='<button class="btn btn-ap" onclick="decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="decide(\''+esc(r.id)+'\',\'reject\')">Reject</button>'+(r.held?'':'<button class="btn btn-hold" onclick="decide(\''+esc(r.id)+'\',\'hold\')">Hold</button>');
+  } else if(r.canPO){
+    act='<button class="btn btn-po" onclick="issuePO(\''+esc(r.id)+'\')">＋ Issue PO</button>';
+  } else {
+    act=/reject/i.test(r.decision)?'<span class="st rejected">Rejected</span>':(/approv/i.test(r.decision)?'<span class="st approved">Approved</span>':'<span class="muted">—</span>');
+  }
+  var cmt=r.comments?'<div class="cmt" onclick="openCost('+i+')">💬 remarks</div>':'';
+  var freq=(r.frequency&&r.frequency!=='One-time')?' <span class="muted">/ '+esc(r.frequency.toLowerCase())+'</span>':'';
+  var sb=(!RO&&r.pending)?'<input type="checkbox" class="selbox" data-id="'+esc(r.id)+'" '+(SEL[r.id]?'checked':'')+' onclick="toggleSel(\''+esc(r.id)+'\',this.checked,event)">':'';
+  return '<tr><td>'+sb+'</td><td class="r muted">'+(i+1)+'</td>'
+    +'<td>'+esc(r.name)+'<div class="muted" style="font-size:11px;">'+esc(r.dept)+'</div>'+cmt+'</td>'
+    +'<td><span class="cost-link" onclick="openCost('+i+')">'+esc(r.item)+'<span class="caret">▸</span></span><div class="muted" style="font-size:11px;">'+esc(r.category||'')+'</div></td>'
+    +'<td class="muted">'+esc(r.vendor)+'</td><td class="muted">'+esc(r.reqType)+'</td>'
+    +'<td class="r amt">'+esc(r.amountLabel)+freq+'</td>'
+    +'<td>'+budget+'</td><td>'+tier+'</td>'
+    +'<td>'+stPill(r.stage)+'</td><td>'+act+'</td></tr>';
+}
+function kv(k,v){if(v==null||v==='')return'';return'<div class="kv"><span class="kk">'+esc(k)+'</span><span class="vv">'+esc(v)+'</span></div>';}
+function openCost(i){
+  var r=VIEW[i];if(!r)return;var d=r.detail||{};var cur=r.currency||'INR';
+  document.getElementById('cd-id').textContent=r.id;
+  document.getElementById('cd-sub').textContent=(r.name||'')+' · '+(r.dept||'');
+  var recurring=(d.frequency&&d.frequency!=='One-time');
+  var html='<div class="bd-amt"><div class="lb">Amount requested</div><div class="big">'+esc(fmt(cur,d.amount))+' <span style="font-size:13px;font-weight:600;color:#8A97AA;">· '+esc(d.frequency||'One-time')+'</span></div>'
+    +(recurring?'<div class="muted" style="font-size:12px;margin-top:2px;">Annualised: '+esc(fmt(cur,d.annual))+'</div>':'')+'</div>';
+  html+='<div class="kvbox">'+kv('Nature',d.nature)+kv('Request type',d.reqType)+kv('Category',d.category)+kv('Item / service',d.item)+kv('Vendor',d.vendor)
+    +kv('Vendor GST / PAN',d.vendorGst)+kv('Vendor contact',[d.vendorPhone,d.vendorEmail].filter(Boolean).join(' · '))
+    +(d.rate>0?kv('Rate × Qty',fmt(cur,d.rate)+' × '+d.qty):'')+kv('Expense month',d.expenseMonth)+kv('Needed by',d.needBy)
+    +kv('Budget taken',d.budgetTaken==='Yes'?('Yes'+(d.budgetLine?' · '+d.budgetLine:'')):'No — out of budget')
+    +(d.oob?kv('OOB justification',d.oob):'')
+    +kv('Quotations',d.quotesAvail==='Yes'?(d.quotes.length+' attached'):(d.quotesAvail==='No'?('Fewer than 3 — '+d.quotesReason):'Not required'))
+    +'</div>';
+  html+='<div class="tierbox '+(r.mgmt?'high':'std')+'">'+(r.mgmt?'⬆ ':'✓ ')+esc(d.tier||r.tier||'')+'</div>';
+  // documents
+  var docs='';
+  (d.quotes||[]).forEach(function(u,k){docs+='<a class="bd-doc" href="'+esc(u)+'" target="_blank">📎 Quotation '+(k+1)+'</a>';});
+  if(d.doc)docs+='<a class="bd-doc" href="'+esc(d.doc)+'" target="_blank">📎 Proforma</a>';
+  if(d.invoiceDoc)docs+='<a class="bd-doc" href="'+esc(d.invoiceDoc)+'" target="_blank">📎 e-Invoice</a>';
+  if(docs)html+='<div class="bd-sec">Documents</div><div>'+docs+'</div>';
+  // lifecycle
+  var life=kv('PO number',d.poNumber?(d.poNumber+(d.poDate?' · '+d.poDate:'')):'')+kv('Delivery',d.delivery?(d.delivery+(d.deliveryDate?' · '+d.deliveryDate:'')):'')+kv('Invoice date',d.invoiceDate);
+  if(life.trim())html+='<div class="bd-sec">Lifecycle</div><div class="kvbox">'+life+'</div>';
+  html+='<div class="bd-sec">Purpose / justification</div><div class="bd-cmt">'+esc(d.purpose||'—')+'</div>';
+  if(d.notes)html+='<div class="bd-sec">Notes</div><div class="bd-cmt">'+esc(d.notes)+'</div>';
+  if(r.comments)html+='<div class="bd-sec">Approver remarks</div><div class="bd-cmt">'+esc(r.comments)+'</div>';
+  document.getElementById('cd-body').innerHTML=html;
+  document.getElementById('cost-drawer').classList.add('open');document.getElementById('cost-drawer').setAttribute('aria-hidden','false');document.getElementById('cost-ov').classList.add('open');
+}
+function closeCost(){document.getElementById('cost-drawer').classList.remove('open');document.getElementById('cost-drawer').setAttribute('aria-hidden','true');document.getElementById('cost-ov').classList.remove('open');}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCost();});
+function decide(id,decision){
+  var label=decision==='hold'?'put on hold':decision;
+  if(decision!=='hold'&&!confirm((decision==='approve'?'Approve':'Reject')+' '+id+'?'))return;
+  var comment=prompt('Add a remark for this '+label+' (optional):','');
+  if(comment===null)return;
+  fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,decision:decision,comment:comment})})
+    .then(function(r){return r.json();}).then(function(res){if(res&&res.ok){toast(res.title||(id+' '+decision+'d'));load();}else toast('Error: '+((res&&res.error)||'failed'));}).catch(function(){toast('Error');});
+}
+function issuePO(id){
+  var po=prompt('Enter the Purchase Order (PO) number for '+id+':','');
+  if(po===null||!po.trim())return;
+  fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'po',id:id,poNumber:po.trim()})})
+    .then(function(r){return r.json();}).then(function(res){toast(res.ok?(res.title||'PO issued'):'Error: '+(res.error||'failed'));if(res.ok)load();}).catch(function(){toast('Error');});
+}
+var toastT;function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},2800);}
+requireView(['hod','ceo','finance'], function(me){renderUserbar(me);load();});
+</script>
+</body>
+</html>

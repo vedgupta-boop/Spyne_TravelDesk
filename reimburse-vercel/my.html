@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spyne ReimburseDesk · My Claims</title>
+<style>
+  :root{--navy:#0D1B2A;--ink:#1a2332;--gray-1:#f6f8fb;--gray-2:#eef2f7;--gray-3:#e2e8f0;--gray-5:#8A97AA;--red:#E8232A;--green:#0a8a0a;--sky:#0077CC;--amber:#b8860b;--radius:12px;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--gray-1);color:var(--ink);}
+  .topbar{background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .logo-sq{width:32px;height:32px;border-radius:8px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;}
+  .brand{font-weight:800;font-size:16px;} .brand span{color:#9fb3c8;font-weight:600;} .topbar .sp{flex:1}
+  .wrap{max-width:920px;margin:22px auto;padding:0 16px 60px;}
+  h1{font-size:20px;color:var(--navy);margin:0 0 4px;} .sub{color:var(--gray-5);font-size:13px;margin:0 0 18px;}
+  .req-card{background:#fff;border:1px solid var(--gray-3);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(13,27,42,.05);}
+  .rc-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;}
+  .rc-title{font-weight:800;font-size:15px;color:var(--navy);} .rc-meta{font-size:12px;color:var(--gray-5);margin-top:2px;}
+  .rc-amt{font-size:18px;font-weight:900;color:var(--navy);text-align:right;} .rc-amt small{display:block;font-size:11px;color:var(--gray-5);font-weight:600;}
+  .status-pill{display:inline-block;font-size:11px;font-weight:800;padding:4px 11px;border-radius:14px;margin-top:6px;}
+  .st-prog{background:#EEF2FF;color:#3730A3;} .st-paid{background:#e6f5e6;color:var(--green);} .st-rej{background:#fff0f0;color:var(--red);} .st-hold{background:#FFF7E6;color:#92400E;}
+  .chain{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;}
+  .ch{font-size:11px;font-weight:700;padding:4px 10px;border-radius:13px;background:var(--gray-2);color:#3D506A;}
+  .ch.ok{background:#e6f5e6;color:var(--green);} .ch.cur{background:#fff7e6;color:#92400E;} .ch.no{background:#fff0f0;color:var(--red);}
+  .lines{margin-top:12px;border-top:1px solid var(--gray-2);padding-top:10px;display:none;}
+  .lines table{width:100%;border-collapse:collapse;font-size:12.5px;} .lines th{text-align:left;color:var(--gray-5);font-size:11px;text-transform:uppercase;padding:3px 6px;} .lines td{padding:4px 6px;border-top:1px solid var(--gray-2);}
+  .toggle{font-size:12px;color:var(--sky);font-weight:700;cursor:pointer;margin-top:10px;display:inline-block;}
+  .empty{text-align:center;color:var(--gray-5);padding:50px 0;}
+  a.btn{display:inline-block;background:var(--red);color:#fff;text-decoration:none;border-radius:9px;padding:10px 18px;font-weight:800;font-size:14px;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="logo-sq">S</div><div class="brand">Spyne <span>ReimburseDesk</span></div><div class="sp"></div><div id="rmb-userbar"></div></div>
+<div class="wrap">
+  <h1>My reimbursement claims</h1>
+  <p class="sub">Track each claim through approvals to payout. <a href="/" style="color:var(--sky);font-weight:700;">＋ New claim</a></p>
+  <div id="list"><p class="sub">Loading…</p></div>
+</div>
+<script src="/auth-guard.js"></script>
+<script>
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function money(a,c){c=c||'INR';return c+' '+Number(a||0).toLocaleString(c==='USD'?'en-US':'en-IN',{maximumFractionDigits:0});}
+
+requireView('requester',function(me){ renderUserbar(me); load(); });
+
+function load(){
+  fetch('/api/me?mine=1',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    var rows=(d&&d.rows)||[];
+    if(!rows.length){ el('list').innerHTML='<div class="empty">No claims yet.<br><br><a class="btn" href="/">Submit your first claim</a></div>'; return; }
+    el('list').innerHTML=rows.map(card).join('');
+  }).catch(function(){ el('list').innerHTML='<div class="empty">Could not load your claims.</div>'; });
+}
+
+function statusPill(r){
+  var s=r.status||'', cls='st-prog';
+  if(/reimbursed|paid/i.test(s)) cls='st-paid'; else if(/reject/i.test(s)) cls='st-rej'; else if(/hold/i.test(s)) cls='st-hold';
+  return '<span class="status-pill '+cls+'">'+esc(s)+'</span>';
+}
+function chainHtml(r){
+  var steps=[['HOD',r.hod],['Finance',r.finance]];
+  if(r.mgmtStatus && r.mgmtStatus!=='N/A') steps.push(['CEO',r.mgmtStatus]);
+  steps.push(['Payout', r.payStatus||(/reimbursed|paid/i.test(r.status)?'Paid':'')]);
+  return '<div class="chain">'+steps.map(function(s){
+    var v=String(s[1]||''), cls='';
+    if(/approv|paid/i.test(v)) cls='ok'; else if(/reject/i.test(v)) cls='no'; else if(/pending|awaiting/i.test(v)) cls='cur';
+    return '<span class="ch '+cls+'">'+s[0]+(v?': '+esc(v):'')+'</span>';
+  }).join('')+'</div>';
+}
+function linesHtml(r){
+  var d=r.detail||{}, lines=d.lines||[];
+  if(!lines.length) return '';
+  return '<div class="lines" id="ln-'+esc(r.id)+'"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th style="text-align:right">Amount</th><th>Receipt</th></tr></thead><tbody>'+
+    lines.map(function(l){return '<tr><td>'+esc(l.date||'')+'</td><td>'+esc(l.category||'')+'</td><td>'+esc(l.description||'')+'</td><td style="text-align:right">'+esc(money(l.amount,r.currency))+'</td><td>'+(l.receipt?'<a href="'+esc(l.receipt)+'" target="_blank" style="color:var(--sky)">view</a>':'—')+'</td></tr>';}).join('')+
+    '</tbody></table></div>';
+}
+function card(r){
+  var d=r.detail||{};
+  var period=[d.periodFrom,d.periodTo].filter(Boolean).join(' → ');
+  return '<div class="req-card"><div class="rc-head"><div>'+
+    '<div class="rc-title">'+esc(r.title||'(untitled)')+'</div>'+
+    '<div class="rc-meta">'+esc(r.id)+' · '+esc(r.dept||'')+(d.project?' · '+esc(d.project):'')+(period?' · '+esc(period):'')+' · '+r.lineCount+' line(s) · submitted '+esc(r.submission)+'</div>'+
+    statusPill(r)+
+    '</div><div class="rc-amt">'+esc(r.netLabel)+'<small>net · total '+esc(r.amountLabel)+'</small></div></div>'+
+    chainHtml(r)+
+    (d.payRef?'<div class="rc-meta" style="margin-top:8px">Paid '+esc(money(d.paidAmount||r.net,r.currency))+' · ref '+esc(d.payRef)+' on '+esc(d.payDate)+'</div>':'')+
+    (d.lines&&d.lines.length?'<span class="toggle" onclick="toggle(\''+esc(r.id)+'\',this)">Show '+d.lines.length+' line item(s) ▾</span>':'')+
+    linesHtml(r)+
+    '</div>';
+}
+function toggle(id,t){ var b=document.getElementById('ln-'+id); if(!b)return; var open=b.style.display==='block'; b.style.display=open?'none':'block'; t.textContent=(open?'Show':'Hide')+' line item(s) '+(open?'▾':'▴'); }
+</script>
+</body>
+</html>

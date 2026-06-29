@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#E8232A;--navy:#0D1B2A;--navy2:#1C3148;--sky:#0077CC;--sky-l:#EBF5FF;
+  --green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;--red2:#DC2626;--red2-l:#FEE2E2;
+  --gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}
+.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 20px 60px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;}
+.kpi .num{font-size:24px;font-weight:900;color:var(--navy);margin-top:6px;}
+.kpi .sub{font-size:11px;color:var(--gray-5);margin-top:3px;}
+.kpi.green .num{color:var(--green);}.kpi.amber .num{color:#B45309;}.kpi.sky .num{color:var(--sky);}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.pol-edit{background:var(--sky-l);border:1px solid #B3D7F5;color:var(--sky);border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;}
+.pol-edit:hover{background:#dceeff;}
+.an-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 0 16px;}
+.an-kpi{background:var(--gray-1);border:1px solid var(--gray-2);border-radius:10px;padding:11px 14px;}
+.an-kpi .lb{font-size:11px;color:var(--gray-5);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.an-kpi .num{font-size:19px;font-weight:800;color:var(--navy);margin-top:3px;}
+.an-kpi .sub{font-size:11px;color:var(--gray-5);margin-top:2px;}
+.an-kpi.green{background:var(--grn-l);}.an-kpi.sky{background:var(--sky-l);}.an-kpi.amber{background:var(--amb-l);}
+.an-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.an-card{border:1px solid var(--gray-2);border-radius:10px;padding:12px 14px;}
+.an-h{font-weight:800;color:var(--navy);font-size:13px;margin-bottom:10px;}
+.an-bars{display:flex;flex-direction:column;gap:8px;}
+.an-row{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:9px;font-size:11.5px;}
+.an-lb{color:var(--gray-7);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.an-track{background:var(--gray-2);border-radius:6px;height:14px;overflow:hidden;}
+.an-fill{height:100%;background:var(--sky);border-radius:6px;}
+.an-fill.over{background:var(--red2);}
+.an-val{color:var(--navy);font-weight:700;white-space:nowrap;}
+.an-ct{color:var(--gray-5);font-weight:600;}
+.an-empty{color:var(--gray-5);font-size:12px;padding:6px 0;}
+@media(max-width:760px){.an-grid{grid-template-columns:1fr;}.an-row{grid-template-columns:90px 1fr auto;}}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:2160px;}
+.wrap{max-width:1400px;}
+td,th{white-space:nowrap;}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;position:sticky;top:0;}
+th.r,td.r{text-align:right;}
+td{padding:10px 12px;border-bottom:1px solid var(--gray-2);white-space:nowrap;}
+tr:hover td{background:var(--gray-1);}
+.id{font-weight:800;color:var(--navy);}
+.muted{color:var(--gray-5);}
+.amt{font-variant-numeric:tabular-nums;}
+.total{font-weight:800;color:var(--navy);}
+.st{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}
+.st.approved{background:var(--grn-l);color:#065F46;}
+.st.rejected{background:var(--red2-l);color:var(--red2);}
+.flag{font-size:11px;color:var(--red2);font-weight:700;}
+.flag.ok{color:var(--green);}
+.empty{padding:50px;text-align:center;color:var(--gray-5);font-size:14px;}
+.hidden{display:none!important;}
+tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gray-3);}
+.loading{padding:60px;text-align:center;color:var(--gray-5);}
+/* clickable est-cost amount */
+.cost-link{cursor:pointer;border-bottom:1px dashed var(--sky);color:var(--navy);}
+.cost-link:hover{color:var(--sky);}
+.cost-link .caret{font-size:9px;color:var(--sky);margin-left:3px;}
+.brk-yes{cursor:pointer;color:var(--red2);font-weight:800;border-bottom:1px dashed var(--red2);white-space:nowrap;}
+.brk-yes:hover{color:#991B1B;}
+.brk-no{color:var(--green);font-weight:700;}
+/* slide-out cost drawer */
+.drawer-ov{position:fixed;inset:0;background:rgba(13,27,42,.45);opacity:0;visibility:hidden;transition:opacity .2s;z-index:40;}
+.drawer-ov.open{opacity:1;visibility:visible;}
+.drawer{position:fixed;top:0;right:0;height:100%;width:420px;max-width:92vw;background:#fff;box-shadow:-8px 0 30px rgba(13,27,42,.25);transform:translateX(100%);transition:transform .25s ease;z-index:41;display:flex;flex-direction:column;}
+.drawer.open{transform:translateX(0);}
+.drawer-hd{background:var(--navy);color:#fff;padding:18px 20px;}
+.drawer-hd .x{float:right;cursor:pointer;font-size:20px;line-height:1;color:rgba(255,255,255,.8);}
+.drawer-hd .x:hover{color:#fff;}
+.drawer-hd .did{font-size:15px;font-weight:900;}
+.drawer-hd .dsub{font-size:12px;color:var(--gray-5);margin-top:3px;}
+.drawer-bd{padding:18px 20px;overflow-y:auto;flex:1;}
+.bd-tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:0;}
+.bd-tbl td{padding:9px 4px;border-bottom:1px solid var(--gray-2);white-space:normal;vertical-align:top;}
+.bd-tbl .li{font-weight:700;color:var(--ink);}
+.bd-tbl .bs{font-size:11px;color:var(--gray-5);margin-top:2px;}
+.bd-tbl .av{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;color:var(--navy);}
+.bd-tbl .tot td{border-top:2px solid var(--gray-3);border-bottom:none;font-size:15px;padding-top:12px;}
+.bd-tbl .tot .av{color:var(--red);font-weight:900;}
+.bd-flag{margin-top:16px;border-radius:8px;padding:11px 13px;font-size:12px;font-weight:600;line-height:1.45;}
+.bd-flag.ok{background:var(--grn-l);color:#065F46;}
+.bd-flag.brk{background:var(--red2-l);color:var(--red2);}
+.bd-note{margin-top:14px;font-size:11px;color:var(--gray-5);line-height:1.5;}
+/* ---- Executive summary (Today's Action + KPIs + Alerts + Summary) ---- */
+#exec{margin-bottom:20px;}
+.ex-h{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--gray-7);margin:18px 0 10px;}
+.ex-h:first-child{margin-top:0;}
+.ex-acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.ex-act{display:block;text-decoration:none;background:#fff;border:1px solid var(--gray-3);border-left:4px solid var(--gray-5);border-radius:12px;padding:14px 16px;transition:transform .15s,box-shadow .15s;}
+.ex-act:hover{transform:translateY(-2px);box-shadow:0 8px 20px -12px rgba(13,27,42,.3);}
+.ex-act.amber{border-left-color:var(--amber);}.ex-act.sky{border-left-color:var(--sky);}.ex-act.green{border-left-color:var(--green);}
+.ex-n{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:var(--navy);line-height:1;}
+.ex-l{font-size:12.5px;color:var(--gray-7);font-weight:600;margin-top:4px;}
+.ex-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.ex-kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:14px 16px;}
+.ex-kpi.amber{background:var(--amb-l);border-color:#FCE4B8;}.ex-kpi.sky{background:var(--sky-l);border-color:#CFE0FB;}.ex-kpi.green{background:var(--grn-l);border-color:#BFE6CC;}.ex-kpi.red{background:var(--red2-l);border-color:#F6C9C9;}
+.ex-kl{font-size:11.5px;color:var(--gray-7);font-weight:600;}
+.ex-kv{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--navy);margin-top:4px;line-height:1.05;}
+.ex-ks{font-size:10.5px;color:var(--gray-5);margin-top:3px;}
+.ex-alerts{display:flex;flex-direction:column;gap:7px;background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:14px 16px;}
+.ex-alert{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray-7);font-weight:600;}
+.ex-badge{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:24px;padding:0 8px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:#fff;}
+.ex-badge.red{background:var(--red2);}.ex-badge.amber{background:var(--amber);}.ex-badge.sky{background:var(--sky);}.ex-badge.zero{background:var(--gray-3);color:var(--gray-7);}
+.ex-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+.ex-sumcard{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:14px 16px;}
+.ex-sc-h{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);font-size:15px;margin-bottom:8px;}
+.ex-sc-r{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--gray-2);color:var(--gray-7);}
+.ex-sc-r:last-child{border-bottom:none;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Finance — Cost Tracking</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button id="rem-toggle" class="btn-refresh" onclick="toggleReminders()" title="Turn the automatic email reminders on or off">🔔 Reminders: …</button>
+    <select id="rem-hour" class="btn-refresh" onchange="setReminderTime()" title="Time of day (IST) the daily reminder is sent" style="cursor:pointer;"></select>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <!-- EXECUTIVE SUMMARY (Today's Action + KPIs + Alerts) -->
+  <div id="exec"></div>
+  <!-- POLICY SUMMARY -->
+  <div class="panel" style="margin-bottom:18px;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="togglePolicy()">
+      <div style="font-weight:800;color:var(--navy);">📋 Policy Summary &amp; Rules <span style="font-weight:700;font-size:11px;color:var(--sky);background:var(--sky-l);border:1px solid #B3D7F5;border-radius:6px;padding:1px 7px;margin-left:6px;">✎ Finance can edit</span></div>
+      <span id="pol-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
+    </div>
+    <div id="policy-body" class="hidden" style="padding:0 18px 16px;"></div>
+  </div>
+
+  <div class="panel" style="margin-bottom:16px;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleAnalytics()">
+      <div style="font-weight:800;color:var(--navy);">📊 Analytics &amp; Budgets <span id="an-sub" style="font-weight:600;color:var(--gray-5);font-size:12px;"></span></div>
+      <span id="an-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
+    </div>
+    <div id="analytics-body" class="hidden" style="padding:0 18px 16px;"></div>
+  </div>
+
+  <div id="kpis" class="cards"></div>
+
+  <div class="bar">
+    <div class="title">Travel Requests</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input id="search" placeholder="Search id / name / dept / route" oninput="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;min-width:190px;">
+      <select id="f-type" onchange="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">All types</option><option value="local">Local</option><option value="domestic">Domestic</option><option value="international">International</option></select>
+      <select id="f-cur" onchange="render()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">All currencies</option><option>INR</option><option>USD</option></select>
+      <button class="chip" onclick="downloadCSV()" style="cursor:pointer;">⬇ Download CSV</button>
+    </div>
+  </div>
+  <div class="filters" id="filters" style="margin-bottom:14px;">
+    <span class="chip active" data-f="all" onclick="setFilter('all')">All</span>
+    <span class="chip" data-f="pending" onclick="setFilter('pending')">Pending</span>
+    <span class="chip" data-f="approved" onclick="setFilter('approved')">Approved</span>
+    <span class="chip" data-f="rejected" onclick="setFilter('rejected')">Rejected</span>
+  </div>
+
+  <div class="panel">
+    <div id="loading" class="loading">Loading requests…</div>
+    <div class="tbl-scroll hidden" id="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="r">Sr.</th><th>Request ID</th><th>Employee</th><th>Department</th><th>Travel Purpose</th>
+          <th>Start Date</th><th>End Date</th><th>Submission</th><th class="r">Est. Cost</th>
+          <th class="r">Advance</th><th>Policy Breach</th>
+          <th>HOD Status</th><th>HOD Date</th><th>CEO Status</th><th>CEO Date</th><th>Finance Status</th><th>Finance Date</th>
+          <th>Booking Status</th><th>Booking Date</th><th>PNR / Ticket</th><th>Ticket Upload</th>
+          <th>Forex Status</th><th>Forex Issue</th><th>Final Status</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot id="foot"></tfoot>
+      </table>
+    </div>
+    <div id="empty" class="empty hidden">No requests match this filter.</div>
+  </div>
+</div>
+
+<!-- Cost breakup slide-out -->
+<div class="drawer-ov" id="cost-ov" onclick="closeCost()"></div>
+<aside class="drawer" id="cost-drawer" aria-hidden="true">
+  <div class="drawer-hd">
+    <span class="x" onclick="closeCost()" title="Close">×</span>
+    <div class="did" id="cd-id"></div>
+    <div class="dsub" id="cd-sub"></div>
+  </div>
+  <div class="drawer-bd" id="cd-body"></div>
+</aside>
+
+<script>
+var DATA = { rows: [], currencySummaries: {} };
+var VIEW = [];
+var FILTER = 'all';
+
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  fetch('/api/finance')
+    .then(function(r){ if(!r.ok) throw new Error('finance '+r.status); return r.json(); })
+    .then(onData)
+    .catch(onFail);
+}
+function onFail(err){ document.getElementById('loading').textContent='Could not load: '+(err&&err.message||err); }
+
+function statusClass(s){ if(/reject/i.test(s)) return 'rejected'; if(/approved|admin|confirmed/i.test(s)) return 'approved'; return 'pending'; }
+
+function fmt(cur,x){ return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+
+var PCFG=null;
+// ExpenseDesk app — used to deep-link each reconciled expense back to its source.
+var EXPENSE_APP='https://expense-vercel-theta.vercel.app';
+function onData(d){
+  DATA = d || {rows:[],currencySummaries:{}};
+  document.getElementById('loading').classList.add('hidden');
+  REM_ON = !!DATA.remindersOn; paintRemToggle();
+  REM_HOUR = (typeof DATA.reminderHour==='number') ? DATA.reminderHour : 9; paintRemHour();
+  renderExec(); renderKpis(); render(); renderAnalytics();
+  renderPolicy(PCFG); // (re)render policy panel — editor shows from DATA even if config (PCFG) isn't in yet
+}
+// ---- Executive summary: Today's Action + KPI row + Finance Alerts (CFO view, from existing data) ----
+function dmy(s){ var p=String(s||'').split('/'); return (p.length===3)?new Date(+p[2],+p[1]-1,+p[0]):null; }
+function cr(n){ n=Number(n)||0; if(n>=1e7) return '₹'+(n/1e7).toFixed(2)+' Cr'; if(n>=1e5) return '₹'+(n/1e5).toFixed(2)+' L'; return '₹'+Math.round(n).toLocaleString('en-IN'); }
+function renderExec(){
+  var box=document.getElementById('exec'); if(!box) return;
+  var rows=DATA.rows||[]; if(!rows.length){ box.innerHTML=''; return; }
+  var fx=(CFG&&CFG.fx&&CFG.fx.USD_INR)||83;
+  var inr=function(t,c){ return String(c||'INR').toUpperCase()==='USD'?Number(t||0)*fx:Number(t||0); };
+  var now=new Date();
+  var needApproval=0,needFinance=0,needBooking=0,needSettlement=0,needReimb=0;
+  var pendingApproval=0,approvedN=0,violations=0,advSettle=0,overBudget=0,pendingLong=0;
+  var pipelineINR=0,approvedINR=0,advanceINR=0,monthINR=0,usdExposure=0;
+  var perCur={};
+  rows.forEach(function(r){
+    var st=String(r.status||''), rejected=/reject|withdraw/i.test(st), approved=isApprovedStatus(st);
+    var pHod=r.hodStatus==='Pending', pCeo=r.ceoStatus==='Pending', pFin=r.financeStatus==='Pending';
+    var inApproval=pHod||pCeo||pFin; var ac=r.actuals||{};
+    if(inApproval) pendingApproval++;
+    if(pHod||pCeo) needApproval++;
+    if(pFin) needFinance++;
+    if(/with admin|arrangement/i.test(st)) needBooking++;
+    if(r.advance>0 && /completed|forex card issued|done|confirmed/i.test(st) && ac.status!=='Closed'){ needSettlement++; advSettle++; }
+    if(ac.status==='HOD Approved') needReimb++;
+    if(approved) approvedN++;
+    if(isBroken(r)) violations++;
+    if(ac.actualTotal>0 && ac.estTotal>0 && ac.actualTotal>ac.estTotal) overBudget++;
+    var sub=dmy(r.submission); if(sub && inApproval && (now-sub)>5*86400000) pendingLong++;
+    if(!rejected){ var v=inr(r.total,r.currency); pipelineINR+=v; if(approved) approvedINR+=v; advanceINR+=inr(r.advance,r.currency);
+      var c=String(r.currency||'INR').toUpperCase(); perCur[c]=perCur[c]||{pipe:0,appr:0,adv:0}; perCur[c].pipe+=Number(r.total||0); if(approved)perCur[c].appr+=Number(r.total||0); perCur[c].adv+=Number(r.advance||0);
+      if(c==='USD') usdExposure+=Number(r.total||0);
+      var sd=dmy(r.start); if(sd && sd.getMonth()===now.getMonth() && sd.getFullYear()===now.getFullYear()) monthINR+=v;
+    }
+  });
+  var budgets=(CFG&&CFG.deptBudgets)||{}; var totalBudget=Object.keys(budgets).reduce(function(s,k){return s+Number(budgets[k]||0);},0);
+  var util=totalBudget?Math.round(approvedINR/totalBudget*100):null;
+  // Today's Action
+  function act(label,n,href,cls){ return '<a class="ex-act '+cls+'" href="'+href+'"><div class="ex-n">'+n+'</div><div class="ex-l">'+label+'</div></a>'; }
+  var actions='<div class="ex-h">⚡ Today’s Action</div><div class="ex-acts">'
+    +act('Need approval',needApproval,'/hod','amber')
+    +act('Finance review',needFinance,'/hod','sky')
+    +act('Need booking',needBooking,'/admin','sky')
+    +act('Need settlement',needSettlement,'/finance','amber')
+    +act('Need reimbursement',needReimb,'/finance','green')+'</div>';
+  // KPI row
+  function kpi(label,val,cls,sub){ return '<div class="ex-kpi '+(cls||'')+'"><div class="ex-kl">'+label+'</div><div class="ex-kv">'+val+'</div>'+(sub?'<div class="ex-ks">'+sub+'</div>':'')+'</div>'; }
+  var kpis='<div class="ex-h">Overview</div><div class="ex-grid">'
+    +kpi('Total requests',rows.length,'')
+    +kpi('Pending approval',pendingApproval,'amber')
+    +kpi('Approved',approvedN,'green')
+    +kpi('Pipeline cost',cr(pipelineINR),'sky','all live · ₹')
+    +kpi('Approved cost',cr(approvedINR),'green')
+    +kpi('Travel advance',cr(advanceINR),'amber','forex + deposits')
+    +kpi('Policy violations',violations,violations?'red':'green')
+    +kpi('Budget utilization',(util==null?'—':util+'%'),(util!=null&&util>90?'red':'sky'),(totalBudget?'of '+cr(totalBudget):'set dept budgets'))
+    +kpi('This-month spend',cr(monthINR),'','trips starting this month')
+    +'</div>';
+  // Finance Alerts
+  function alert(n,label,cls){ return '<div class="ex-alert"><span class="ex-badge '+(n?cls:'zero')+'">'+n+'</span> '+label+'</div>'; }
+  var alerts='<div class="ex-h">⚠ Finance Alerts</div><div class="ex-alerts">'
+    +alert(violations,'Policy violations','red')
+    +alert(advSettle,'Advances pending settlement','amber')
+    +alert(overBudget,'Trips exceeding budget','red')
+    +alert(pendingLong,'Requests pending > 5 days','amber')
+    +'<div class="ex-alert"><span class="ex-badge sky">$'+Math.round(usdExposure).toLocaleString('en-US')+'</span> USD exposure (pipeline)</div></div>';
+  // Per-currency summary (Pipeline / Approved / Pending / Advance)
+  var sum='<div class="ex-h">Finance Summary</div><div class="ex-sum">'+Object.keys(perCur).map(function(c){ var p=perCur[c]; var f=function(n){return c+' '+Math.round(n).toLocaleString(c==='USD'?'en-US':'en-IN');};
+    return '<div class="ex-sumcard"><div class="ex-sc-h">'+c+'</div>'
+      +'<div class="ex-sc-r"><span>Pipeline</span><b>'+f(p.pipe)+'</b></div>'
+      +'<div class="ex-sc-r"><span>Approved</span><b style="color:var(--green);">'+f(p.appr)+'</b></div>'
+      +'<div class="ex-sc-r"><span>Pending</span><b style="color:var(--amber);">'+f(Math.max(0,p.pipe-p.appr))+'</b></div>'
+      +'<div class="ex-sc-r"><span>Advance</span><b>'+f(p.adv)+'</b></div></div>';
+  }).join('')+'</div>';
+  box.innerHTML=actions+kpis+alerts+sum;
+}
+// ---- Email-reminder master switch (Finance self-service) ----
+var REM_ON=false;
+function paintRemToggle(){ var b=document.getElementById('rem-toggle'); if(!b) return;
+  b.textContent='🔔 Reminders: '+(REM_ON?'ON':'OFF');
+  b.style.background = REM_ON ? 'rgba(15,157,88,.9)' : 'rgba(255,255,255,.1)';
+  b.style.borderColor = REM_ON ? 'rgba(15,157,88,.9)' : 'rgba(255,255,255,.2)';
+}
+function toggleReminders(){
+  var next=!REM_ON; var b=document.getElementById('rem-toggle');
+  if(!confirm('Turn email reminders '+(next?'ON':'OFF')+'?\n\nWhen ON, the daily job emails the pending approver (CC: requestor + Shankul). When OFF, no reminder emails are sent.')) return;
+  if(b) b.disabled=true;
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'reminders',on:next})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(b) b.disabled=false; if(res&&res.ok){ REM_ON=!!res.remindersOn; paintRemToggle(); } else alert('Could not change: '+((res&&res.error)||'error')); })
+    .catch(function(e){ if(b) b.disabled=false; alert('Failed: '+(e&&e.message||e)); });
+}
+// ---- Reminder send-time (IST hour) ----
+var REM_HOUR=9;
+function hourLabel(h){ var ap=h<12?'AM':'PM'; var hh=h%12; if(hh===0) hh=12; return hh+':00 '+ap; }
+function paintRemHour(){ var s=document.getElementById('rem-hour'); if(!s) return;
+  if(!s.options.length){ var html=''; for(var h=0;h<24;h++){ html+='<option value="'+h+'">🕘 '+hourLabel(h)+' IST</option>'; } s.innerHTML=html; }
+  s.value=String(REM_HOUR);
+}
+function setReminderTime(){ var s=document.getElementById('rem-hour'); if(!s) return; var h=parseInt(s.value,10);
+  s.disabled=true;
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'reminders',hour:h})})
+    .then(function(r){return r.json();})
+    .then(function(res){ s.disabled=false; if(res&&res.ok){ REM_HOUR=res.reminderHour; paintRemHour(); } else { alert('Could not change time: '+((res&&res.error)||'error')); paintRemHour(); } })
+    .catch(function(e){ s.disabled=false; alert('Failed: '+(e&&e.message||e)); paintRemHour(); });
+}
+
+// ---- Analytics & budgets (client-side, normalised to INR via the configured FX rate) ----
+var CFG=null;
+function toggleAnalytics(){ var b=document.getElementById('analytics-body'); var t=document.getElementById('an-toggle'); var h=b.classList.toggle('hidden'); t.textContent=h?'Show ▾':'Hide ▴'; }
+function inrFmt(n){ return '₹'+Math.round(n||0).toLocaleString('en-IN'); }
+function toINR(total,cur){ var fx=(CFG&&CFG.fx&&CFG.fx.USD_INR)||83; return String(cur||'INR').toUpperCase()==='USD'?(Number(total||0)*fx):Number(total||0); }
+function isApprovedStatus(s){ s=String(s||''); return !/reject|withdraw/i.test(s) && /approved|admin|confirm|complet|booking|forex|issued/i.test(s); }
+function barList(items,opts){
+  opts=opts||{}; if(!items.length) return '<div class="an-empty">No data yet.</div>';
+  var max=Math.max.apply(null,items.map(function(x){return x.value;}).concat([1]));
+  return '<div class="an-bars">'+items.map(function(x){
+    var pct=Math.max(2,Math.round(x.value/max*100));
+    var over=opts.budget&&x.budget&&x.value>x.budget;
+    var util=opts.budget&&x.budget?(' · '+Math.round(x.value/x.budget*100)+'% of '+inrFmt(x.budget)):'';
+    return '<div class="an-row"><div class="an-lb" title="'+esc(x.label)+'">'+esc(x.label)+'</div>'
+      +'<div class="an-track"><div class="an-fill'+(over?' over':'')+'" style="width:'+pct+'%;"></div></div>'
+      +'<div class="an-val">'+inrFmt(x.value)+(x.count?' <span class="an-ct">('+x.count+')</span>':'')+util+'</div></div>';
+  }).join('')+'</div>';
+}
+function reconKpi(){
+  var rc=(DATA&&DATA.reconciliation)||{};
+  if(!rc.available || !rc.linked) return '';
+  var v=Number(rc.estimateINR||0)-Number(rc.actualINR||0); var over=v<0;
+  return '<div class="an-kpi'+(over?'':' green')+'"><div class="lb">Actual vs estimate ('+rc.linked+' linked)</div><div class="num">'+inrFmt(rc.actualINR)+'</div>'
+    +'<div class="sub">est '+inrFmt(rc.estimateINR)+' · '+(over?'over by ':'under by ')+inrFmt(Math.abs(v))+'</div></div>';
+}
+function renderAnalytics(){
+  if(!CFG) return; var body=document.getElementById('analytics-body'); if(!body) return;
+  var rows=(DATA.rows||[]);
+  var live=rows.filter(function(r){ return !/reject|withdraw/i.test(r.status||''); });
+  var approved=rows.filter(function(r){ return isApprovedStatus(r.status); });
+  var totalINR=0, apprINR=0, advINR=0;
+  var byDept={}, byType={}, byMonth={}, byTrav={};
+  var byCat={transport:0,local:0,hotel:0,meals:0,other:0,forex:0,deposit:0}; // spend by line item
+  var act={count:0,est:0,actual:0,reimb:0}; // native actuals rollup
+  live.forEach(function(r){
+    var v=toINR(r.total,r.currency); totalINR+=v;
+    var ac=r.actuals||{}; if(ac.actualTotal>0){ act.count++; act.est+=toINR(ac.estTotal,r.currency); act.actual+=toINR(ac.actualTotal,r.currency); act.reimb+=toINR(ac.reimbursable,r.currency); }
+    advINR+=toINR(r.advance||0,r.currency);
+    byDept[r.dept]=byDept[r.dept]||{value:0,count:0}; byDept[r.dept].value+=v; byDept[r.dept].count++;
+    var ty=String(r.type||'other'); byType[ty]=byType[ty]||{value:0,count:0}; byType[ty].value+=v; byType[ty].count++;
+    var m=String(r.submission||'').replace(/^\d+\s/,''); if(m){ byMonth[m]=byMonth[m]||{value:0,count:0}; byMonth[m].value+=v; byMonth[m].count++; }
+    var nm=r.name||'—'; byTrav[nm]=byTrav[nm]||{value:0,count:0}; byTrav[nm].value+=v; byTrav[nm].count++;
+    var b=r.breakdown||{};
+    ['transport','local','hotel','meals','other','forex','deposit'].forEach(function(k){ byCat[k]+=toINR(b[k]||0,r.currency); });
+  });
+  approved.forEach(function(r){ apprINR+=toINR(r.total,r.currency); });
+  var budgets=(CFG.deptBudgets)||{};
+  var deptItems=Object.keys(byDept).map(function(d){ return {label:d,value:byDept[d].value,count:byDept[d].count,budget:budgets[d]||0}; }).sort(function(a,b){return b.value-a.value;});
+  var typeItems=Object.keys(byType).map(function(t){ return {label:t.charAt(0).toUpperCase()+t.slice(1),value:byType[t].value,count:byType[t].count}; }).sort(function(a,b){return b.value-a.value;});
+  var travItems=Object.keys(byTrav).map(function(t){ return {label:t,value:byTrav[t].value,count:byTrav[t].count}; }).sort(function(a,b){return b.value-a.value;}).slice(0,8);
+  var monthItems=Object.keys(byMonth).map(function(m){ return {label:m,value:byMonth[m].value,count:byMonth[m].count}; });
+  var CATLBL={transport:'Transport / flights',local:'Local conveyance',hotel:'Hotel',meals:'Meals',other:'Extras (visa/insurance/phone…)',forex:'Forex advance',deposit:'Hotel deposit'};
+  var catItems=Object.keys(CATLBL).map(function(k){ return {label:CATLBL[k],value:byCat[k],count:0}; }).filter(function(x){ return x.value>0; }).sort(function(a,b){ return b.value-a.value; });
+  var fx=(CFG.fx&&CFG.fx.USD_INR)||83;
+  document.getElementById('an-sub').textContent='· normalised to INR @ ₹'+fx+'/USD';
+  var kpis='<div class="an-kpis">'
+    +'<div class="an-kpi"><div class="lb">Committed spend</div><div class="num">'+inrFmt(totalINR)+'</div><div class="sub">'+live.length+' live request(s)</div></div>'
+    +'<div class="an-kpi green"><div class="lb">Approved spend</div><div class="num">'+inrFmt(apprINR)+'</div><div class="sub">'+approved.length+' approved</div></div>'
+    +'<div class="an-kpi sky"><div class="lb">Avg per request</div><div class="num">'+inrFmt(live.length?totalINR/live.length:0)+'</div><div class="sub">all live</div></div>'
+    +'<div class="an-kpi amber"><div class="lb">Advances outstanding</div><div class="num">'+inrFmt(advINR)+'</div><div class="sub">forex + deposits</div></div>'
+    +(act.count?('<div class="an-kpi'+((act.est-act.actual)<0?'':' green')+'"><div class="lb">Actual vs budget ('+act.count+' trip'+(act.count>1?'s':'')+')</div><div class="num">'+inrFmt(act.actual)+'</div><div class="sub">budget '+inrFmt(act.est)+' · reimburse '+inrFmt(act.reimb)+'</div></div>'):'')
+    +reconKpi()
+    +'</div>';
+  body.innerHTML=kpis+'<div class="an-grid">'
+    +'<div class="an-card"><div class="an-h">By department · vs annual budget</div>'+barList(deptItems,{budget:true})+'</div>'
+    +'<div class="an-card"><div class="an-h">By spend category — where the money goes</div>'+barList(catItems)+'</div>'
+    +'<div class="an-card"><div class="an-h">By travel type</div>'+barList(typeItems)+'</div>'
+    +'<div class="an-card"><div class="an-h">By month submitted</div>'+barList(monthItems)+'</div>'
+    +'<div class="an-card"><div class="an-h">Top travellers</div>'+barList(travItems)+'</div>'
+    +'</div>';
+}
+
+function renderKpis(){
+  var s=DATA.currencySummaries||{}; var curs=Object.keys(s);
+  var totalCount=0; curs.forEach(function(c){ totalCount+=s[c].count; });
+  var html='<div class="kpi"><div class="lb">Total Requests</div><div class="num">'+totalCount+'</div><div class="sub">'+(curs.length?curs.join(' · '):'no data')+'</div></div>';
+  curs.forEach(function(c){
+    var x=s[c];
+    html+='<div class="kpi sky"><div class="lb">Pipeline ('+c+')</div><div class="num amt">'+fmt(c,x.totalPipeline)+'</div><div class="sub">'+x.pending+' pending · '+x.approved+' approved</div></div>';
+    html+='<div class="kpi green"><div class="lb">Approved cost ('+c+')</div><div class="num amt">'+fmt(c,x.totalApproved)+'</div><div class="sub">'+x.approved+' request(s)</div></div>';
+  });
+  document.getElementById('kpis').innerHTML=html;
+}
+
+function setFilter(f){
+  FILTER=f;
+  document.querySelectorAll('#filters .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.f===f); });
+  render();
+}
+
+function val(id){ var e=document.getElementById(id); return e?(e.value||''):''; }
+function filteredRows(){
+  var type=val('f-type'), curf=val('f-cur'), q=val('search').trim().toLowerCase();
+  return (DATA.rows||[]).filter(function(r){
+    if(FILTER!=='all' && statusClass(r.status)!==FILTER) return false;
+    if(type && String(r.type)!==type) return false;
+    if(curf && String(r.currency)!==curf) return false;
+    if(q){ var hay=(r.id+' '+r.name+' '+r.dept+' '+r.route+' '+r.type).toLowerCase(); if(hay.indexOf(q)<0) return false; }
+    return true;
+  });
+}
+function render(){
+  var rows=filteredRows();
+  VIEW=rows;
+  var tbody=document.getElementById('rows'), foot=document.getElementById('foot');
+  if(!rows.length){
+    document.getElementById('tbl-wrap').classList.add('hidden');
+    document.getElementById('empty').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('empty').classList.add('hidden');
+  document.getElementById('tbl-wrap').classList.remove('hidden');
+
+  function stPill(v){ var t=String(v||'—'); var c=/reject/i.test(t)?'rejected':(/approv|issued|completed|done|booked/i.test(t)?'approved':(/n\/a/i.test(t)?'':'pending')); return c?'<span class="st '+c+'">'+esc(t)+'</span>':'<span class="muted">'+esc(t)+'</span>'; }
+  tbody.innerHTML = rows.map(function(r,i){
+    return '<tr>'
+      +'<td class="r muted">'+(i+1)+'</td>'
+      +'<td class="id">'+esc(r.id)+'</td>'
+      +'<td>'+esc(r.name)+(r.pax>1?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">+'+(r.pax-1)+' pax</span>':'')+'</td><td class="muted">'+esc(r.dept)+'</td><td class="muted">'+esc(r.purpose)+'</td>'
+      +'<td class="muted">'+esc(r.start)+'</td><td class="muted">'+esc(r.end)+'</td><td class="muted">'+esc(r.submission)+'</td>'
+      +'<td class="r amt total"><span class="cost-link" onclick="openCost('+i+')" title="View cost breakup">'+esc(r.estimatedCost)+'<span class="caret">▸</span></span></td>'
+      +'<td class="r amt">'+(r.advance>0?fmt(r.currency,r.advance):'<span class="muted">—</span>')+'</td>'
+      +'<td>'+breakCell(r,i)+'</td>'
+      +'<td>'+stPill(r.hodStatus)+'</td><td class="muted">'+esc(r.hodDate)+'</td>'
+      +'<td>'+stPill(r.ceoStatus)+'</td><td class="muted">'+esc(r.ceoDate)+'</td>'
+      +'<td>'+stPill(r.financeStatus)+'</td><td class="muted">'+esc(r.financeDate)+'</td>'
+      +'<td>'+stPill(r.bookingStatus)+'</td><td class="muted">'+esc(r.bookingDate)+'</td>'
+      +'<td class="muted">'+esc(r.pnr)+'</td><td class="muted">'+esc(r.ticketUploadDate)+'</td>'
+      +'<td>'+stPill(r.forexStatus)+'</td><td class="muted">'+esc(r.forexIssueDate)+'</td>'
+      +'<td>'+stPill(shortStatus(r.finalStatus))+'</td>'
+    +'</tr>';
+  }).join('');
+
+  // footer: count + estimated total per currency
+  var byCur={};
+  rows.forEach(function(r){ if(!byCur[r.currency]) byCur[r.currency]={n:0,total:0,advance:0}; byCur[r.currency].n++; byCur[r.currency].total+=r.total; byCur[r.currency].advance+=(r.advance||0); });
+  foot.innerHTML=Object.keys(byCur).map(function(c){
+    var b=byCur[c];
+    return '<tr><td colspan="8">Totals ('+c+') — '+b.n+' request(s)</td><td class="r amt total">'+fmt(c,b.total)+'</td><td class="r amt">'+(b.advance>0?fmt(c,b.advance):'')+'</td><td colspan="14"></td></tr>';
+  }).join('');
+}
+
+// ---- policy breach column + reasons slide-out (server flag value is still "POLICY BREAK:") ----
+function isBroken(r){ return /^POLICY BREAK/i.test(String(r&&r.flag||'')); }
+function breakCell(r,i){
+  if(isBroken(r)) return '<span class="brk-yes" onclick="openBreak('+i+')" title="View policy breach reasons">⚠ Yes <span class="caret">▸</span></span>';
+  return '<span class="brk-no">No</span>';
+}
+function openBreak(i){
+  var r=VIEW[i]; if(!r) return;
+  document.getElementById('cd-id').textContent=r.id+' — Policy Breach';
+  document.getElementById('cd-sub').textContent=(r.name||'')+' · '+(r.dept||'')+'  —  '+(r.route||'');
+  var reasons=String(r.flag||'').replace(/^POLICY BREAK:\s*/i,'').split(';').map(function(s){return s.trim();}).filter(Boolean);
+  var html='<div class="bd-flag brk" style="margin-top:0;">⚠ This request breaks travel policy — it routed through Finance for review.</div>'
+    +'<table class="bd-tbl" style="margin-top:14px;"><tbody>'
+    +reasons.map(function(x,n){ return '<tr><td><div class="li">Reason '+(n+1)+'</div><div class="bs">'+esc(x)+'</div></td></tr>'; }).join('')
+    +'</tbody></table>'
+    +'<div class="bd-note">Policy-break thresholds: flight over cap, total over threshold, or short notice. See the Policy Summary panel for exact limits.</div>';
+  document.getElementById('cd-body').innerHTML=html;
+  document.getElementById('cost-drawer').classList.add('open');
+  document.getElementById('cost-drawer').setAttribute('aria-hidden','false');
+  document.getElementById('cost-ov').classList.add('open');
+}
+
+// ---- cost breakup slide-out ----
+function itineraryHtml(r){
+  var fl=(r.flights||[]), ht=(r.hotels||[]); if(!fl.length && !ht.length) return '';
+  function irow(t,s){ return '<div style="padding:8px 4px;border-bottom:1px solid #EDF1F7;"><div style="font-weight:700;color:#0D1B2A;">'+esc(t)+'</div><div style="font-size:11px;color:#8A97AA;margin-top:2px;">'+esc(s)+'</div></div>'; }
+  var h='';
+  if(fl.length) h+='<div class="bd-sec" style="color:#0077CC;">✈️ Flights — route &amp; dates'+(fl.length>2?(' · '+fl.length+' legs'):'')+'</div>'+fl.map(function(f){ return irow(f.label||'Flight',((f.from||'?')+' → '+(f.to||'?'))+(f.date?(' · '+f.date):'')+(f.timeLabel?('  ·  '+f.timeLabel):'')); }).join('');
+  if(ht.length) h+='<div class="bd-sec" style="color:#0077CC;">🏨 Hotels'+(ht.length>1?(' · '+ht.length):'')+'</div>'+ht.map(function(hh){ return irow((hh.label||'Stay')+(hh.city?(' — '+hh.city):''),((hh.checkIn||'')+(hh.checkOut?(' → '+hh.checkOut):''))+(hh.nights?('  ·  '+hh.nights+' night(s)'):'')); }).join('');
+  return h;
+}
+function openCost(i){
+  var r=VIEW[i]; if(!r) return;
+  var b=r.breakdown||{}; var cur=r.currency||'INR';
+  document.getElementById('cd-id').textContent=r.id;
+  document.getElementById('cd-sub').textContent=(r.name||'')+' · '+(r.dept||'')+'  —  '+(r.route||'')+(r.trip?(' ('+r.trip+')'):'')+(r.pax>1?('  ·  👥 '+r.pax+' travellers'+(r.passengers&&r.passengers.length?': '+r.passengers.join(', '):'')):'');
+  var rows=[];
+  function line(label,basis,amt){ rows.push('<tr><td><div class="li">'+esc(label)+'</div>'+(basis?'<div class="bs">'+esc(basis)+'</div>':'')+'</td><td class="av">'+fmt(cur,amt)+'</td></tr>'); }
+  var legs=(/round/i.test(r.trip||''))?'round trip (×2 legs)':'one-way';
+  line('Transport', (b.mode?b.mode+' · ':'')+legs, b.transport);
+  line('Local conveyance', 'airport transfers + 40 km/day cab × '+(b.days||0)+' day(s)', b.local);
+  if(b.hotel>0) line('Hotel', fmt(cur,b.hotelRate)+'/night × '+(b.hotelNights||0)+' night(s)', b.hotel);
+  if(b.meals>0) line('Meals (per-diem)', fmt(cur,b.mealRate)+'/day × '+(b.days||0)+' day(s)', b.meals);
+  var EXLBL={visa:'Visa fee',insurance:'Travel insurance',phone:'Phone / communication',laundry:'Laundry',baggage:'Baggage (US domestic)'};
+  var ex=b.extras||{}; Object.keys(EXLBL).forEach(function(k){ if(ex[k]>0) line(EXLBL[k], '', ex[k]); });
+  var brk=/^POLICY BREAK/i.test(r.flag||'');
+  var flagHtml='<div class="bd-flag '+(brk?'brk':'ok')+'">'+(brk?'⚠ ':'✓ ')+esc(r.flag||'Within policy')+'</div>';
+  // Advances (NOT expenses): forex advance (meals & local, incl. top-ups) + hotel security deposit.
+  var af=Number(r.advForex||0), ad=Number(r.advDeposit||0), at=af+ad;
+  var advHtml='';
+  if(at>0){
+    advHtml='<div style="margin-top:16px;font-size:11px;font-weight:800;color:#3730A3;text-transform:uppercase;letter-spacing:.4px;">Advances (refundable — not trip expenses)</div>'
+      +'<table class="bd-tbl"><tbody>'
+      +(af>0?'<tr><td><div class="li">Forex advance</div><div class="bs">meals &amp; local conveyance (incl. top-ups)</div></td><td class="av">'+fmt(cur,af)+'</td></tr>':'')
+      +(ad>0?'<tr><td><div class="li">Hotel security deposit</div><div class="bs">refundable · per hotel</div></td><td class="av">'+fmt(cur,ad)+'</td></tr>':'')
+      +'<tr class="tot"><td class="li">Total advance</td><td class="av" style="color:#3730A3;">'+fmt(cur,at)+'</td></tr></tbody></table>';
+  }
+  // Reconciliation vs ExpenseDesk actuals (estimate → actual claimed → variance → advance settlement).
+  var rc=r.recon||{}; var reconHtml='';
+  if(rc.linked>0){
+    var estINR=Number(rc.estimateINR||0), act=Number(rc.actualINR||0), paid=Number(rc.paidINR||0), varr=Number(rc.varianceINR||0), settle=Number(rc.settlementINR||0);
+    var over=varr<0;
+    var pend=Math.max(0,act-paid); var vpct=estINR>0?Math.round(Math.abs(varr)/estINR*100):0; var claimedPct=Math.round(act/(estINR||1)*100);
+    var items=(rc.items||[]).map(function(it){ var lbl=esc(it.item||it.id||'expense');
+      var lnk=(it.id||it.item)?'<a href="'+EXPENSE_APP+'/finance?expense='+encodeURIComponent(it.id||it.item)+'" target="_blank" rel="noopener" style="color:var(--sky);font-weight:700;text-decoration:none;" title="Open in ExpenseDesk">'+lbl+' ↗</a>':lbl;
+      return '<tr><td><div class="li">'+lnk+'</div><div class="bs">'+esc(it.vendor||'')+(it.category?' · '+esc(it.category):'')+' · '+(it.paid?'<b style="color:#0F766E;">paid</b>':'<b style="color:#B45309;">pending</b>')+(it.status?' · '+esc(it.status):'')+'</div></td><td class="av">'+inrFmt(it.amountINR)+'</td></tr>'; }).join('');
+    var vmax=Math.max(estINR,act,1);
+    reconHtml='<div style="margin-top:16px;font-size:11px;font-weight:800;color:#0F766E;text-transform:uppercase;letter-spacing:.4px;">Reconciliation · vs ExpenseDesk actuals ('+rc.linked+' claim'+(rc.linked>1?'s':'')+')</div>'
+      +'<table class="bd-tbl"><tbody>'
+      +'<tr><td><div class="li">Estimate</div><div class="bs">trip estimate, normalised to INR</div></td><td class="av">'+inrFmt(estINR)+'</td></tr>'
+      +'<tr><td><div class="li">Actual claimed</div><div class="bs">'+claimedPct+'% of estimate · linked, non-rejected</div></td><td class="av">'+inrFmt(act)+'</td></tr>'
+      +'<tr><td><div class="li">— paid</div></td><td class="av" style="color:#0F766E;">'+inrFmt(paid)+'</td></tr>'
+      +'<tr><td><div class="li">— pending Finance</div></td><td class="av" style="color:#B45309;">'+inrFmt(pend)+'</td></tr>'
+      +'<tr class="tot"><td class="li">Variance</td><td class="av" style="color:'+(over?'#B91C1C':'#0F766E')+';">'+(over?'over by ':'under by ')+inrFmt(Math.abs(varr))+' ('+vpct+'%)</td></tr>'
+      +(at>0?'<tr><td><div class="li">Advance settlement</div><div class="bs">'+(settle>=0?'refund due to company':'reimburse traveller')+'</div></td><td class="av">'+inrFmt(Math.abs(settle))+'</td></tr>':'')
+      +'</tbody></table>'
+      +'<div style="position:relative;height:8px;background:var(--gray-2);border-radius:4px;overflow:hidden;margin:6px 0 4px;" title="actual '+inrFmt(act)+' vs estimate '+inrFmt(estINR)+'"><div style="position:absolute;left:0;top:0;height:100%;width:'+Math.min(100,act/vmax*100)+'%;background:'+(over?'#DC2626':'#0F766E')+';"></div></div>'
+      +(items?'<table class="bd-tbl"><tbody>'+items+'</tbody></table>':'');
+  } else if(rc.available){
+    reconHtml='<div class="bd-note" style="color:var(--gray-5);">No ExpenseDesk claims linked to this trip yet — link an expense to this TRF ID in ExpenseDesk to reconcile.</div>';
+  }
+  // Native trip actuals: Budget vs Actual + reimbursement + Finance close-out.
+  var a=r.actuals||{}, actHtml='';
+  if(a.hasActuals || (a.status && a.status!=='Pending')){
+    var ar=(a.items||[]).filter(function(it){return it.estimate>0||it.actual>0;}).map(function(it){
+      var ov=it.variance<0;
+      return '<tr><td><div class="li">'+esc(it.label)+'</div></td><td class="av">'+fmt(cur,it.estimate)+'</td><td class="av">'+(it.actual?fmt(cur,it.actual):'—')+'</td><td class="av" style="color:'+(it.actual?(ov?'#B91C1C':'#0F766E'):'#999')+';">'+(it.actual?((ov?'over ':'under ')+fmt(cur,Math.abs(it.variance))):'—')+'</td></tr>';
+    }).join('');
+    actHtml='<div style="margin-top:16px;font-size:11px;font-weight:800;color:#7C3AED;text-transform:uppercase;letter-spacing:.4px;">Budget vs Actual · trip ('+esc(a.status)+')</div>'
+      +'<table class="bd-tbl"><thead><tr><th style="text-align:left;font-size:10px;color:var(--gray-5);">Line</th><th style="text-align:right;font-size:10px;color:var(--gray-5);">Budget</th><th style="text-align:right;font-size:10px;color:var(--gray-5);">Actual</th><th style="text-align:right;font-size:10px;color:var(--gray-5);">Variance</th></tr></thead><tbody>'+ar
+      +'<tr class="tot"><td class="li">Total</td><td class="av">'+fmt(cur,a.estTotal)+'</td><td class="av">'+fmt(cur,a.actualTotal)+'</td><td class="av">'+(a.variance<0?'over ':'under ')+fmt(cur,Math.abs(a.variance))+'</td></tr></tbody></table>'
+      +'<div class="bd-note">Reimbursement due (traveller own-money): <b>'+fmt(cur,a.reimbursable)+'</b>'+(a.advance?(' · Advance given: '+fmt(cur,a.advance)):'')
+        +(a.hodApproved?(' · <b style="color:#0F766E;">✓ HOD approved'+(a.hodBy?(' by '+esc(a.hodBy)):'')+'</b>'):(a.status==='Submitted'?' · <b style="color:#B45309;">awaiting HOD approval</b>':''))+'</div>';
+    if(a.late) actHtml+='<div class="bd-note" style="color:#B01820;font-weight:700;">⚠ Submitted '+a.late.days+' day'+(a.late.days===1?'':'s')+' late (due '+esc(a.late.due)+') — late per policy §9.1.</div>';
+    if(a.status==='Closed') actHtml+='<div class="bd-note" style="color:var(--green);">✓ Closed — approved reimbursement '+fmt(cur,a.reimburseApproved)+'</div>';
+    else if(a.status==='Submitted') actHtml+='<div class="bd-note" style="color:#B45309;">⏳ The department head must approve this claim before Finance can settle it.</div>';
+    else actHtml+='<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+      +'<label style="font-size:12px;color:var(--gray-7);">Approve reimbursement '+esc(cur)+' <input id="rb-'+esc(r.id)+'" type="number" min="0" step="any" value="'+(a.reimbursable||0)+'" style="width:120px;padding:5px 8px;border:1.5px solid var(--gray-3);border-radius:6px;font-size:13px;"></label>'
+      +'<button class="pol-edit" onclick="closeTripFin(\''+esc(r.id)+'\')">🔒 Close trip</button>'
+      +'<span id="rbmsg-'+esc(r.id)+'" style="font-size:11px;font-weight:700;"></span></div>';
+  }
+  var html='<table class="bd-tbl"><tbody>'+rows.join('')
+    +'<tr class="tot"><td class="li">Total expenses'+(r.pax>1?' (× '+r.pax+' travellers)':'')+'</td><td class="av">'+fmt(cur,r.total)+'</td></tr></tbody></table>'
+    +advHtml+reconHtml+actHtml+flagHtml
+    +'<div class="bd-note">Figures are computed automatically from the travel policy (hotel caps, meal per-diem, transport &amp; local-conveyance estimates) at the time of submission. Amounts are shown to approvers only — not to the traveller.</div>';
+  html = itineraryHtml(r) + html; // flight/hotel routing at the top — where→where before deciding
+  document.getElementById('cd-body').innerHTML=html;
+  document.getElementById('cost-drawer').classList.add('open');
+  document.getElementById('cost-drawer').setAttribute('aria-hidden','false');
+  document.getElementById('cost-ov').classList.add('open');
+}
+function closeTripFin(id){
+  var msg=document.getElementById('rbmsg-'+id), inp=document.getElementById('rb-'+id);
+  var amt=Number(inp?inp.value:0)||0;
+  var set=function(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'var(--gray-5)'; } };
+  if(!confirm('Close trip '+id+' and approve reimbursement of '+amt+'? This locks the actuals.')) return;
+  set('closing…');
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'close',id:id,reimburse:amt})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d&&d.ok){ set('✓ closed','var(--green)'); load(); } else set('✗ '+((d&&d.error)||'error'),'#DC2626'); })
+    .catch(function(e){ set('✗ '+(e&&e.message||'failed'),'#DC2626'); });
+}
+function closeCost(){
+  document.getElementById('cost-drawer').classList.remove('open');
+  document.getElementById('cost-drawer').setAttribute('aria-hidden','true');
+  document.getElementById('cost-ov').classList.remove('open');
+}
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeCost(); });
+
+function shortStatus(s){
+  if(/reject/i.test(s)) return 'Rejected';
+  if(/admin|confirmed/i.test(s)) return 'Approved';
+  if(/finance/i.test(s)) return 'At Finance';
+  if(/ceo/i.test(s)) return 'At CEO';
+  if(/hod|dept/i.test(s)) return 'At HOD';
+  return s;
+}
+function num(x){ return Number(x||0).toLocaleString('en-IN',{maximumFractionDigits:0}); }
+function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ---- CSV export of the currently filtered rows ----
+function downloadCSV(){
+  var rows=filteredRows();
+  function bd(r){ return r.breakdown||{}; }
+  // Cost is broken into line items (transport / local / hotel / meals / other / forex) plus the
+  // total, so the figures can be added up to verify the total is correct.
+  var cols=[
+    ['id','Request ID'],['name','Employee Name'],['dept','Department'],['type','Travel Type'],['route','Route'],['purpose','Travel Purpose'],
+    ['start','Travel Start Date'],['end','Travel End Date'],['submission','Submission Date'],['currency','Currency'],
+    [function(r){return bd(r).transport||0;},'Transport Cost'],
+    [function(r){return bd(r).local||0;},'Local Conveyance'],
+    [function(r){return bd(r).hotel||0;},'Hotel Cost'],
+    [function(r){return bd(r).meals||0;},'Meals Cost'],
+    [function(r){return bd(r).other||0;},'Other (visa/insurance/phone/etc.)'],
+    [function(r){return r.total||0;},'Total Expenses'],
+    [function(r){return r.advForex||0;},'Forex Advance (meals & local, incl. top-ups)'],
+    [function(r){return r.advDeposit||0;},'Hotel Security Deposit'],
+    [function(r){return r.advance||0;},'Total Advance'],
+    [function(r){return isBroken(r)?'Yes':'No';},'Policy Breach'],
+    [function(r){return isBroken(r)?String(r.flag||'').replace(/^POLICY BREAK:\s*/i,''):'';},'Policy Breach Reasons'],
+    ['hodStatus','HOD Status'],['hodDate','HOD Approval Date'],['ceoStatus','CEO Status'],['ceoDate','CEO Approval Date'],['financeStatus','Finance Status'],['financeDate','Finance Approval Date'],
+    ['bookingStatus','Booking Status'],['bookingDate','Booking Date'],['pnr','PNR No.'],['ticketUploadDate','Ticket Upload Date'],
+    ['forexStatus','Forex Status'],['forexIssueDate','Forex Issue Date'],['finalStatus','Final Status']
+  ];
+  function valOf(c,r){ return typeof c[0]==='function' ? c[0](r) : r[c[0]]; }
+  function cell(v){ v=(v==null?'':String(v)); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+  var lines=[(['Sr. No.'].concat(cols.map(function(c){return c[1];}))).map(cell).join(',')];
+  rows.forEach(function(r,i){ lines.push(([i+1].concat(cols.map(function(c){ return valOf(c,r); }))).map(cell).join(',')); });
+  var blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='travel-requests-'+new Date().toISOString().slice(0,10)+'.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+
+// ---- Policy summary (from /api/config) ----
+function togglePolicy(){
+  var b=document.getElementById('policy-body'), t=document.getElementById('pol-toggle');
+  var hidden=b.classList.toggle('hidden'); t.textContent=hidden?'Show ▾':'Hide ▴';
+}
+// Editable policy values + change history (Finance only). Built from financeData (DATA).
+function buildPolicyEditor(){
+  if(!DATA || !DATA.policyValues) return '';
+  var groups={}; DATA.policyValues.forEach(function(f){ (groups[f.group]=groups[f.group]||[]).push(f); });
+  var sect='<div class="info amber" style="margin-top:4px;">✎ <b>Finance can edit any value below.</b> Changes are logged (who · when · old → new) and apply to <b>new requests only</b> — already-submitted requests keep their original figures.</div>';
+  Object.keys(groups).forEach(function(g){
+    sect+='<div style="margin-top:12px;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">'+esc(g)+'</div>'
+      +'<table style="border-collapse:collapse;width:100%;font-size:12.5px;">'+groups[g].map(function(f){
+        var pid=polId(f.path);
+        return '<tr><td style="padding:5px 10px;border:1px solid var(--gray-2);color:var(--gray-7);width:55%;">'+esc(f.label)+'</td>'
+          +'<td style="padding:4px 10px;border:1px solid var(--gray-2);"><input type="number" step="any" min="0" id="'+pid+'" value="'+esc(String(f.value))+'" style="width:120px;padding:5px 8px;border:1.5px solid var(--gray-3);border-radius:6px;font-size:13px;font-family:inherit;"></td>'
+          +'<td style="padding:4px 8px;border:1px solid var(--gray-2);white-space:nowrap;"><button class="pol-edit" onclick="savePolicy(\''+f.path+'\')">Save</button> <span id="msg_'+pid+'" style="font-size:11px;font-weight:700;"></span></td></tr>';
+      }).join('')+'</table>';
+  });
+  var ch=(DATA.policyChanges||[]);
+  var hist='<div style="margin-top:16px;font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Change history'+(ch.length?' ('+ch.length+')':'')+'</div>';
+  if(!ch.length){ hist+='<div class="bd-note" style="color:var(--gray-5);">No policy changes yet — defaults from the policy doc are in force.</div>'; }
+  else { hist+='<table style="border-collapse:collapse;width:100%;font-size:12px;">'+ch.slice(0,12).map(function(c){
+    return '<tr><td style="padding:5px 10px;border:1px solid var(--gray-2);">'+esc(c.label||c.path)+'</td>'
+      +'<td style="padding:5px 10px;border:1px solid var(--gray-2);"><span style="color:var(--gray-5);text-decoration:line-through;">'+esc(String(c.old))+'</span> → <b>'+esc(String(c.new))+'</b></td>'
+      +'<td style="padding:5px 10px;border:1px solid var(--gray-2);color:var(--gray-5);white-space:nowrap;">'+esc(c.by)+' · '+esc(fmtTs(c.ts))+'</td></tr>';
+  }).join('')+'</table>'; }
+  return '<div style="margin-bottom:8px;">'+sect+hist+'</div><hr style="border:none;border-top:1px solid var(--gray-2);margin:18px 0;">';
+}
+function fmtTs(s){ try{ var d=new Date(s); if(isNaN(d)) return s; return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'}); }catch(e){ return s; } }
+function polId(path){ return 'pv_'+String(path).replace(/[^A-Za-z0-9]/g,'_'); }
+// Inline save (no prompt/alert — those get blocked in embedded webviews).
+function savePolicy(path){
+  var inp=document.getElementById(polId(path)), msg=document.getElementById('msg_'+polId(path));
+  if(!inp) return;
+  var setMsg=function(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'var(--gray-5)'; } };
+  var v=Number(inp.value);
+  if(inp.value===''||!isFinite(v)||v<0){ setMsg('✗ enter a valid number','#DC2626'); return; }
+  setMsg('saving…','var(--gray-5)');
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'policy',path:path,value:v})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d&&d.ok){ setMsg('✓ saved','var(--green)');
+        fetch('/api/config').then(function(r){return r.json();}).then(function(c){ CFG=c; PCFG=c.policy; }).catch(function(){});
+        load(); // refresh data + change history
+      } else setMsg('✗ '+((d&&d.error)||'error'),'#DC2626'); })
+    .catch(function(e){ setMsg('✗ '+(e&&e.message||'failed'),'#DC2626'); });
+}
+function renderPolicy(P){
+  var pb=document.getElementById('policy-body'); if(!pb) return;
+  var editor=buildPolicyEditor();
+  // Editor (from finance DATA) must show even if the policy reference (/api/config) is slow or failed.
+  if(!P){ pb.innerHTML = editor || '<div class="bd-note">Loading policy…</div>'; return; }
+  function tbl(title, rows){
+    return '<div style="margin-top:14px;"><div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">'+title+'</div>'
+      +'<table style="border-collapse:collapse;width:100%;font-size:12.5px;">'+rows.map(function(r){return '<tr><td style="padding:5px 10px;border:1px solid var(--gray-2);color:var(--gray-7);width:55%;">'+r[0]+'</td><td style="padding:5px 10px;border:1px solid var(--gray-2);font-weight:600;">'+r[1]+'</td></tr>';}).join('')+'</table></div>';
+  }
+  var X=P.EXTRAS||{};
+  function inr(n){ return 'INR '+Number(n||0).toLocaleString('en-IN'); }
+  function titleCity(s){ return String(s).replace(/\b\w/g,function(c){return c.toUpperCase();}); }
+  function cities(arr){ var seen={},out=[]; (arr||[]).forEach(function(c){ var t=titleCity(c); if(/gurgaon/i.test(c)||/bangalore/i.test(c))return; if(!seen[t]){seen[t]=1;out.push(t);} }); return out.join(', '); }
+  var h='';
+  h+='<div class="info" style="background:#EBF5FF;border:1px solid #B3D7F5;border-radius:8px;padding:10px 13px;font-size:12px;color:#1e3a5f;line-height:1.5;margin-top:4px;">'
+    +'All trip costs are <b>computed in the backend from this policy</b> (the traveller enters no amounts) and shown only to approvers. <b>Domestic</b> = same country, <b>International</b> = different countries. Currency follows the destination: India → INR, United States → USD, international → USD.</div>';
+  h+=tbl('Approval workflow (per policy v2.0)', [
+    ['Local / within-city','HOD approves → Admin arranges'],
+    ['Domestic (same country)','HOD approves → Admin arranges  (+ Finance review only on a policy breach)'],
+    ['International (different countries)','HOD → CEO → Admin  (+ Finance review only on a policy breach)'],
+    ['Flight class','Economy only (upgrades at own cost)'],
+    ['Forex card','International + forex → routed to Forex officer after booking'],
+  ]);
+  h+=tbl('City classification — Tier A (higher caps)', [
+    ['India — Tier A', cities(P.INDIA_TIER_A)],
+    ['US — Tier A', cities(P.US_TIER_A)],
+    ['Everything else','Tier B'],
+  ]);
+  h+=tbl('Hotel cap — per night', [['India — Tier A',inr(P.HOTEL.india.A)],['India — Tier B',inr(P.HOTEL.india.B)],['US — Tier A','USD '+P.HOTEL.us.A],['US — Tier B','USD '+P.HOTEL.us.B]]);
+  h+=tbl('Meal per-diem — per day', [['India / domestic',inr(P.MEALS.domestic)+' (bills required)'],['US / international — Tier A','USD '+P.MEALS.us_A],['US / international — Tier B','USD '+P.MEALS.us_B]]);
+  h+=tbl('Transport estimate (round-trip, when no live price)', [['Flight — domestic',inr(P.ESTIMATES.FLIGHT.domestic)],['Flight — international / US','USD '+P.ESTIMATES.FLIGHT.international],['Train',inr(P.ESTIMATES.TRANSPORT.train)],['Bus',inr(P.ESTIMATES.TRANSPORT.bus)],['Cab',inr(P.ESTIMATES.TRANSPORT.cab)]]);
+  h+=tbl('Local conveyance', [['Airport transfers (home↔airport, per leg)',inr(P.ESTIMATES.LOCAL_LEG.domestic.homeAirport+P.ESTIMATES.LOCAL_LEG.domestic.airportDest)+' / USD '+(P.ESTIMATES.LOCAL_LEG.international.homeAirport+P.ESTIMATES.LOCAL_LEG.international.airportDest)+' · ×2 for round trip'],['Daily cab at destination',''+P.ESTIMATES.LOCAL_CONVEYANCE.kmPerDay+' km/day × INR '+P.ESTIMATES.LOCAL_CONVEYANCE.ratePerKm.domestic+'/km (domestic) · USD '+P.ESTIMATES.LOCAL_CONVEYANCE.ratePerKm.international+'/km (intl)']]);
+  h+=tbl('Additional allowances — added to trip expenses', [
+    ['Visa fee (international, if no valid visa)','by destination — US USD '+(X.VISA_FEE_BY_COUNTRY&&X.VISA_FEE_BY_COUNTRY['United States']||X.VISA_FEE)+' · UK '+(X.VISA_FEE_BY_COUNTRY&&X.VISA_FEE_BY_COUNTRY['United Kingdom']||'-')+' · India '+(X.VISA_FEE_BY_COUNTRY&&X.VISA_FEE_BY_COUNTRY['India']||'-')+' · default USD '+X.VISA_FEE],
+    ['Travel / medical insurance (international)','USD '+X.INSURANCE_PER_DAY+' / day'],
+    ['Phone / communication (international)','USD '+X.PHONE_PER_DAY+' / day'],
+    ['Laundry (international, trips > 10 days)','USD '+X.LAUNDRY_PER_BLOCK+' per 10-day block'],
+    ['Baggage (US-domestic flights)','USD '+X.BAGGAGE_PER_LEG+' per flight leg'],
+  ]);
+  h+=tbl('Within-city & actuals — per policy (claimed post-trip with bills)', [
+    ['2-wheeler (own vehicle)','INR 4.5 / km · cap INR 500 / day'],
+    ['4-wheeler (own vehicle)','INR 10 / km · cap INR 800 / day'],
+    ['Cab / auto / metro / Rapido','Actuals — economy modes only'],
+    ['Field-day meals (within city)','up to INR 500 / day (bills)'],
+    ['Overseas daily local-transport cap','India INR 1,000 / day · US USD '+((P.LOCAL_DAILY_CAP&&P.LOCAL_DAILY_CAP.international)||50)+' / day'],
+    ['Stay with family / friends (overseas)','flat USD 100 / day (stay + meals combined)'],
+    ['Airport taxes & standard baggage','Reimbursable (excess baggage only if business-critical & pre-approved)'],
+    ['Train class','India 2nd/1st AC · US Coach (economy)'],
+  ]);
+  h+=tbl('Not reimbursable — per policy', [
+    ['Travel / stay','Class or hotel upgrades not pre-approved by CEO · premium/luxury rides (Uber Black, Ola Prime) · daily home↔office commute · personal detours, tourism, sightseeing'],
+    ['Food & incidentals','Alcohol & tobacco (any category) · mini-bar, in-room dining above meal limits, spa, gym, paid TV/streaming'],
+    ['Personal / penalties','Personal shopping, gifts · fines, penalties, traffic violations, legal fees · damage to rental/hotel property · expenses for guests, family or companions'],
+  ]);
+  h+=tbl('Advances — refundable, NOT trip expenses (shown in the Advance column)', [
+    ['Forex advance (meals &amp; local conveyance)','USD '+P.FOREX_PER_DAY.international+' / day — loaded on the company forex card'],
+    ['Hotel security deposit','USD '+X.SECURITY_DEPOSIT+' per hotel (international)'],
+    ['Top-ups','Forex officer can add further top-ups; they add to the advance on both the Forex &amp; Finance dashboards'],
+    ['Treatment','Settled within 30 days of return. Not added to Total Expenses.'],
+  ]);
+  h+=tbl('Policy-break → routes to Finance for review', [
+    ['Flight over cap',inr(P.CAPS.FLIGHT.domestic)+' (domestic) · USD '+P.CAPS.FLIGHT.international+' (intl)'],
+    ['Total expenses over threshold',inr(P.CAPS.TOTAL.domestic)+' (domestic) · USD '+P.CAPS.TOTAL.international+' (intl)'],
+    ['Short notice','< '+P.NOTICE_DAYS.domestic+' days (domestic) · < '+P.NOTICE_DAYS.international+' days (international)'],
+  ]);
+  pb.innerHTML=editor+h;
+}
+
+requireView('finance', function(me){ renderUserbar(me); load(); fetch('/api/config').then(function(r){return r.json();}).then(function(c){ CFG=c; PCFG=c&&c.policy; if(PCFG) renderPolicy(PCFG); renderAnalytics(); renderExec(); }).catch(function(){}); });
+</script>
+</body>
+</html>

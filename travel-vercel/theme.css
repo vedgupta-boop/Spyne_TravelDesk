@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+/* Spyne TravelDesk — shared polish layer.
+   Additive only: layers smooth interactions, elevation, table feel, skeletons,
+   empty states and scrollbars on top of each page's existing styles. No token
+   flips, so the existing look is preserved — this just makes it feel premium. */
+
+/* Typography upgrade — a clean, modern, evenly-weighted sans across the whole app
+   (loaded after each page's <style>, so it cleanly overrides the system-font stack).
+   Colors/layout are untouched — this just sharpens the type, consistently on every device. */
+body, button, input, select, textarea {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+}
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; letter-spacing: -0.005em; }
+
+/* ---- "Refined Slate + Spyne Red" palette (loaded after each page's :root, so it re-tints the
+   whole app from one place — light dashboards, white cards, Spyne red accent preserved). ---- */
+:root {
+  --navy: #1E293B; --navy2: #334155;          /* dark headers/bars + heading text → softer slate */
+  --ink: #1E293B;                              /* primary text */
+  --gray-1: #F8FAFC; --gray-2: #EEF2F7; --gray-3: #E2E8F0;  /* page bg / subtle / borders */
+  --gray-5: #94A3B8; --gray-7: #475569;        /* muted / secondary text */
+  --sky: #2563EB; --sky-l: #EEF3FF;            /* info/links → clean indigo-blue */
+  --green: #059669; --grn-l: #ECFDF5;          /* positives */
+  --amber: #D97706; --amb-l: #FFF7ED;          /* warnings */
+  /* Spyne red accent kept: --red #E8232A, --red2 #DC2626 (unchanged) */
+}
+/* Space Grotesk for headings + KPI numbers; Inter stays for body/forms/tables */
+h1, h2, h3, h4, .sec-t, .title, .logo-txt, .num, .amt, .req-id,
+.kpi .num, .an-kpi .num, .stat .v, .drawer-hd, .panel-h, .bar .title {
+  font-family: 'Space Grotesk', 'Inter', -apple-system, Segoe UI, Roboto, sans-serif !important;
+  letter-spacing: -0.01em;
+}
+
+/* Spyne brand mark — replaces the plain "S" tile in every header logo, app-wide */
+.logo-sq {
+  background: #fff !important;
+  background-image: url(/spyne-mark.svg) !important;
+  background-size: 76% !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  border-radius: 9px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.18);
+}
+
+/* Make the section symbol tiles stand out — larger glyph + depth + subtle ring */
+.sec-ic { width: 40px !important; height: 40px !important; font-size: 21px !important; box-shadow: 0 2px 8px rgba(13,27,42,.10); border: 1px solid rgba(13,27,42,.05); }
+
+/* ---- Depth & finish refinement (navy theme) — richer feel, SAME colors/hues ---- */
+/* Top brand bar: subtle top-light sheen + elevation so the flat navy reads with depth */
+.topbar { background-image: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,0) 60%); box-shadow: 0 2px 16px rgba(13,27,42,.20); position: relative; z-index: 5; }
+/* Data-table headers (navy): same subtle sheen for depth */
+thead th { background-image: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)); }
+/* Drawer headers / toast (navy): match the sheen */
+.drawer-hd, .drawer-head, .toast { background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 70%); }
+/* Primary brand-red call-to-action: soft branded lift */
+.newbtn { box-shadow: 0 7px 18px -9px rgba(232,35,42,.5); }
+.newbtn:hover { box-shadow: 0 9px 22px -9px rgba(232,35,42,.55); }
+/* Cards: a hair softer, cooler border + crisper resting shadow (no layout change) */
+.req, .kpi, .an-kpi, .panel, .card { box-shadow: 0 1px 2px rgba(13,27,42,.05), 0 6px 16px -12px rgba(13,27,42,.18); }
+/* Inputs: gentle branded focus ring */
+input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px rgba(0,119,204,.12); }
+
+/* Smooth, tactile controls */
+button, .btn, .act, .chip, a.btn, .pol-edit, .btn-refresh {
+  transition: filter .15s ease, transform .06s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease;
+}
+button:active, .btn:active, .act:active, .chip:active { transform: translateY(1px); }
+button:hover:not(:disabled), .btn:hover:not(:disabled), .act:hover:not(:disabled) { filter: brightness(1.04); }
+a { transition: color .15s ease, opacity .15s ease; }
+input, select, textarea { transition: border-color .15s ease, box-shadow .15s ease; }
+
+/* Clear keyboard focus ring (only shows for keyboard nav, not mouse clicks) */
+:focus-visible { outline: 2px solid var(--sky, #0077CC); outline-offset: 2px; border-radius: 6px; }
+
+/* Gentle elevation + lift on the common dashboard / list cards */
+.kpi, .an-kpi, .req { transition: box-shadow .18s ease, transform .18s ease; }
+.kpi:hover, .an-kpi:hover { box-shadow: 0 8px 22px rgba(13,27,42,.10); transform: translateY(-2px); }
+.req:hover { box-shadow: 0 6px 18px rgba(13,27,42,.08); }
+
+/* Table rows: subtle hover + zebra (scoped to body rows so headers/layout stay put) */
+tbody tr { transition: background-color .12s ease; }
+tbody tr:hover { background: var(--gray-1, #F7F9FC); }
+tbody tr:nth-child(even) { background: rgba(13,27,42,.018); }
+tbody tr:nth-child(even):hover { background: var(--gray-1, #F7F9FC); }
+
+/* Loading skeleton — add class="skel" to a sized block while data loads */
+@keyframes trf-shimmer { 0% { background-position: -420px 0; } 100% { background-position: 420px 0; } }
+.skel {
+  background: linear-gradient(90deg, var(--gray-2,#EDF1F7) 25%, var(--gray-1,#F7F9FC) 37%, var(--gray-2,#EDF1F7) 63%);
+  background-size: 840px 100%; animation: trf-shimmer 1.3s infinite linear;
+  border-radius: 8px; min-height: 14px; color: transparent !important;
+}
+.skel-row { height: 44px; margin-bottom: 8px; }
+
+/* Friendly empty state — <div class="empty-state"><span class="ic">📭</span>Nothing here yet</div> */
+.empty-state { text-align: center; color: var(--gray-5,#8A97AA); padding: 40px 18px; font-size: 14px; }
+.empty-state .ic { font-size: 36px; opacity: .85; display: block; margin-bottom: 10px; }
+
+/* Softer, modern scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--gray-3,#D6DCE8) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--gray-3,#D6DCE8); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--gray-5,#8A97AA); }
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

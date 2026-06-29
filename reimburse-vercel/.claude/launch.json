@@ -1,0 +1,32 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "reimburse",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/mock-server.mjs"],
+      "port": 8733
+    },
+    {
+      "name": "reimburse-my",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/mock-server.mjs"],
+      "port": 8733,
+      "env": { "PREVIEW_PAGE": "/my.html" }
+    },
+    {
+      "name": "reimburse-approvals",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/mock-server.mjs"],
+      "port": 8733,
+      "env": { "PREVIEW_PAGE": "/approvals.html" }
+    },
+    {
+      "name": "reimburse-finance",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/mock-server.mjs"],
+      "port": 8733,
+      "env": { "PREVIEW_PAGE": "/finance.html" }
+    }
+  ]
+}

@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#E8232A;--red-d:#B01820;--red-l:#FEF0F0;--navy:#0D1B2A;--navy2:#1C3148;
+  --sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+  --red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;
+  --gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;--radius:10px;--radius-lg:14px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}
+.logo-sub{font-size:11px;color:var(--gray-5);}
+.chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--gray-5);}
+.chip b{color:var(--amber);}
+.main{display:grid;grid-template-columns:1fr;gap:22px;max-width:760px;margin:0 auto;padding:24px 20px 60px;}
+@media(max-width:880px){.main{grid-template-columns:1fr;}}
+@media(max-width:560px){.grid{grid-template-columns:1fr;}.topbar{padding:12px 16px;}.main{padding:16px 14px 50px;}.radio-cards{flex-direction:column;}}
+.card{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-3);overflow:hidden;}
+.sec-h{padding:16px 24px 12px;border-bottom:2px solid var(--gray-2);display:flex;align-items:center;gap:12px;}
+.sec-ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.sec-t{font-size:14px;font-weight:800;color:var(--navy);}
+.sec-s{font-size:12px;color:var(--gray-5);margin-top:1px;}
+.sec-b{padding:20px 24px;}
+.sec-b+.sec-h{border-top:1px solid var(--gray-2);}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.span2{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;}
+.field label .req{color:var(--red);}
+.field input,.field select,.field textarea{padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);font-size:14px;font-family:inherit;color:var(--ink);background:#fff;outline:none;transition:border-color .2s;width:100%;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--red);}
+.field input[readonly]{background:var(--gray-1);color:var(--gray-7);}
+.timepick{display:flex;align-items:center;gap:6px;}
+.timepick select{width:auto;flex:1 1 0;min-width:0;}
+.timepick .tp-sep{font-weight:700;color:var(--gray-7);}
+.field-invalid{border-color:#e11d48 !important;box-shadow:0 0 0 3px rgba(225,29,72,.18) !important;border-radius:10px;}
+.field-invalid input,.field-invalid select{border-color:#e11d48 !important;}
+.rc.field-invalid{box-shadow:0 0 0 3px rgba(225,29,72,.18) !important;}
+.field textarea{resize:vertical;min-height:64px;}
+.hint{font-size:11px;color:var(--gray-5);line-height:1.4;}
+.hint.ok{color:var(--green);font-weight:600;}.hint.bad{color:var(--red2);font-weight:600;}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;background:var(--amb-l);color:#92400E;margin-left:4px;}
+.radio-cards{display:flex;gap:10px;flex-wrap:wrap;}
+.rc{flex:1;min-width:120px;padding:12px;border-radius:var(--radius);border:2px solid var(--gray-3);cursor:pointer;text-align:center;transition:all .2s;user-select:none;}
+.rc:hover{border-color:var(--gray-5);}
+.rc.sel{border-color:var(--red);background:var(--red-l);}
+.rc .ic{font-size:20px;}.rc .nm{font-size:12px;font-weight:700;color:var(--gray-7);margin-top:3px;}
+.rc.sel .nm{color:var(--red);}.rc .sub{font-size:10px;color:var(--gray-5);margin-top:2px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{display:none;}
+.track{position:absolute;inset:0;background:var(--gray-3);border-radius:12px;cursor:pointer;transition:.2s;}
+.toggle input:checked~.track{background:var(--green);}
+.thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle input:checked~.track .thumb{transform:translateX(20px);}
+.info{background:var(--sky-l);border:1px solid #B3D7F5;border-radius:var(--radius);padding:11px 14px;font-size:12px;color:#1e3a5f;line-height:1.5;}
+.info.amber{background:var(--amb-l);border-color:#FCD34D80;color:#78350F;}
+.lnk{background:none;border:none;color:var(--sky);font-weight:700;cursor:pointer;font-family:inherit;font-size:12px;padding:0;text-decoration:underline;}
+.hidden{display:none!important;}
+.city-other{margin-top:6px;}
+/* multi-city legs */
+.leg{border:1px solid var(--gray-3);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;background:var(--gray-1);position:relative;}
+.leg .leg-rm{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--red2);font-size:12px;font-weight:700;cursor:pointer;}
+.leg .leg-t{font-size:11px;font-weight:800;color:var(--gray-5);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+.leg .grid{gap:12px;}
+.leg .field label{font-size:11px;}
+/* summary */
+.summary{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-3);overflow:hidden;position:sticky;top:18px;}
+.sm-h{padding:15px 20px;border-bottom:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center;}
+.sm-t{font-size:14px;font-weight:800;color:var(--navy);}
+.pill{background:var(--sky-l);border:1px solid #B3D7F5;border-radius:20px;padding:3px 11px;font-size:11px;font-weight:700;color:var(--sky);}
+.sm-b{padding:16px 20px;}
+.sm-line{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:13px;}
+.sm-line:last-of-type{border-bottom:none;}
+.sm-line .k{color:var(--gray-7);}.sm-line .v{font-weight:700;}
+.sm-total{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:13px 15px;background:var(--gray-1);border-radius:var(--radius);border:1px solid var(--gray-2);}
+.sm-total .k{font-size:13px;font-weight:700;color:var(--gray-7);}
+.sm-total .v{font-size:19px;font-weight:900;color:var(--navy);}
+.alert{margin-top:12px;padding:11px 13px;border-radius:var(--radius);font-size:12px;line-height:1.5;display:none;}
+.alert.show{display:block;}
+.alert.bad{background:var(--red2-l);border:1px solid #FECACA;color:var(--red2);}
+.alert.ok{background:var(--grn-l);border:1px solid #6EE7B780;color:#065F46;}
+.chain{padding:14px 20px;border-top:1px solid var(--gray-2);}
+.chain-t{font-size:11px;font-weight:800;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.chain-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.chain-step{background:var(--gray-2);color:var(--gray-7);border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;}
+.submit-area{padding:20px 24px;background:var(--gray-1);border-top:1px solid var(--gray-2);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
+.note{font-size:12px;color:var(--gray-5);max-width:380px;line-height:1.5;}
+.btn{padding:11px 26px;border-radius:var(--radius);border:none;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;}
+.btn-submit{background:var(--red);color:#fff;}.btn-submit:hover{background:var(--red-d);}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed;}
+.btn-clear{background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);}
+.err-banner{margin:0 24px 14px;padding:11px 14px;border-radius:var(--radius);background:var(--red2-l);border:1px solid #FECACA;color:var(--red2);font-size:13px;font-weight:600;display:none;}
+.err-banner.show{display:block;}
+/* success */
+.success{display:none;padding:46px 28px;text-align:center;}
+.success.show{display:block;}
+.success .ic{font-size:54px;}.success .t{font-size:23px;font-weight:900;color:var(--green);margin:12px 0 6px;}
+.success .s{font-size:14px;color:var(--gray-5);line-height:1.6;margin-bottom:20px;}
+.success .id{display:inline-block;background:var(--navy);color:#fff;border-radius:8px;padding:6px 14px;font-weight:800;font-size:14px;margin-bottom:18px;}
+.tl{display:flex;justify-content:center;flex-wrap:wrap;margin-bottom:24px;}
+.tl-i{display:flex;align-items:center;}
+.tl-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;background:var(--sky);}
+.tl-lb{font-size:10px;color:var(--gray-5);max-width:70px;text-align:center;margin-top:4px;}
+.tl-ln{width:30px;height:2px;background:var(--gray-3);margin-bottom:16px;}
+.loading{text-align:center;padding:60px;color:var(--gray-5);font-size:14px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-sq">S</div>
+    <div><div class="logo-txt" id="brand">Spyne TravelDesk</div><div class="logo-sub">Travel Request</div></div>
+  </div>
+  <div id="trf-userbar"></div>
+</div>
+<script src="/auth-guard.js"></script>
+<script src="/tz.js"></script>
+
+<div id="loading" class="loading">Loading form…</div>
+
+<div class="main hidden" id="app">
+  <!-- LEFT: FORM -->
+  <div>
+    <div class="card" id="form-card">
+
+      <!-- SUCCESS -->
+      <div class="success" id="success">
+        <div class="ic">✈️</div>
+        <div class="t">Request Submitted!</div>
+        <div class="s">Your travel request has been routed for approval.<br>You'll get email updates at every step.</div>
+        <div class="id" id="success-id"></div>
+        <div class="tl" id="success-tl"></div>
+        <button class="btn btn-submit" onclick="resetForm()" style="margin:0 auto;">+ New Request</button>
+      </div>
+
+      <div id="form-body">
+        <div class="err-banner" id="err-banner"></div>
+        <div class="info amber hidden" id="edit-banner" style="margin-bottom:14px;"></div>
+        <div class="info hidden" id="draft-banner" style="margin-bottom:14px;"></div>
+
+        <!-- TRAVELLER -->
+        <div class="sec-h"><div class="sec-ic" style="background:#FEF0F0;">👤</div>
+          <div><div class="sec-t">Traveller</div><div class="sec-s">Pick your department — your HOD is filled in automatically.</div></div></div>
+        <div class="sec-b">
+          <div class="field span2" style="margin-bottom:16px;">
+            <label>Who is this trip for? <span class="req">*</span></label>
+            <div class="radio-cards" id="bookfor-cards">
+              <div class="rc sel" data-b="self" onclick="onBookFor('self')"><div class="ic">🙋</div><div class="nm">Myself</div><div class="sub">I'm the traveller</div></div>
+              <div class="rc" data-b="other" onclick="onBookFor('other')"><div class="ic">🧑‍✈️</div><div class="nm">Someone else</div><div class="sub">Booking on their behalf</div></div>
+            </div>
+            <div class="info amber hidden" id="bookfor-hint" style="margin-top:10px;">You're raising this for another person — enter the <b>traveller's</b> details below. Approval routes to <b>their</b> department's HOD; all status updates come to <b>you</b>.</div>
+          </div>
+          <div class="grid">
+            <div class="field"><label>Full Name <span class="req">*</span></label><input id="f-name" placeholder="Priya Sharma"></div>
+            <div class="field"><label>Employee ID</label><input id="f-empid" placeholder="EMP-101"></div>
+            <div class="field"><label>Department <span class="req">*</span></label>
+              <select id="f-dept" onchange="onDept()"><option value="">Select department</option></select></div>
+            <div class="field"><label id="f-email-label">Your Email</label><input id="f-email" type="email" placeholder="you@spyne.ai" onchange="onTravellerEmail()"><div class="hint" id="keka-status" style="margin-top:4px;"></div></div>
+            <div class="field span2"><label>Approving HOD <span class="tag">Auto</span></label>
+              <input id="f-hod" readonly placeholder="Auto-filled from your department"></div>
+            <div class="field span2"><label>Add Passengers <span class="tag">Optional</span></label>
+              <div class="hint">Travelling as a group? Add each additional passenger — one request covers everyone (same trip &amp; dates). Costs are estimated per traveller.</div>
+              <div id="pax-list" style="margin-top:8px;"></div>
+              <button type="button" class="btn btn-clear" style="padding:8px 16px;font-size:13px;margin-top:6px;" onclick="addPassenger()">➕ Add passenger</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRAVEL TYPE -->
+        <div class="sec-h"><div class="sec-ic" style="background:#EBF5FF;">🗺️</div>
+          <div><div class="sec-t">Travel Type</div><div class="sec-s">Pick the kind of trip — this sets the approval chain, currency and limits.</div></div></div>
+        <div class="sec-b">
+          <div class="field span2">
+            <label>Travel Type <span class="req">*</span></label>
+            <div class="radio-cards" id="ttype-cards">
+              <div class="rc" data-t="local" onclick="onType('local')"><div class="ic">🏙️</div><div class="nm">Local / City</div><div class="sub">Within the city · HOD → Admin</div></div>
+              <div class="rc" data-t="domestic" onclick="onType('domestic')"><div class="ic">🛫</div><div class="nm">Domestic</div><div class="sub">Same country · HOD → Finance</div></div>
+              <div class="rc" data-t="international" onclick="onType('international')"><div class="ic">🌐</div><div class="nm">International</div><div class="sub">Different countries · HOD → CEO → Finance</div></div>
+            </div>
+            <div class="info amber hidden" id="type-hint" style="margin-top:10px;"></div>
+          </div>
+        </div>
+
+        <!-- TRANSPORT -->
+        <div class="sec-h"><div class="sec-ic" style="background:#E6F4EA;">✈️</div>
+          <div><div class="sec-t">Transport</div><div class="sec-s">How you'll travel — costs are calculated automatically per policy</div></div></div>
+        <div class="sec-b">
+          <div class="grid">
+            <div class="field span2"><label>Primary Transport <span class="req">*</span></label>
+              <select id="f-mode" onchange="onMode()"><option value="">Select mode</option>
+                <option value="Flight (Economy)">Flight — Economy</option>
+                <option value="Train — 2nd AC">Train — 2nd AC</option>
+                <option value="Train — 1st AC">Train — 1st AC (HOD pre-approval)</option>
+                <option value="AC Bus / Coach">AC Bus / Coach</option>
+                <option value="Cab / Taxi">Cab / Taxi (economy)</option>
+                <option value="Own Vehicle">Own Vehicle</option></select></div>
+          </div>
+          <!-- Flight-only details (shown when mode = Flight) -->
+          <div id="mode-flight" class="grid hidden" style="margin-top:4px;">
+            <div class="field span2"><label>Find your flight <span class="tag">Live prices</span></label>
+              <div class="hint">Search live flights for your route &amp; dates, then pick one — cheapest, fastest or non-stop. We fill your preference from your choice.</div>
+              <button type="button" class="btn btn-clear" id="flysearch-btn" onclick="searchLiveFlights()" style="margin-top:6px;padding:9px 16px;font-size:13px;">🔎 Search live flights</button>
+              <div id="fly-results" style="margin-top:10px;"></div></div>
+            <div class="field span2"><label>Preferred Flight <span class="tag">Optional</span></label>
+              <div class="hint">Or attach a screenshot/PDF (MakeMyTrip/myBiz, etc.) so Admin can check and book as per policy. You can also add this later from “My Requests”.</div>
+              <input type="file" id="f-doc-prefflight" accept="image/*,.pdf" onchange="uploadDoc('f-doc-prefflight','prefFlight','up-prefflight')" style="margin-top:6px;"><div class="hint" id="up-prefflight"></div></div>
+            <div class="field span2"><label>Flight Notes <span class="tag">Optional</span></label>
+              <textarea id="f-prefflight-notes" placeholder="e.g. Prefer morning departure / Air India non-stop / seat preference"></textarea></div>
+          </div>
+          <!-- Details for non-flight modes (Train / Bus / Cab / Own Vehicle) -->
+          <div id="mode-other" class="grid hidden" style="margin-top:4px;">
+            <div class="field span2"><label id="mode-other-label">Travel details</label>
+              <textarea id="f-mode-notes" placeholder="Preferences for this mode — e.g. train class & boarding station, pickup &amp; drop points, operator/timing."></textarea></div>
+          </div>
+        </div>
+
+        <!-- TRIP -->
+        <div class="sec-h"><div class="sec-ic" style="background:#EBF5FF;">🧭</div>
+          <div><div class="sec-t">Trip</div><div class="sec-s">Where and when you’re travelling — currency and limits are applied automatically per policy.</div></div></div>
+        <div class="sec-b">
+          <div class="field span2" style="margin-bottom:16px;">
+            <label>Trip Direction <span class="req">*</span></label>
+            <div class="radio-cards">
+              <div class="rc sel" data-trip="round" onclick="onTrip('round')"><div class="ic">🔁</div><div class="nm">Round trip</div><div class="sub">Going & returning</div></div>
+              <div class="rc" data-trip="one" onclick="onTrip('one')"><div class="ic">➡️</div><div class="nm">One-way</div><div class="sub">Single journey</div></div>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field"><label>From — Boarding City <span class="req">*</span></label><select id="f-from" onchange="onCity('f-from')"></select><input id="f-from-other" class="city-other hidden" placeholder="Type boarding city / airport" oninput="recalc()"></div>
+            <div class="field"><label>To — Destination <span class="req">*</span></label><select id="f-to" onchange="onCity('f-to')"></select><input id="f-to-other" class="city-other hidden" placeholder="Type destination city / airport" oninput="recalc()"></div>
+            <div class="span2" id="returnleg-wrap" style="display:none;">
+              <label style="font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;">↩ Return Leg</label>
+              <div class="grid" style="margin-top:6px;">
+                <div class="field"><label>Return From — Boarding City <span class="req">*</span></label><select id="f-returnfrom" onchange="onCity('f-returnfrom')"></select><input id="f-returnfrom-other" class="city-other hidden" placeholder="Type boarding city / airport" oninput="recalc()"></div>
+                <div class="field"><label>Return To <span class="req">*</span></label><select id="f-returnto" onchange="onCity('f-returnto')"></select><input id="f-returnto-other" class="city-other hidden" placeholder="Type city / airport" oninput="recalc()"></div>
+              </div>
+              <div class="hint" style="margin-top:4px;">Defaults to the reverse of your outbound — change the boarding city if your return flight starts elsewhere.</div>
+            </div>
+            <div class="field"><label>Going Date — Departure <span class="req">*</span></label><input id="f-start" type="date" onchange="onTripDates()"></div>
+            <div class="field" id="returndate-wrap"><label>Return Date — Coming Back <span class="req">*</span></label><input id="f-return" type="date" onchange="onTripDates()"></div>
+            <div class="field"><label>Outbound Flight Time <span class="tag">Optional</span></label><div class="timepick" data-target="f-start-time"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><input type="hidden" id="f-start-time"></div><div class="hint" id="ft-out"></div></div>
+            <div class="field" id="returntime-wrap"><label>Return Flight Time <span class="tag">Optional</span></label><div class="timepick" data-target="f-return-time"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><input type="hidden" id="f-return-time"></div><div class="hint" id="ft-ret"></div></div>
+            <div class="field span2"><label>Duration <span class="tag">Auto</span></label><input id="f-duration" readonly placeholder="Calculated from your dates"></div>
+          </div>
+          <div class="info hidden" id="notice" style="margin-top:14px;"></div>
+          <div class="field span2 hidden" id="breach-justify-wrap" style="margin-top:10px;">
+            <label>Reason for short notice <span class="req">*</span></label>
+            <div class="hint">This trip breaks the advance-notice policy. Please explain why — this is mandatory and is shared with Finance for review.</div>
+            <textarea id="f-breach-justify" placeholder="e.g. Urgent client escalation — travel approved verbally by manager" oninput="clearInvalid()"></textarea>
+          </div>
+        </div>
+
+        <!-- PURPOSE OF TRAVEL -->
+        <div class="sec-h"><div class="sec-ic" style="background:#F7F9FC;">🎯</div>
+          <div><div class="sec-t">Purpose of Travel</div><div class="sec-s">Why are you travelling? Helps the approver review your request.</div></div></div>
+        <div class="sec-b">
+          <div class="grid">
+            <div class="field span2"><label>Purpose of Travel</label>
+              <select id="f-purpose" onchange="onPurpose()"><option value="">Select purpose</option>
+                <option>Client Meeting</option><option>Conference / Event</option><option>Training</option>
+                <option>Site Visit</option><option>Audit</option><option>Product Launch</option>
+                <option>Partnership Meeting</option><option>Other</option></select></div>
+            <div class="field span2 hidden" id="purpose-other-wrap"><label>Please specify <span class="req">*</span></label>
+              <input id="f-purpose-other" placeholder="Describe the purpose of travel"></div>
+          </div>
+        </div>
+
+        <!-- HOTEL (primary stay) -->
+        <div class="sec-h"><div class="sec-ic" style="background:#FFFBEB;">🏨</div>
+          <div><div class="sec-t">Hotel / Accommodation</div><div class="sec-s">Do you need a hotel booked for this trip?</div></div></div>
+        <div class="sec-b">
+          <div class="field span2" style="margin-bottom:14px;">
+            <label>Hotel needed? <span class="req">*</span></label>
+            <div class="radio-cards" id="hotel-cards">
+              <div class="rc sel" data-h="yes" onclick="onHotel('yes')"><div class="ic">🏨</div><div class="nm">Yes</div><div class="sub">Book a hotel</div></div>
+              <div class="rc" data-h="no" onclick="onHotel('no')"><div class="ic">🚫</div><div class="nm">No</div><div class="sub">Not required</div></div>
+            </div>
+          </div>
+          <div class="grid" id="hotel-fields">
+            <div class="field"><label>Country <span class="req">*</span></label>
+              <select id="f-hotel-country" onchange="onHotelCountry()"><option value="">Select country</option></select></div>
+            <div class="field"><label>City <span class="req">*</span></label>
+              <select id="f-hotel-city" onchange="onCity('f-hotel-city')"><option value="">Select city</option></select>
+              <input id="f-hotel-city-other" class="city-other hidden" placeholder="Type hotel city"></div>
+            <div class="field"><label>Check-in <span class="req">*</span></label><input id="f-hotel-checkin" type="date" onchange="onTripDates()"></div>
+            <div class="field"><label>Check-out <span class="req">*</span></label><input id="f-hotel-checkout" type="date" onchange="onTripDates()"></div>
+            <div class="hint span2">Defaults to your destination city &amp; trip dates — change if your stay differs.</div>
+          </div>
+        </div>
+
+        <!-- MULTI-CITY ITINERARY (optional) -->
+        <div class="sec-h"><div class="sec-ic" style="background:#EBF5FF;">🧳</div>
+          <div><div class="sec-t">More Flights &amp; Hotels <span class="tag">Optional</span></div><div class="sec-s">Travelling through multiple cities? Add each extra flight and hotel stay.</div></div></div>
+        <div class="sec-b">
+          <div id="extra-flights-wrap">
+            <div style="font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Additional Flights</div>
+            <div id="flights-list"></div>
+            <button type="button" class="btn btn-clear" style="padding:8px 16px;font-size:13px;" onclick="addFlight()">➕ Add flight</button>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;margin:18px 0 8px;">Additional Hotels</div>
+          <div id="hotels-list"></div>
+          <button type="button" class="btn btn-clear" style="padding:8px 16px;font-size:13px;" onclick="addHotel()">➕ Add hotel</button>
+          <div class="hint" style="margin-top:10px;">These extra flights and hotels are added to the cost estimate and passed to Admin so each one can be booked separately.</div>
+        </div>
+
+        <!-- FOREIGN CURRENCY (international trips only) -->
+        <div id="forex-sec-h" class="sec-h hidden"><div class="sec-ic" style="background:#EBF5FF;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0077CC" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg></div>
+          <div><div class="sec-t">For overseas travel</div></div></div>
+        <div id="forex-sec-b" class="sec-b hidden">
+          <div class="toggle-row" style="border-bottom:1px solid var(--gray-2);padding-bottom:12px;margin-bottom:6px;">
+            <div><div style="font-size:13px;font-weight:600;">🛂 Do you already hold a valid visa for the destination?</div>
+              <div class="hint">If you don’t, an estimated visa fee is added to the trip cost.</div></div>
+            <label class="toggle"><input type="checkbox" id="f-visa" onchange="recalc()"><div class="track"><div class="thumb"></div></div></label>
+          </div>
+          <div class="toggle-row">
+            <div><div style="font-size:13px;font-weight:600;">💱 Foreign currency required?</div>
+              <div class="hint">Applies to international trips — tour advance is arranged by Admin.</div></div>
+            <label class="toggle"><input type="checkbox" id="f-forex" onchange="recalc()"><div class="track"><div class="thumb"></div></div></label>
+          </div>
+          <div id="forex-docs" class="hidden" style="margin-top:16px;">
+            <div class="info amber" style="margin-bottom:14px;">📋 <b>International travel</b> — the details and documents below are required. Upload your <b>visa copy</b> only if you already hold a visa; if not, an estimated visa fee is added to the trip cost. Your <b>air ticket</b> is attached automatically once Admin books the flight.<br><b>Forex Card KYC:</b> for a new card, KYC is mandatory — please carry your <b>original passport</b> when you collect it.</div>
+            <div class="grid">
+              <div class="field"><label>Nationality <span class="req">*</span></label><select id="f-nationality" onchange="updateIdDocs()"><option value="">Select country</option></select></div>
+              <div class="field"><label>Passport No. <span class="req">*</span></label><input id="f-passportno" placeholder="Passport number"></div>
+              <div class="field"><label>Passport — Date &amp; Place of Issue <span class="req">*</span></label><input id="f-passportissue" placeholder="e.g. 12 Mar 2022, Delhi"></div>
+              <div class="field"><label>Passport Expiry <span class="req">*</span></label><input id="f-passportexpiry" type="date"></div>
+              <div class="field"><label>PAN No. <span class="req">*</span></label><input id="f-panno" placeholder="ABCDE1234F"></div>
+              <div class="field"><label>Designation <span class="req">*</span></label><input id="f-designation" placeholder="Your job title"></div>
+              <div class="field"><label>Mobile No. <span class="req">*</span></label><input id="f-mobile" placeholder="+91 …"></div>
+              <div class="field span2"><label>Residential Address <span class="req">*</span></label><input id="f-address" placeholder="Full residential address"></div>
+            </div>
+            <div style="margin-top:16px;font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;">Upload Documents — mandatory</div>
+            <div class="grid" style="margin-top:8px;">
+              <div class="field"><label>Copy of Passport <span class="req">*</span></label><input type="file" id="f-doc-passport" accept="image/*,.pdf" onchange="uploadDoc('f-doc-passport','passport','up-passport')"><div class="hint" id="up-passport"></div></div>
+              <div class="field"><label>Copy of Visa <span class="req">*</span></label><input type="file" id="f-doc-visa" accept="image/*,.pdf" onchange="uploadDoc('f-doc-visa','visa','up-visa')"><div class="hint" id="up-visa"></div></div>
+            </div>
+            <!-- Country-specific identity documents (filled by updateIdDocs) -->
+            <div id="id-docs" style="margin-top:8px;"></div>
+            <div class="hint" style="margin-top:6px;">Max 3 MB per file (PDF or image). The Air Ticket will be requested after booking.</div>
+          </div>
+        </div>
+
+        <!-- NOTES -->
+        <div class="sec-h"><div class="sec-ic" style="background:#F7F9FC;">📋</div>
+          <div><div class="sec-t">Purpose & Notes</div><div class="sec-s">Anything the approver should know</div></div></div>
+        <div class="sec-b">
+          <div class="field span2"><label>Purpose / Remarks for Approver</label>
+            <textarea id="f-notes" placeholder="Client name, agenda, reason for travel…"></textarea></div>
+          <div class="info" style="margin-top:12px;">ℹ️ Travel costs (flight, hotel, meals, local transport) are calculated automatically from company policy and reviewed by your approvers — you don't need to enter any amounts.</div>
+        </div>
+
+        <div class="submit-area">
+          <div class="note">Fields marked <span style="color:var(--red)">*</span> are required. Your request routes to your HOD first.</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-clear" onclick="resetForm()">Clear</button>
+            <button class="btn btn-submit" id="submit-btn" onclick="submitForm()">Submit Request ✈</button>
+          </div>
+        </div>
+      </div><!-- /form-body -->
+    </div>
+  </div>
+</div>
+
+<script>
+var CFG = null;
+var state = { travelType:'', tripType:'round', docs:{}, bookFor:'self', hotel:'yes' };
+var EDIT_ID = null;            // set when editing an existing request (?edit=ID)
+var DRAFT_KEY = 'trf_draft_v1';
+
+// India + US cities for the From / To dropdowns
+var CITIES = {
+  'India': ['Ahmedabad (AMD)','Bengaluru (BLR)','Bhubaneswar (BBI)','Chandigarh (IXC)','Chennai (MAA)','Coimbatore (CJB)','Delhi (DEL)','Goa (GOI)','Gurugram (DEL)','Guwahati (GAU)','Hyderabad (HYD)','Indore (IDR)','Jaipur (JAI)','Kochi (COK)','Kolkata (CCU)','Lucknow (LKO)','Mumbai (BOM)','Nagpur (NAG)','Noida (DEL)','Patna (PAT)','Pune (PNQ)','Surat (STV)','Vadodara (BDQ)','Visakhapatnam (VTZ)'],
+  'United States': ['Atlanta (ATL)','Austin (AUS)','Boston (BOS)','Chicago (ORD)','Dallas (DFW)','Denver (DEN)','Houston (IAH)','Las Vegas (LAS)','Los Angeles (LAX)','Miami (MIA)','New York (JFK)','Newark (EWR)','Philadelphia (PHL)','Phoenix (PHX)','San Francisco (SFO)','San Jose (SJC)','Seattle (SEA)','Washington (IAD)']
+};
+function countryOf(city){
+  city=String(city||'');
+  var found='';
+  Object.keys(CITIES).forEach(function(country){ if(CITIES[country].indexOf(city)>-1) found=country; });
+  return found;
+}
+function fillCities(id, blankText){
+  var sel=document.getElementById(id); if(!sel) return;
+  sel.innerHTML='';
+  var b=document.createElement('option'); b.value=''; b.textContent=blankText||'Select city'; sel.appendChild(b);
+  Object.keys(CITIES).forEach(function(country){
+    var og=document.createElement('optgroup'); og.label=country;
+    CITIES[country].forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; og.appendChild(o); });
+    sel.appendChild(og);
+  });
+  var oo=document.createElement('option'); oo.value='__other__'; oo.textContent='Other — type manually'; sel.appendChild(oo);
+}
+// City <select> value resolving "Other" → the paired manual text input (id+'-other').
+function cityVal(id){ var s=$(id); if(!s) return ''; if(s.value==='__other__'){ var t=$(id+'-other'); return t?t.value.trim():''; } return s.value; }
+// Toggle the manual input when "Other" is picked.
+function onCity(id){ var s=$(id), t=$(id+'-other'); if(t) t.classList.toggle('hidden', s.value!=='__other__'); recalc(); }
+// Set a city select to a value, falling back to "Other"+manual when it's not in the list.
+function setCity(id,value){ var s=$(id), t=$(id+'-other'); if(!s) return; value=value||'';
+  var has=[].some.call(s.options,function(o){return o.value===value;});
+  if(value && has){ s.value=value; if(t){t.classList.add('hidden');t.value='';} }
+  else if(value){ s.value='__other__'; if(t){t.classList.remove('hidden');t.value=value;} }
+  else { s.value=''; if(t){t.classList.add('hidden');t.value='';} }
+}
+
+// Country list for the Nationality dropdown (India & United States first, then alphabetical).
+var COUNTRIES = ['India','United States','Afghanistan','Albania','Algeria','Argentina','Australia','Austria','Bahrain','Bangladesh','Belgium','Bhutan','Brazil','Canada','China','Colombia','Denmark','Egypt','Finland','France','Germany','Ghana','Greece','Hong Kong','Hungary','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Japan','Jordan','Kenya','Kuwait','Malaysia','Maldives','Mexico','Nepal','Netherlands','New Zealand','Nigeria','Norway','Oman','Pakistan','Philippines','Poland','Portugal','Qatar','Russia','Saudi Arabia','Singapore','South Africa','South Korea','Spain','Sri Lanka','Sweden','Switzerland','Taiwan','Thailand','Turkey','UAE','Uganda','Ukraine','United Kingdom','Vietnam','Other'];
+// US identity documents (shown when nationality = United States)
+var US_ID_TYPES = ['Social Security Card (SSN)','Driver’s License','State ID Card','US Passport Card','Permanent Resident (Green) Card','Other US Government ID'];
+function fillCountries(){
+  var sel=document.getElementById('f-nationality'); if(!sel) return;
+  sel.innerHTML='<option value="">Select country</option>';
+  COUNTRIES.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+}
+
+// ---- bootstrap ----
+function boot(cfg){
+  CFG = cfg;
+  document.getElementById('brand').textContent = cfg.company + ' TravelDesk';
+  fillCities('f-from','Select boarding city'); fillCities('f-to','Select destination');
+  fillCities('f-returnfrom','Select boarding city'); fillCities('f-returnto','Select city');
+  fillCountries();
+  var hc=document.getElementById('f-hotel-country'); // hotel country = countries we have cities for
+  if(hc){ Object.keys(CITIES).forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; hc.appendChild(o); }); }
+  var sel = document.getElementById('f-dept');
+  Object.keys(cfg.departments).forEach(function(d){
+    var o = document.createElement('option'); o.value=d; o.textContent=d; sel.appendChild(o);
+  });
+  onBookFor(state.bookFor); // prefill name/email + lock state for "Myself" vs "Someone else"
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  onTrip(state.tripType); // sync trip-direction UI so the round-trip return leg is visible by default
+  recalc(); updateIdDocs();
+}
+function bootFail(err){
+  document.getElementById('loading').textContent = 'Could not load form: ' + (err && err.message || err);
+}
+requireView('requester', function(me){
+  fetch('/api/config')
+    .then(function(r){ if(!r.ok) throw new Error('config '+r.status); return r.json(); })
+    .then(function(cfg){ cfg.userEmail = me.email; cfg.userName = me.name||''; boot(cfg); renderUserbar(me); afterBoot(); })
+    .catch(bootFail);
+});
+
+// ---- helpers ----
+function $(id){ return document.getElementById(id); }
+function val(id){ var e=$(id); return e?(e.value||'').trim():''; }
+function n(id){ return +(val(id))||0; }
+function fmt(cur,x){ return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+
+function onDept(){
+  var d = val('f-dept');
+  var info = CFG.departments[d];
+  $('f-hod').value = info ? (info.head + ' <' + info.email + '>') : '';
+}
+function onBookFor(mode){
+  state.bookFor = (mode==='other') ? 'other' : 'self';
+  document.querySelectorAll('#bookfor-cards .rc').forEach(function(c){ c.classList.toggle('sel', c.dataset.b===state.bookFor); });
+  var hint=$('bookfor-hint'); if(hint) hint.classList.toggle('hidden', state.bookFor!=='other');
+  var fe=$('f-email'), fn=$('f-name'), lb=$('f-email-label');
+  if(state.bookFor==='self'){
+    if(lb) lb.textContent='Your Email';
+    if(fe){ fe.value=(CFG&&CFG.userEmail)||''; fe.readOnly=true; fe.placeholder='you@spyne.ai'; }
+    if(fn && CFG && CFG.userName) fn.value=CFG.userName;
+    kekaFill((CFG&&CFG.userEmail)||'', {}); // auto-fill Employee ID (and Name if blank) from Keka
+  } else {
+    if(lb) lb.textContent="Traveller's Email";
+    if(fe){ fe.readOnly=false; fe.value=''; fe.placeholder='traveller@spyne.ai'; }
+    if(fn) fn.value='';
+    var ks=$('keka-status'); if(ks) ks.textContent='';
+  }
+}
+// When booking for someone else, look the traveller up by their email.
+function onTravellerEmail(){ if(state.bookFor==='other'){ kekaFill(val('f-email'), {fillName:true}); } }
+// Resolve Name + Employee ID from Keka HRMS by email; fills the form. Silent if Keka isn't configured.
+function kekaFill(email, opts){
+  opts=opts||{}; email=String(email||'').trim(); var st=$('keka-status');
+  if(!email || email.indexOf('@')<0){ if(st) st.textContent=''; return; }
+  if(st){ st.style.color='var(--gray-5)'; st.textContent='Looking up '+email+' in Keka…'; }
+  fetch('/api/me?keka='+encodeURIComponent(email),{credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d || d.available===false){ if(st) st.textContent=''; return; } // Keka not configured → stay silent
+      if(d.ok){
+        var fn=$('f-name'), fi=$('f-empid');
+        if(fi && d.employeeId) fi.value=d.employeeId;
+        if(fn && d.name && (opts.fillName || !fn.value)) fn.value=d.name;
+        if(st){ st.style.color='var(--green,#0F766E)'; st.textContent='✓ '+(d.name||'')+(d.employeeId?(' · '+d.employeeId):'')+' — from Keka'; }
+      } else {
+        if(st){ st.style.color='var(--amber,#B45309)'; st.textContent=(d.error||'Not found in Keka')+' — enter details manually.'; }
+      }
+    }).catch(function(){ if(st) st.textContent=''; });
+}
+// --- Time picker (Hour / Minute / AM-PM dropdowns -> hidden 24h "HH:MM") ---
+function fillTimeOptions(){
+  document.querySelectorAll('.timepick').forEach(function(box){
+    var h=box.querySelector('.tp-h'), m=box.querySelector('.tp-m'), ap=box.querySelector('.tp-ap');
+    if(h && !h.options.length){ var s='<option value="">HH</option>'; for(var i=1;i<=12;i++){var v=('0'+i).slice(-2); s+='<option value="'+v+'">'+v+'</option>';} h.innerHTML=s; }
+    if(m && !m.options.length){ var s2='<option value="">MM</option>'; for(var j=0;j<60;j+=5){var v2=('0'+j).slice(-2); s2+='<option value="'+v2+'">'+v2+'</option>';} m.innerHTML=s2; }
+    if(ap && !ap.options.length){ ap.innerHTML='<option value="">AM/PM</option><option value="AM">AM</option><option value="PM">PM</option>'; }
+  });
+}
+function tpChange(sel){
+  var box=sel.closest('.timepick'); if(!box) return;
+  var h=box.querySelector('.tp-h').value, m=box.querySelector('.tp-m').value, ap=box.querySelector('.tp-ap').value;
+  var hidden=box.querySelector('input[type=hidden]'); var out='';
+  if(h&&m&&ap){ var H=parseInt(h,10)%12; if(ap==='PM') H+=12; out=('0'+H).slice(-2)+':'+m; }
+  hidden.value=out;
+  if(hidden.id==='f-start-time'||hidden.id==='f-return-time') onFlightTime();
+}
+function syncTimePicker(hidden){
+  if(!hidden) return; var box=hidden.closest('.timepick'); if(!box) return;
+  var h=box.querySelector('.tp-h'), m=box.querySelector('.tp-m'), ap=box.querySelector('.tp-ap');
+  var parts=(hidden.value||'').split(':');
+  if(parts.length===2 && parts[0]!==''){
+    var H=parseInt(parts[0],10), mm=('0'+parseInt(parts[1],10)).slice(-2);
+    var apv=H>=12?'PM':'AM'; var h12=H%12; if(h12===0) h12=12;
+    if(m && !Array.prototype.some.call(m.options,function(o){return o.value===mm;})) m.add(new Option(mm,mm));
+    h.value=('0'+h12).slice(-2); m.value=mm; ap.value=apv;
+  } else { h.value=''; m.value=''; ap.value=''; }
+}
+function onFlightTime(){
+  if(!window.TZ) return;
+  var fo=$('ft-out'); if(fo){ var l=TZ.flightTimeLabel(val('f-start'),val('f-start-time'),cityVal('f-from'),cityVal('f-to')); fo.textContent=l?('🕒 '+l):''; }
+  var fr=$('ft-ret'); if(fr){ var l2=TZ.flightTimeLabel(val('f-return'),val('f-return-time'),cityVal('f-returnfrom'),cityVal('f-returnto')); fr.textContent=l2?('🕒 '+l2):''; }
+}
+// ---- Live flight search (cheapest / fastest / non-stop) for the trip's route + dates ----
+function flyDur(min){ min=Number(min)||0; var h=Math.floor(min/60), m=min%60; return (h?h+'h ':'')+(m?m+'m':(h?'':'0m')); }
+function flyTime(iso){ if(!iso) return ''; var d=new Date(iso); if(isNaN(d)) return ''; return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+function flyMoney(cur,n){ return (cur||'INR')+' '+Math.round(Number(n)||0).toLocaleString(cur==='USD'?'en-US':'en-IN'); }
+var FLY_DATA=null, FLY_CUR='INR', FLY_MORE=false;
+function searchLiveFlights(){
+  var from=cityVal('f-from'), to=cityVal('f-to'), date=val('f-start');
+  var ret=(state.tripType==='round')?val('f-return'):'';
+  var box=$('fly-results'), btn=$('flysearch-btn');
+  if(!from||!to||!date){ box.innerHTML='<div class="hint bad">Pick your boarding city, destination and going date first.</div>'; return; }
+  var cur=isIntl()?'USD':'INR'; FLY_CUR=cur; FLY_MORE=false;
+  btn.disabled=true; var old=btn.textContent; btn.textContent='Searching…';
+  box.innerHTML='<div class="hint">🔎 Searching live flights '+esc(from)+' → '+esc(to)+' on '+esc(date)+'…</div>';
+  var qs='/api/me?flights=1&from='+encodeURIComponent(from)+'&to='+encodeURIComponent(to)+'&date='+encodeURIComponent(date)+'&cur='+cur+'&intl='+(isIntl()?1:0)+(ret?('&ret='+encodeURIComponent(ret)):'');
+  fetch(qs,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    btn.disabled=false; btn.textContent=old;
+    if(!d){ box.innerHTML='<div class="hint bad">No response.</div>'; return; }
+    if(!d.configured){ box.innerHTML='<div class="hint">Live flight search isn’t enabled yet. You can attach a screenshot/PDF of your preferred flight below instead.</div>'; return; }
+    if(!d.ok){ box.innerHTML='<div class="hint bad">Couldn’t fetch flights: '+esc(d.error||'try again')+'</div>'; return; }
+    if(!(d.options&&d.options.length)&&!(d.more&&d.more.length)){ box.innerHTML='<div class="hint">No live flights found for those dates — attach a preferred flight below instead.</div>'; return; }
+    FLY_DATA=d; renderFlights();
+  }).catch(function(e){ btn.disabled=false; btn.textContent=old; box.innerHTML='<div class="hint bad">Search failed: '+esc(e&&e.message||e)+'</div>'; });
+}
+function flyCard(o,picked){
+  var times=(o.depart||o.arrive)?('<span style="color:var(--gray-7);">'+esc(flyTime(o.depart))+(o.arrive?(' → '+esc(flyTime(o.arrive))):'')+'</span>'):'';
+  var tag=o.kind?('<span style="background:var(--sky-l);color:var(--sky);font-weight:800;font-size:10px;padding:2px 7px;border-radius:6px;margin-right:6px;">'+esc(o.kind)+'</span>'):'';
+  var stops=(o.stops===0)?'Non-stop':(o.stops+' stop'+(o.stops>1?'s':''));
+  return '<div class="fly-opt" style="display:flex;justify-content:space-between;align-items:center;gap:10px;border:1.5px solid '+(picked?'var(--green)':'var(--gray-3)')+';border-radius:9px;padding:9px 12px;margin-bottom:7px;">'
+    +'<div style="min-width:0;">'+tag+'<b>'+flyMoney(FLY_CUR,o.price)+'</b> · '+flyDur(o.durationMin)+' · '+stops
+      +'<div class="hint" style="margin-top:2px;">'+esc(o.carrier||'')+(times?(' · '+times):'')+'</div></div>'
+    +'<button type="button" class="btn btn-clear" style="padding:6px 12px;font-size:12px;flex-shrink:0;" onclick=\'selectFlight('+JSON.stringify(JSON.stringify(o))+')\'>'+(picked?'✓ Selected':'Select')+'</button></div>';
+}
+function renderFlights(){
+  var d=FLY_DATA; if(!d) return; var box=$('fly-results');
+  var picks=d.options||[]; var html='';
+  if(picks.length){ html+='<div class="hint" style="font-weight:700;color:var(--navy);margin-bottom:6px;">Best matches</div>'+picks.map(function(o){return flyCard(o,false);}).join(''); }
+  if(d.more&&d.more.length){
+    html+='<button type="button" class="btn btn-clear" style="padding:6px 12px;font-size:12px;margin:4px 0;" onclick="FLY_MORE=!FLY_MORE;renderFlights();">'+(FLY_MORE?'▴ Hide extra flights':'▾ Show more flights ('+d.more.length+')')+'</button>';
+    if(FLY_MORE){ html+='<div style="margin-top:6px;">'+d.more.map(function(o){return flyCard(o,false);}).join('')+'</div>'; }
+  }
+  html+='<div class="hint" id="fly-picked" style="margin-top:6px;"></div>';
+  box.innerHTML=html;
+}
+function selectFlight(js){
+  var o; try{ o=JSON.parse(js); }catch(e){ return; }
+  var stops=(o.stops===0)?'non-stop':(o.stops+'-stop');
+  var summary='Live pick: '+(o.kind?o.kind+' — ':'')+(o.carrier?o.carrier+' · ':'')+flyMoney(FLY_CUR,o.price)+' · '+flyDur(o.durationMin)+' · '+stops
+    +((o.depart||o.arrive)?(' · '+flyTime(o.depart)+(o.arrive?(' → '+flyTime(o.arrive)):'')):'');
+  var ta=$('f-prefflight-notes'); if(ta){ ta.value=summary; }
+  var pk=$('fly-picked'); if(pk){ pk.innerHTML='✓ Saved as your preferred flight: <b>'+esc(summary)+'</b>'; pk.className='hint ok'; }
+}
+function onHotel(mode){
+  state.hotel = (mode==='no') ? 'no' : 'yes';
+  document.querySelectorAll('#hotel-cards .rc').forEach(function(c){ c.classList.toggle('sel', c.dataset.h===state.hotel); });
+  var f=$('hotel-fields'); if(f) f.classList.toggle('hidden', state.hotel!=='yes');
+  if(state.hotel==='yes') prefillHotelFromTrip();
+  recalc();
+}
+// When "Yes", default the hotel country/city/dates from the trip (only fill blanks).
+function prefillHotelFromTrip(){
+  var cc=$('f-hotel-country'), cy=$('f-hotel-city');
+  if(cc && !cc.value){ var dc=countryOf(cityVal('f-to')); if(dc && CITIES[dc]){ cc.value=dc; onHotelCountry(); } }
+  if(cy && !cy.value && cityVal('f-to')){ setCity('f-hotel-city', cityVal('f-to')); }
+  if($('f-hotel-checkin') && !val('f-hotel-checkin') && val('f-start')) $('f-hotel-checkin').value=val('f-start');
+  if($('f-hotel-checkout') && !val('f-hotel-checkout')){ var co=val('f-return')||val('f-start'); if(co) $('f-hotel-checkout').value=co; }
+}
+function onHotelCountry(){
+  var c=val('f-hotel-country'); var sel=$('f-hotel-city'); if(!sel) return;
+  sel.innerHTML='<option value="">Select city</option>';
+  (CITIES[c]||[]).forEach(function(ct){ var o=document.createElement('option'); o.value=ct; o.textContent=ct; sel.appendChild(o); });
+  var oo=document.createElement('option'); oo.value='__other__'; oo.textContent='Other — type manually'; sel.appendChild(oo);
+}
+function onType(t){
+  state.travelType = t;
+  var tc=$('ttype-cards'); if(tc) tc.classList.remove('field-invalid');
+  document.querySelectorAll('#ttype-cards .rc').forEach(function(c){ c.classList.toggle('sel', c.dataset.t===t); });
+  applyModeForType();
+  recalc();
+}
+// Each transport mode reveals its own section. Local (same-city) trips exclude Flight entirely.
+function onMode(){
+  var m=val('f-mode'); var isFlight=/flight/i.test(m);
+  var mf=$('mode-flight'); if(mf) mf.classList.toggle('hidden', !isFlight);
+  var mo=$('mode-other'); if(mo) mo.classList.toggle('hidden', !(m && !isFlight));
+  var lbl=$('mode-other-label'); if(lbl && m && !isFlight) lbl.textContent = m.replace(/\s*\(.*\)/,'') + ' — details & preferences';
+}
+function applyModeForType(){
+  var local = state.travelType==='local';
+  var fopt = document.querySelector('#f-mode option[value="Flight (Economy)"]');
+  if(fopt){ fopt.hidden = local; fopt.disabled = local; } // same-city → no flight
+  if(local && /flight/i.test(val('f-mode'))) $('f-mode').value='';
+  var ef=$('extra-flights-wrap'); if(ef) ef.style.display = local ? 'none' : '';
+  onMode();
+}
+function onTrip(t){
+  state.tripType = t;
+  document.querySelectorAll('[data-trip]').forEach(function(c){ c.classList.toggle('sel', c.dataset.trip===t); });
+  var round = t==='round';
+  $('returndate-wrap').classList.toggle('hidden', !round);
+  var rtw=$('returntime-wrap'); if(rtw) rtw.classList.toggle('hidden', !round);
+  $('returnleg-wrap').style.display = round ? '' : 'none';
+  recalc();
+}
+function onPurpose(){
+  $('purpose-other-wrap').classList.toggle('hidden', val('f-purpose')!=='Other');
+}
+// Country-specific identity documents. India → Aadhaar + PAN (separate). US → US ID dropdown + upload.
+// Other → single Government/National ID upload. Clears any previously-uploaded ID docs on change.
+function updateIdDocs(){
+  var c = val('f-nationality');
+  ['aadhaar','pan','nationalId'].forEach(function(k){ delete state.docs[k]; });
+  var box=$('id-docs'); if(!box) return;
+  function uploadField(label, key){
+    return '<div class="field span2"><label>'+label+' <span class="req">*</span></label>'
+      +'<input type="file" id="f-doc-'+key+'" accept="image/*,.pdf" onchange="uploadDoc(\'f-doc-'+key+'\',\''+key+'\',\'up-'+key+'\')">'
+      +'<div class="hint" id="up-'+key+'"></div></div>';
+  }
+  var html='';
+  if(c==='India'){
+    html='<div class="grid">'+uploadField('Aadhaar Card','aadhaar')+uploadField('PAN Card','pan')+'</div>';
+  } else if(c==='United States'){
+    html='<div class="grid"><div class="field span2"><label>US Identification Document <span class="req">*</span></label>'
+      +'<select id="f-usid-type">'+US_ID_TYPES.map(function(t){return '<option>'+esc(t)+'</option>';}).join('')+'</select></div>'
+      +uploadField('Upload selected US ID','nationalId')+'</div>';
+  } else if(c){
+    html='<div class="grid">'+uploadField('Government / National ID','nationalId')+'</div>';
+  } else {
+    html='<div class="hint">Select your nationality above to see the required identity documents.</div>';
+  }
+  box.innerHTML=html;
+}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function isIntl(){ return state.travelType==='international'; }
+// Domestic/Local = same country; International = different countries. Flags a mismatch
+// between the chosen Travel Type and the From/To cities' countries.
+function typeMismatch(){
+  var oc=countryOf(cityVal('f-from')), dc=countryOf(cityVal('f-to'));
+  if(!oc||!dc||!state.travelType) return '';
+  if((state.travelType==='domestic'||state.travelType==='local') && oc!==dc)
+    return 'These cities are in different countries ('+oc+' → '+dc+'). Select <b>International</b>.';
+  if(state.travelType==='international' && oc===dc)
+    return 'Both cities are in the same country ('+oc+'). Select <b>Domestic</b> (or Local).';
+  return '';
+}
+function duration(){
+  var s=val('f-start');
+  var e = state.tripType==='round' ? val('f-return') : val('f-start');
+  if(!s||!e) return {days:0,nights:0};
+  var sd=new Date(s), ed=new Date(e);
+  if(ed<sd) return {days:0,nights:0};
+  var days=Math.round((ed-sd)/86400000)+1;
+  return {days:days,nights:Math.max(0,days-1)};
+}
+
+// Costs are computed in the BACKEND and shown only to approvers — the form does no cost math.
+function recalc(){
+  if(!CFG) return;
+  var dur=duration();
+  $('f-duration').value = dur.days ? (dur.days+' day(s) · '+dur.nights+' night(s)') : '';
+
+  // round trip: default the return leg to the reverse of the outbound (only if not yet chosen)
+  if(state.tripType==='round'){
+    if(!cityVal('f-returnfrom') && cityVal('f-to')) setCity('f-returnfrom', cityVal('f-to'));
+    if(!cityVal('f-returnto') && cityVal('f-from')) setCity('f-returnto', cityVal('f-from'));
+  }
+
+  // short-notice notice (also triggers Finance review in the backend)
+  var notice=$('notice');
+  var sd=val('f-start');
+  var shortNotice=false;
+  if(sd && state.travelType){
+    var daysOut=Math.ceil((new Date(sd)-new Date())/86400000);
+    var need = isIntl()?30:state.travelType==='domestic'?15:0;
+    if(need && daysOut<need){
+      shortNotice=true;
+      notice.classList.remove('hidden'); notice.className='info amber';
+      notice.innerHTML='⚠ <b>Short notice:</b> travel in '+daysOut+' days; policy needs '+need+' business days. This will route through Finance for review.';
+    } else notice.classList.add('hidden');
+  } else notice.classList.add('hidden');
+  // Mandatory justification appears whenever the short-notice policy breach is shown.
+  var bj=$('breach-justify-wrap'); if(bj) bj.classList.toggle('hidden', !shortNotice);
+
+  // Travel-type vs cities consistency hint (domestic = same country, international = different)
+  var th=$('type-hint'); if(th){ var tm=typeMismatch(); if(tm){ th.classList.remove('hidden'); th.innerHTML='⚠ '+tm; } else th.classList.add('hidden'); }
+
+  // Foreign Currency section — visible only for international trips
+  var fi = isIntl();
+  $('forex-sec-h').classList.toggle('hidden', !fi);
+  $('forex-sec-b').classList.toggle('hidden', !fi);
+  if(!fi && $('f-forex').checked) $('f-forex').checked=false;
+  // Mandatory documents show as soon as International is selected (passport/visa/ID), not gated behind the forex toggle.
+  var fdocs=$('forex-docs');
+  if(fdocs) fdocs.classList.toggle('hidden', !fi);
+  onFlightTime();
+}
+
+// Upload a document to Google Drive (via /api/upload); store the returned link in state.docs.
+function uploadDoc(inputId, key, statusId){
+  var inp=$(inputId), st=$(statusId), f=inp.files[0];
+  if(!f){ state.docs[key]=''; st.textContent=''; return; }
+  if(f.size > 3*1024*1024){ st.className='hint bad'; st.textContent='File too large — max 3 MB.'; inp.value=''; state.docs[key]=''; return; }
+  st.className='hint'; st.textContent='Uploading…';
+  var reader=new FileReader();
+  reader.onload=function(){
+    var base64=String(reader.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+      body:JSON.stringify({filename:f.name, mimeType:f.type, base64:base64})})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if(d.ok){ state.docs[key]=d.link; st.className='hint ok'; st.textContent='✓ Uploaded'; }
+        else { state.docs[key]=''; st.className='hint bad'; st.textContent='Upload failed: '+(d.error||'error'); } })
+      .catch(function(){ state.docs[key]=''; st.className='hint bad'; st.textContent='Upload failed.'; });
+  };
+  reader.readAsDataURL(f);
+}
+
+// ---- multi-city itinerary (extra flights & hotels) ----
+function cityOptionsHTML(){
+  var h='<option value="">Select city</option>';
+  Object.keys(CITIES).forEach(function(country){
+    h+='<optgroup label="'+country+'">';
+    CITIES[country].forEach(function(c){ h+='<option value="'+esc(c)+'">'+esc(c)+'</option>'; });
+    h+='</optgroup>';
+  });
+  h+='<option value="__other__">Other — type manually</option>';
+  return h;
+}
+// Show/hide a multi-city leg's manual city input when "Other" is picked.
+function legOther(sel){ var inp=sel.parentNode.querySelector('.city-other'); if(inp) inp.classList.toggle('hidden', sel.value!=='__other__'); }
+function legCityVal(el,selClass){ var s=el.querySelector(selClass); if(!s) return ''; if(s.value==='__other__'){ var t=s.parentNode.querySelector('.city-other'); return t?t.value.trim():''; } return s.value; }
+function setLegCity(el,selClass,value){ var s=el.querySelector(selClass); if(!s) return; value=value||''; var has=[].some.call(s.options,function(o){return o.value===value;}); var inp=s.parentNode.querySelector('.city-other');
+  if(value&&has){ s.value=value; if(inp){inp.classList.add('hidden');inp.value='';} }
+  else if(value){ s.value='__other__'; if(inp){inp.classList.remove('hidden');inp.value=value;} }
+  else { s.value=''; if(inp){inp.classList.add('hidden');inp.value='';} } }
+function addFlight(){
+  var d=document.createElement('div'); d.className='leg'; d.setAttribute('data-k','flight');
+  d.innerHTML='<button type="button" class="leg-rm" onclick="this.closest(\'.leg\').remove()">✕ Remove</button>'
+    +'<div class="leg-t">✈️ Extra flight</div>'
+    +'<div class="grid">'
+      +'<div class="field"><label>From</label><select class="lf-from" onchange="legOther(this)">'+cityOptionsHTML()+'</select><input class="city-other hidden" placeholder="Type city / airport"></div>'
+      +'<div class="field"><label>To</label><select class="lf-to" onchange="legOther(this)">'+cityOptionsHTML()+'</select><input class="city-other hidden" placeholder="Type city / airport"></div>'
+      +'<div class="field"><label>Flight Date</label><input type="date" class="lf-date"></div>'
+      +'<div class="field"><label>Flight Time <span class="tag">Optional</span></label><div class="timepick"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><input type="hidden" class="lf-time"></div></div>'
+    +'</div>';
+  $('flights-list').appendChild(d);
+  fillTimeOptions();
+  applyDateMins();
+}
+function addHotel(){
+  var d=document.createElement('div'); d.className='leg'; d.setAttribute('data-k','hotel');
+  d.innerHTML='<button type="button" class="leg-rm" onclick="this.closest(\'.leg\').remove()">✕ Remove</button>'
+    +'<div class="leg-t">🏨 Extra hotel</div>'
+    +'<div class="grid">'
+      +'<div class="field span2"><label>City / Location</label><select class="lh-city" onchange="legOther(this)">'+cityOptionsHTML()+'</select><input class="city-other hidden" placeholder="Type city"></div>'
+      +'<div class="field"><label>Check-in</label><input type="date" class="lh-in" onchange="applyDateMaxes()"></div>'
+      +'<div class="field"><label>Check-out</label><input type="date" class="lh-out"></div>'
+    +'</div>';
+  $('hotels-list').appendChild(d);
+  applyDateMins();
+}
+function collectFlights(){
+  return [].map.call(document.querySelectorAll('#flights-list .leg'), function(el){
+    return { from:legCityVal(el,'.lf-from'), to:legCityVal(el,'.lf-to'), date:el.querySelector('.lf-date').value, time:el.querySelector('.lf-time')?el.querySelector('.lf-time').value:'' };
+  }).filter(function(f){ return f.from||f.to||f.date; });
+}
+function collectHotels(){
+  return [].map.call(document.querySelectorAll('#hotels-list .leg'), function(el){
+    return { city:legCityVal(el,'.lh-city'), checkIn:el.querySelector('.lh-in').value, checkOut:el.querySelector('.lh-out').value };
+  }).filter(function(h){ return h.city||h.checkIn||h.checkOut; });
+}
+// ---- additional passengers (group travel) ----
+function addPassenger(){
+  var d=document.createElement('div'); d.className='leg'; d.setAttribute('data-k','pax');
+  d.innerHTML='<button type="button" class="leg-rm" onclick="this.closest(\'.leg\').remove()">✕ Remove</button>'
+    +'<div class="leg-t">👤 Additional passenger</div>'
+    +'<div class="grid">'
+      +'<div class="field"><label>Full Name</label><input class="px-name" placeholder="e.g. Sanjay Kumar"></div>'
+      +'<div class="field"><label>Email</label><input class="px-email" type="email" placeholder="sanjay@spyne.ai"></div>'
+    +'</div>';
+  $('pax-list').appendChild(d);
+}
+function collectPassengers(){
+  return [].map.call(document.querySelectorAll('#pax-list .leg'), function(el){
+    return { name:el.querySelector('.px-name').value.trim(), email:el.querySelector('.px-email').value.trim() };
+  }).filter(function(x){ return x.name||x.email; });
+}
+
+// ---- submit ----
+function showErr(msg){ var b=$('err-banner'); b.textContent=msg; b.classList.add('show'); b.scrollIntoView({behavior:'smooth',block:'center'}); }
+function clearErr(){ $('err-banner').classList.remove('show'); }
+
+function buildPayload(){
+  return {
+    name:val('f-name'), empId:val('f-empid'), dept:val('f-dept'), email:val('f-email'),
+    bookingFor:state.bookFor,
+    travelType:state.travelType, tripType:state.tripType,
+    from:cityVal('f-from'), to:cityVal('f-to'), returnFrom:cityVal('f-returnfrom'), returnTo:cityVal('f-returnto'),
+    originCountry:countryOf(cityVal('f-from')), destCountry:countryOf(cityVal('f-to')),
+    startDate:val('f-start'), returnDate:val('f-return'),
+    flightTimes:{ out:val('f-start-time'), ret:val('f-return-time') },
+    prefFlightDoc:state.docs.prefFlight||'', prefFlightNotes:val('f-prefflight-notes'),
+    hotelNeeded:(state.hotel!=='no'),
+    hotelCountry:val('f-hotel-country'), hotelCity:cityVal('f-hotel-city'),
+    hotelCheckIn:val('f-hotel-checkin'), hotelCheckOut:val('f-hotel-checkout'),
+    purpose:(val('f-purpose')==='Other' ? ('Other — '+val('f-purpose-other')) : val('f-purpose')), transportMode:val('f-mode'),
+    forexNeeded:(isIntl() && $('f-forex').checked),
+    visaNeeded:(isIntl() && !($('f-visa') && $('f-visa').checked)),
+    nationality:val('f-nationality'), passportNo:val('f-passportno'), passportIssue:val('f-passportissue'),
+    passportExpiry:val('f-passportexpiry'), panNo:val('f-panno'),
+    designation:val('f-designation'), address:val('f-address'), mobile:val('f-mobile'),
+    docPassport:state.docs.passport||'', docVisa:state.docs.visa||'',
+    idDocType:idDocType(), docAadhaar:state.docs.aadhaar||'', docPan:state.docs.pan||'', docNationalId:state.docs.nationalId||'',
+    extraFlights:collectFlights(), extraHotels:collectHotels(), extraPassengers:collectPassengers(),
+    notes:[ ($('breach-justify-wrap') && !$('breach-justify-wrap').classList.contains('hidden') && val('f-breach-justify')) ? ('⚠ Short-notice justification: '+val('f-breach-justify')) : '', val('f-notes'), (val('f-mode-notes') && !/flight/i.test(val('f-mode'))) ? (val('f-mode').replace(/\s*\(.*\)/,'')+': '+val('f-mode-notes')) : ''].filter(Boolean).join(' — ')
+  };
+}
+function idDocType(){
+  var c=val('f-nationality');
+  if(c==='India') return 'Aadhaar & PAN (India)';
+  if(c==='United States') return val('f-usid-type')||'US Government ID';
+  return c ? ('National ID — '+c) : '';
+}
+
+function clearInvalid(){ Array.prototype.forEach.call(document.querySelectorAll('.field-invalid'), function(e){ e.classList.remove('field-invalid'); }); }
+function showInvalid(els){
+  els.forEach(function(e){ if(e){ var t=(e.tagName==='INPUT'||e.tagName==='SELECT'||e.tagName==='TEXTAREA')?(e.closest('.field')||e):e; t.classList.add('field-invalid'); } });
+  var first=els[0]; if(first){ try{ first.scrollIntoView({behavior:'smooth',block:'center'}); }catch(_){ } if(first.focus){ setTimeout(function(){ try{ first.focus({preventScroll:true}); }catch(_){ } },250); } }
+}
+function submitForm(){
+  clearErr(); clearInvalid();
+  var miss=[], badEls=[];
+  function mark(label,ref){ miss.push(label); var el=(typeof ref==='string')?$(ref):ref; if(el) badEls.push(el); }
+  if(!val('f-name')) mark('Full Name','f-name');
+  if(!val('f-dept')) mark('Department','f-dept');
+  if(!state.travelType) mark('Travel Type','ttype-cards');
+  if(!cityVal('f-from')) mark('Origin','f-from');
+  if(!cityVal('f-to')) mark('Destination','f-to');
+  if(!val('f-start')) mark('Start Date','f-start');
+  if(state.tripType==='round' && !val('f-return')) mark('Return Date','f-return');
+  if(state.tripType==='round' && !cityVal('f-returnfrom')) mark('Return From','f-returnfrom');
+  if(state.tripType==='round' && !cityVal('f-returnto')) mark('Return To','f-returnto');
+  if(!val('f-mode')) mark('Transport','f-mode');
+  if(state.hotel==='yes'){
+    if(!val('f-hotel-country')) mark('Hotel country','f-hotel-country');
+    if(!cityVal('f-hotel-city')) mark('Hotel city','f-hotel-city');
+    if(!val('f-hotel-checkin')) mark('Hotel check-in','f-hotel-checkin');
+    if(!val('f-hotel-checkout')) mark('Hotel check-out','f-hotel-checkout');
+  }
+  // Date validations — no back-dating; a booking start (going / check-in) ≤ today+90, and the span (return ≤ going+90, check-out ≤ check-in+90). (ISO yyyy-mm-dd compares correctly.)
+  var _t=todayLocal(), _tmax=addDaysISO(_t,MAX_BOOK_DAYS);
+  if(val('f-start') && val('f-start') < _t) mark('Going date can’t be in the past','f-start');
+  if(val('f-start') && val('f-start') > _tmax) mark('Going date can’t be more than 90 days from today','f-start');
+  if(state.tripType==='round' && val('f-return') && val('f-start')){
+    if(val('f-return') < val('f-start')) mark('Return date must be on/after the going date','f-return');
+    else if(val('f-return') > addDaysISO(val('f-start'),MAX_BOOK_DAYS)) mark('Return date can’t be more than 90 days after the going date','f-return');
+  }
+  if(state.hotel==='yes'){
+    if(val('f-hotel-checkin') && val('f-hotel-checkin') < _t) mark('Hotel check-in can’t be in the past','f-hotel-checkin');
+    if(val('f-hotel-checkin') && val('f-hotel-checkin') > _tmax) mark('Hotel check-in can’t be more than 90 days from today','f-hotel-checkin');
+    if(val('f-hotel-checkout') && val('f-hotel-checkin')){
+      if(val('f-hotel-checkout') < val('f-hotel-checkin')) mark('Hotel check-out must be on/after check-in','f-hotel-checkout');
+      else if(val('f-hotel-checkout') > addDaysISO(val('f-hotel-checkin'),MAX_BOOK_DAYS)) mark('Hotel check-out can’t be more than 90 days after check-in','f-hotel-checkout');
+    }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#flights-list .leg'), function(el){ var d=el.querySelector('.lf-date'); if(d&&d.value){ if(d.value<_t) mark('A flight date is in the past',d); else if(d.value>_tmax) mark('A flight date is more than 90 days from today',d); } });
+  Array.prototype.forEach.call(document.querySelectorAll('#hotels-list .leg'), function(el){ var i=el.querySelector('.lh-in'), o=el.querySelector('.lh-out');
+    if(i&&i.value){ if(i.value<_t) mark('A hotel check-in is in the past',i); else if(i.value>_tmax) mark('A hotel check-in is more than 90 days from today',i); }
+    if(i&&o&&i.value&&o.value){ if(o.value<i.value) mark('A hotel check-out is before check-in',o); else if(o.value>addDaysISO(i.value,MAX_BOOK_DAYS)) mark('A hotel check-out is more than 90 days after check-in',o); } });
+  if(val('f-purpose')==='Other' && !val('f-purpose-other')) mark('Purpose details','f-purpose-other');
+  if($('breach-justify-wrap') && !$('breach-justify-wrap').classList.contains('hidden') && !val('f-breach-justify')) mark('Reason for short notice','f-breach-justify');
+  if(isIntl()){
+    // Documents are mandatory for ALL international trips (passport + ID). Visa copy only if held; PAN No. only when forex card needed.
+    if(!val('f-nationality')) mark('Nationality','f-nationality');
+    if(!val('f-passportno')) mark('Passport No.','f-passportno');
+    if(!val('f-passportissue')) mark('Passport issue','f-passportissue');
+    if(!val('f-passportexpiry')) mark('Passport expiry','f-passportexpiry');
+    if(!val('f-designation')) mark('Designation','f-designation');
+    if(!val('f-mobile')) mark('Mobile','f-mobile');
+    if(!val('f-address')) mark('Residential Address','f-address');
+    if(!state.docs.passport) mark('Passport upload','f-doc-passport');
+    if($('f-visa') && $('f-visa').checked && !state.docs.visa) mark('Visa upload','f-doc-visa');
+    var c=val('f-nationality');
+    if(c==='India'){ if(!state.docs.aadhaar) mark('Aadhaar upload','f-doc-aadhaar'); if(!state.docs.pan) mark('PAN upload','f-doc-pan'); }
+    else if(c){ if(!state.docs.nationalId) mark((c==='United States'?'US ID':'National ID')+' upload','f-doc-nationalId'); }
+    if($('f-forex') && $('f-forex').checked && !val('f-panno')) mark('PAN No.','f-panno');
+  }
+  if(miss.length){ showInvalid(badEls); showErr('Please fix the highlighted '+(miss.length>1?'fields':'field')+': '+miss.join(', ')); return; }
+  var tm=typeMismatch(); if(tm){ showErr(tm.replace(/<\/?b>/g,'')); return; }
+
+  var btn=$('submit-btn'); btn.disabled=true; btn.textContent= EDIT_ID ? 'Updating…' : 'Submitting…';
+  var payload=buildPayload();
+  var url = EDIT_ID ? '/api/me' : '/api/submit';
+  var body = EDIT_ID ? { action:'edit', id:EDIT_ID, payload:payload } : payload;
+
+  fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'same-origin',
+    body: JSON.stringify(body)
+  })
+  .then(function(r){ return r.json().catch(function(){ return {ok:false,error:'Server error ('+r.status+')'}; }); })
+  .then(onSubmitOk)
+  .catch(function(err){ btn.disabled=false; btn.textContent=submitLabel(); showErr(err && err.message || String(err)); });
+}
+function submitLabel(){ return EDIT_ID ? 'Update Request ✓' : 'Submit Request ✈'; }
+
+function onSubmitOk(res){
+  var btn=$('submit-btn'); btn.disabled=false; btn.textContent=submitLabel();
+  if(!res || !res.ok){ showErr((res && res.error) || 'Submission failed.'); return; }
+  clearDraft();
+  $('success-id').textContent=res.id;
+  if(res.duplicate){ var note=$('success-id'); note.textContent=res.id+' (already submitted moments ago)'; }
+  var chain=res.chain||['HOD','Updated','Confirmed'];
+  $('success-tl').innerHTML = chain.map(function(s,i){
+    return '<div class="tl-i"><div style="display:flex;flex-direction:column;align-items:center;">'
+      +'<div class="tl-dot">'+(i+1)+'</div><div class="tl-lb">'+s+'</div></div>'
+      +(i<chain.length-1?'<div class="tl-ln"></div>':'')+'</div>';
+  }).join('');
+  $('form-body').style.display='none';
+  $('success').classList.add('show');
+  window.scrollTo(0,0);
+}
+
+// ---- edit existing request / draft restore ----
+// Booking dates must be today..+90 days (not in the past, not more than 90 days out). Passport expiry is exempt.
+function todayLocal(){ var d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function plusDaysLocal(n){ var d=new Date(); d.setDate(d.getDate()+n); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+var MAX_BOOK_DAYS=90; // max trip span: return ≤ going+90, checkout ≤ check-in+90
+function addDaysISO(iso,n){ if(!iso) return ''; var p=iso.split('-'); var d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2])); d.setDate(d.getDate()+n); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function applyDateMins(){ var t=todayLocal(); Array.prototype.forEach.call(document.querySelectorAll('input[type=date]'), function(el){ if(el.id!=='f-passportexpiry') el.min=t; }); applyDateMaxes(); }
+// Two caps: a "start" date (going / check-in) can't be more than 90 days from today (can't book too far ahead),
+// and an "end" date (return / check-out) can't be more than 90 days after its own start.
+function applyDateMaxes(){
+  var t=todayLocal(), tmax=addDaysISO(t,MAX_BOOK_DAYS);
+  var fs=$('f-start'); if(fs){ fs.min=t; fs.max=tmax; }
+  var start=val('f-start');
+  var ret=$('f-return'); if(ret){ ret.min=start||t; ret.max=start?addDaysISO(start,MAX_BOOK_DAYS):tmax; }
+  var hin=val('f-hotel-checkin');
+  var hci=$('f-hotel-checkin'); if(hci){ hci.min=t; hci.max=tmax; }
+  var hout=$('f-hotel-checkout'); if(hout){ hout.min=hin||t; hout.max=hin?addDaysISO(hin,MAX_BOOK_DAYS):tmax; }
+  document.querySelectorAll('#hotels-list .leg').forEach(function(el){ var i=el.querySelector('.lh-in'), o=el.querySelector('.lh-out'); if(i){ i.min=t; i.max=tmax; } if(i&&o){ o.min=i.value||t; o.max=i.value?addDaysISO(i.value,MAX_BOOK_DAYS):tmax; } });
+  document.querySelectorAll('#flights-list .leg .lf-date').forEach(function(el){ el.min=t; el.max=tmax; });
+}
+function onTripDates(){ applyDateMaxes(); recalc(); }
+function afterBoot(){
+  fillTimeOptions();
+  applyDateMins();
+  // Clear a field's red highlight as soon as the user starts fixing it.
+  var clr=function(e){ var t=e.target; if(!t||!t.closest) return; var box=t.closest('.field-invalid'); if(box) box.classList.remove('field-invalid'); if(t.classList) t.classList.remove('field-invalid'); };
+  document.addEventListener('input', clr, true);
+  document.addEventListener('change', clr, true);
+  var editId = new URLSearchParams(location.search).get('edit');
+  if(editId){ enterEditMode(editId); return; }
+  attachDraftAutosave();
+  maybeRestoreDraft();
+}
+function enterEditMode(id){
+  fetch('/api/me?mine=1',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    var row=((d&&d.rows)||[]).filter(function(x){return x.id===id;})[0];
+    if(!row){ showErr('Could not load request '+id+' to edit.'); return; }
+    if(!row.canEdit){ showErr('Request '+id+' can no longer be edited (it has progressed past HOD approval). Withdraw it and submit a new one instead.'); return; }
+    EDIT_ID=id;
+    var ed=row.edit||{}; ed.name=row.traveller||'';
+    prefillForm(ed);
+    var btn=$('submit-btn'); if(btn) btn.textContent=submitLabel();
+    var banner=$('edit-banner'); if(banner){
+      banner.innerHTML = (row.clarifyNote
+        ? '↩ <b>Clarification requested by your approver:</b><br>“'+esc(row.clarifyNote)+'”<br><span style="font-weight:600;">Update your request to address it, then resubmit — it will go back for approval.</span>'
+        : '✏️ Editing '+esc(id)+' — saving resends it for HOD approval.');
+      banner.classList.remove('hidden');
+    }
+    window.scrollTo(0,0);
+  }).catch(function(e){ showErr('Edit load failed: '+(e&&e.message||e)); });
+}
+// Fill the whole form from a data object (used by edit + draft restore).
+function prefillForm(ed){
+  if(!ed) return;
+  if(ed.name){ var fn=$('f-name'); if(fn) fn.value=ed.name; }
+  if(ed.dept){ $('f-dept').value=ed.dept; onDept(); }
+  if(ed.travelType){ onType(ed.travelType); }
+  onTrip(ed.tripType==='one'?'one':'round');
+  ['from|f-from','to|f-to','returnFrom|f-returnfrom','returnTo|f-returnto'].forEach(function(m){
+    var p=m.split('|'); if(ed[p[0]]!=null) setCity(p[1], ed[p[0]]);
+  });
+  if(ed.startDate) $('f-start').value=ed.startDate;
+  if(ed.returnDate) $('f-return').value=ed.returnDate;
+  if(ed.flightTimes){ if($('f-start-time')){ $('f-start-time').value=ed.flightTimes.out||''; syncTimePicker($('f-start-time')); } if($('f-return-time')){ $('f-return-time').value=ed.flightTimes.ret||''; syncTimePicker($('f-return-time')); } }
+  if(ed.prefFlightNotes && $('f-prefflight-notes')) $('f-prefflight-notes').value=ed.prefFlightNotes;
+  if(ed.prefFlightDoc){ state.docs.prefFlight=ed.prefFlightDoc; var up=$('up-prefflight'); if(up){ up.className='hint ok'; up.innerHTML='✓ attached (<a class="lnk" href="'+esc(ed.prefFlightDoc)+'" target="_blank">view</a>)'; } }
+  // hotel block
+  onHotel(ed.hotelNeeded===false ? 'no' : 'yes');
+  if(ed.hotelNeeded!==false){
+    if(ed.hotelCountry && $('f-hotel-country')){ $('f-hotel-country').value=ed.hotelCountry; onHotelCountry(); }
+    if(ed.hotelCity) setCity('f-hotel-city', ed.hotelCity);
+    if(ed.hotelCheckIn && $('f-hotel-checkin')) $('f-hotel-checkin').value=ed.hotelCheckIn;
+    if(ed.hotelCheckOut && $('f-hotel-checkout')) $('f-hotel-checkout').value=ed.hotelCheckOut;
+  }
+  if(ed.transportMode){ $('f-mode').value=ed.transportMode; onMode(); }
+  if(ed.notes) $('f-notes').value=ed.notes;
+  // purpose may be a preset or "Other — …"
+  if(ed.purpose){
+    var sel=$('f-purpose'); sel.value=ed.purpose;
+    if(sel.value!==ed.purpose){ sel.value='Other'; onPurpose(); var o=$('f-purpose-other'); if(o) o.value=ed.purpose.replace(/^Other — /,''); }
+  }
+  if(isIntl()){
+    if($('f-forex')){ $('f-forex').checked=!!ed.forexNeeded; recalc(); }
+    if($('f-visa')) $('f-visa').checked = !ed.visaNeeded; // checkbox = "already have visa"
+    // forex / passport details
+    [['nationality','f-nationality'],['passportNo','f-passportno'],['passportIssue','f-passportissue'],
+     ['passportExpiry','f-passportexpiry'],['panNo','f-panno'],
+     ['designation','f-designation'],['mobile','f-mobile'],['address','f-address']].forEach(function(m){
+      if(ed[m[0]]!=null && $(m[1])) $(m[1]).value=ed[m[0]];
+    });
+    if(ed.nationality) updateIdDocs();
+  }
+  $('flights-list').innerHTML=''; (ed.extraFlights||[]).forEach(function(f){ addFlight(); var el=$('flights-list').lastChild;
+    setLegCity(el,'.lf-from',f.from); setLegCity(el,'.lf-to',f.to); el.querySelector('.lf-date').value=f.date||''; var lt=el.querySelector('.lf-time'); if(lt){ lt.value=f.time||''; syncTimePicker(lt); } });
+  $('hotels-list').innerHTML=''; (ed.extraHotels||[]).forEach(function(h){ addHotel(); var el=$('hotels-list').lastChild;
+    setLegCity(el,'.lh-city',h.city); el.querySelector('.lh-in').value=h.checkIn||''; el.querySelector('.lh-out').value=h.checkOut||''; });
+  $('pax-list').innerHTML=''; (ed.extraPassengers||[]).forEach(function(x){ addPassenger(); var el=$('pax-list').lastChild;
+    el.querySelector('.px-name').value=x.name||''; el.querySelector('.px-email').value=x.email||''; });
+  updateIdDocs(); recalc();
+}
+// ---- save draft (localStorage) ----
+function snapshotDraft(){
+  return { name:val('f-name'), dept:val('f-dept'), travelType:state.travelType, tripType:state.tripType,
+    from:cityVal('f-from'), to:cityVal('f-to'), returnFrom:cityVal('f-returnfrom'), returnTo:cityVal('f-returnto'),
+    startDate:val('f-start'), returnDate:val('f-return'),
+    flightTimes:{ out:val('f-start-time'), ret:val('f-return-time') }, prefFlightNotes:val('f-prefflight-notes'),
+    hotelNeeded:(state.hotel!=='no'), hotelCountry:val('f-hotel-country'), hotelCity:cityVal('f-hotel-city'),
+    hotelCheckIn:val('f-hotel-checkin'), hotelCheckOut:val('f-hotel-checkout'),
+    purpose:(val('f-purpose')==='Other'?('Other — '+val('f-purpose-other')):val('f-purpose')),
+    transportMode:val('f-mode'), notes:val('f-notes'),
+    forexNeeded:(isIntl()&&$('f-forex')&&$('f-forex').checked),
+    visaNeeded:(isIntl()&&!($('f-visa')&&$('f-visa').checked)),
+    extraFlights:collectFlights(), extraHotels:collectHotels(), extraPassengers:collectPassengers(), _ts:Date.now() };
+}
+function attachDraftAutosave(){
+  var fb=$('form-body'); if(!fb) return;
+  var save=function(){ if(EDIT_ID) return; try{ var d=snapshotDraft(); if(d.dept||d.from||d.to||d.startDate) localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); }catch(e){} };
+  fb.addEventListener('input', save); fb.addEventListener('change', save);
+}
+function clearDraft(){ try{ localStorage.removeItem(DRAFT_KEY); }catch(e){} var b=$('draft-banner'); if(b) b.classList.add('hidden'); }
+function maybeRestoreDraft(){
+  var raw; try{ raw=localStorage.getItem(DRAFT_KEY); }catch(e){ return; }
+  if(!raw) return;
+  var b=$('draft-banner'); if(!b) return;
+  b.innerHTML='💾 You have an unsaved draft. <button type="button" id="draft-restore" class="lnk">Restore</button> · <button type="button" id="draft-discard" class="lnk">Discard</button>';
+  b.classList.remove('hidden');
+  $('draft-restore').onclick=function(){ try{ prefillForm(JSON.parse(raw)); }catch(e){} b.classList.add('hidden'); };
+  $('draft-discard').onclick=function(){ clearDraft(); };
+}
+
+function resetForm(){
+  EDIT_ID=null; var eb=$('edit-banner'); if(eb) eb.classList.add('hidden');
+  $('success').classList.remove('show');
+  $('form-body').style.display='';
+  document.querySelectorAll('#form-body input:not([readonly]),#form-body select,#form-body textarea').forEach(function(e){
+    if(e.type==='checkbox') e.checked=false; else e.value='';
+  });
+  $('f-hod').value=''; $('f-duration').value='';
+  document.querySelectorAll('.city-other').forEach(function(e){ e.classList.add('hidden'); e.value=''; });
+  $('flights-list').innerHTML=''; $('hotels-list').innerHTML=''; $('pax-list').innerHTML='';
+  ['up-passport','up-visa'].forEach(function(i){ var e=$(i); if(e){ e.textContent=''; e.className='hint'; } });
+  state={travelType:'',tripType:'round',docs:{},bookFor:'self',hotel:'yes'};
+  updateIdDocs();
+  document.querySelectorAll('.rc').forEach(function(c){ c.classList.remove('sel'); });
+  document.querySelector('[data-trip="round"]').classList.add('sel');
+  onBookFor('self'); // restore "Myself" defaults (name/email prefill + lock)
+  onHotel('yes');    // restore hotel = Yes default
+  $('returndate-wrap').classList.remove('hidden'); $('returnleg-wrap').style.display='';
+  clearErr(); recalc(); window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>

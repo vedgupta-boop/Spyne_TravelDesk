@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne Expense Approval · Department</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 20px 60px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;}
+.kpi .num{font-size:24px;font-weight:900;color:var(--navy);margin-top:6px;}
+.kpi.amber .num{color:#B45309;}.kpi.green .num{color:var(--green);}.kpi.red .num{color:var(--red2);}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.scopechip{background:var(--amb-l);color:#92400E;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:800;}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:1100px;}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+th.r,td.r{text-align:right;}
+td{padding:10px 12px;border-bottom:1px solid var(--gray-2);white-space:nowrap;vertical-align:top;}
+tr:hover td{background:var(--gray-1);}
+.id{font-weight:800;color:var(--navy);}.muted{color:var(--gray-5);}.amt{font-variant-numeric:tabular-nums;font-weight:700;}
+.cost-link{cursor:pointer;border-bottom:1px dashed var(--sky);color:var(--navy);}.cost-link:hover{color:var(--sky);}.caret{font-size:9px;color:var(--sky);margin-left:3px;}
+.st{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.approved{background:var(--grn-l);color:#065F46;}.st.rejected{background:var(--red2-l);color:var(--red2);}.st.hold{background:#EDE9FE;color:#5B21B6;}
+.tier-high{color:var(--red2);font-weight:800;}.tier-std{color:var(--green);font-weight:700;}
+.empty,.loading{padding:50px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.drawer-ov{position:fixed;inset:0;background:rgba(13,27,42,.45);opacity:0;visibility:hidden;transition:opacity .2s;z-index:40;}
+.drawer-ov.open{opacity:1;visibility:visible;}
+.drawer{position:fixed;top:0;right:0;height:100%;width:430px;max-width:92vw;background:#fff;box-shadow:-8px 0 30px rgba(13,27,42,.25);transform:translateX(100%);transition:transform .25s ease;z-index:41;display:flex;flex-direction:column;}
+.drawer.open{transform:translateX(0);}
+.drawer-hd{background:var(--navy);color:#fff;padding:18px 20px;}.drawer-hd .x{float:right;cursor:pointer;font-size:20px;line-height:1;color:rgba(255,255,255,.8);}
+.drawer-hd .did{font-size:15px;font-weight:900;}.drawer-hd .dsub{font-size:12px;color:var(--gray-5);margin-top:3px;}
+.drawer-bd{padding:18px 20px;overflow-y:auto;flex:1;}
+.bd-amt{background:var(--gray-1);border-radius:10px;padding:14px 16px;}.bd-amt .big{font-size:22px;font-weight:900;color:var(--navy);}.bd-amt .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.4px;}
+.bd-tbl{width:100%;border-collapse:collapse;font-size:13px;}.bd-tbl td{padding:9px 4px;border-bottom:1px solid var(--gray-2);vertical-align:top;}.bd-tbl .li{font-weight:700;color:var(--gray-7);width:42%;}
+.kvbox{margin-top:8px;}.kv{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:13px;line-height:1.35;}.kv .kk{color:var(--gray-7);font-weight:600;white-space:nowrap;}.kv .vv{font-weight:700;text-align:right;color:var(--ink);}
+.bd-sec{margin-top:16px;font-size:11px;font-weight:800;color:var(--gray-5);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.bd-cmt{font-size:12px;color:var(--gray-7);background:var(--gray-1);border-radius:8px;padding:9px 12px;margin-top:6px;white-space:pre-wrap;line-height:1.5;}
+.bd-doc{display:inline-block;margin-top:10px;color:var(--sky);font-weight:700;font-size:13px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne Expense Approval Dashboard</div><div class="logo-sub">Department — Overview</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="exp-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div id="kpis" class="cards"></div>
+  <div class="bar">
+    <div class="title">Department Expenses <span class="scopechip" id="scopechip">—</span></div>
+    <div class="filters" id="filters">
+      <span class="chip active" data-f="all" onclick="setFilter('all')">All</span>
+      <span class="chip" data-f="progress" onclick="setFilter('progress')">In progress</span>
+      <span class="chip" data-f="completed" onclick="setFilter('completed')">Approved</span>
+      <span class="chip" data-f="rejected" onclick="setFilter('rejected')">Rejected</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div id="loading" class="loading">Loading…</div>
+    <div class="tbl-scroll hidden" id="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="r">Sr.</th><th>Requester</th><th>Item / Service</th><th>Vendor</th><th>Type</th>
+          <th class="r">Amount</th><th>Tier</th><th>Submission</th><th>Status</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty hidden">No requests for your department.</div>
+  </div>
+</div>
+
+<div class="drawer-ov" id="cost-ov" onclick="closeCost()"></div>
+<aside class="drawer" id="cost-drawer" aria-hidden="true">
+  <div class="drawer-hd"><span class="x" onclick="closeCost()">×</span><div class="did" id="cd-id"></div><div class="dsub" id="cd-sub"></div></div>
+  <div class="drawer-bd" id="cd-body"></div>
+</aside>
+
+<script>
+var DATA={rows:[]}, VIEW=[], FILTER='all';
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(cur,x){ cur=cur||'INR'; return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden'); document.getElementById('empty').classList.add('hidden');
+  fetch('/api/decision?view=approvals',{credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('dept '+r.status); return r.json(); }).then(onData).catch(onFail);
+}
+function onFail(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); }
+function bucket(s){ s=String(s||''); if(/reject/i.test(s)) return 'rejected'; if(/^approved$/i.test(s)) return 'completed'; return 'progress'; }
+function onData(d){
+  DATA=d||{rows:[]};
+  document.getElementById('scopechip').textContent=DATA.scope||'Department';
+  document.getElementById('loading').classList.add('hidden');
+  renderKpis(); render();
+}
+function renderKpis(){
+  var rows=DATA.rows||[];
+  var prog=rows.filter(function(r){return bucket(r.status)==='progress';}).length;
+  var done=rows.filter(function(r){return bucket(r.status)==='completed';}).length;
+  var rej=rows.filter(function(r){return bucket(r.status)==='rejected';}).length;
+  document.getElementById('kpis').innerHTML=
+    '<div class="kpi"><div class="lb">Total Requests</div><div class="num">'+rows.length+'</div></div>'
+   +'<div class="kpi amber"><div class="lb">In Progress</div><div class="num">'+prog+'</div></div>'
+   +'<div class="kpi green"><div class="lb">Approved</div><div class="num">'+done+'</div></div>'
+   +'<div class="kpi red"><div class="lb">Rejected</div><div class="num">'+rej+'</div></div>';
+}
+function setFilter(f){ FILTER=f; document.querySelectorAll('#filters .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.f===f); }); render(); }
+function filtered(){ return (DATA.rows||[]).filter(function(r){ return FILTER==='all' || bucket(r.status)===FILTER; }); }
+function shortStatus(s){ s=String(s||''); if(/on hold/i.test(s))return 'On Hold'; if(/reject/i.test(s))return 'Rejected'; if(/pending hod|department/i.test(s))return 'Awaiting HOD'; if(/pending sanjay|ceo/i.test(s))return 'At Sanjay'; if(/pending finance/i.test(s))return 'At Finance'; if(/^approved$/i.test(s))return 'Approved'; return s; }
+function stPill(s){ var c=/on hold/i.test(s)?'hold':(/reject/i.test(s)?'rejected':(/^approved$/i.test(s)?'approved':'pending')); return '<span class="st '+c+'">'+esc(shortStatus(s))+'</span>'; }
+function render(){
+  var rows=filtered(); VIEW=rows;
+  if(!rows.length){ document.getElementById('empty').classList.remove('hidden'); document.getElementById('tbl-wrap').classList.add('hidden'); return; }
+  document.getElementById('empty').classList.add('hidden'); document.getElementById('tbl-wrap').classList.remove('hidden');
+  document.getElementById('rows').innerHTML=rows.map(row).join('');
+}
+function row(r,i){
+  var freq=(r.frequency&&r.frequency!=='One-time')?' <span class="muted">/ '+esc(r.frequency.toLowerCase())+'</span>':'';
+  return '<tr>'
+    +'<td class="r muted">'+(i+1)+'</td>'
+    +'<td>'+esc(r.name)+'<div class="muted" style="font-size:11px;">'+esc(r.email)+'</div></td>'
+    +'<td><span class="cost-link" onclick="openCost('+i+')">'+esc(r.item)+'<span class="caret">▸</span></span></td>'
+    +'<td class="muted">'+esc(r.vendor)+'</td>'
+    +'<td class="muted">'+esc(r.reqType)+'</td>'
+    +'<td class="r amt">'+esc(r.amountLabel)+freq+'</td>'
+    +'<td>'+(r.high?'<span class="tier-high">High</span>':'<span class="tier-std">Std</span>')+'</td>'
+    +'<td class="muted">'+esc(r.submission)+'</td>'
+    +'<td>'+stPill(r.status)+'</td>'
+  +'</tr>';
+}
+function openCost(i){
+  var r=VIEW[i]; if(!r) return; var d=r.detail||{}; var cur=r.currency||'INR';
+  document.getElementById('cd-id').textContent=r.id;
+  document.getElementById('cd-sub').textContent=(r.name||'')+' · '+(r.dept||'');
+  var recurring=(d.frequency&&d.frequency!=='One-time');
+  var html='<div class="bd-amt"><div class="lb">Amount requested</div><div class="big">'+esc(fmt(cur,d.amount))+' <span style="font-size:13px;font-weight:600;color:#8A97AA;">· '+esc(d.frequency||'One-time')+'</span></div>'
+    +(recurring?'<div class="muted" style="font-size:12px;margin-top:2px;">Annualised: '+esc(fmt(cur,d.annual))+'</div>':'')+'</div>';
+  html+='<div class="kvbox">'
+    +row2('Request type', d.reqType)+row2('Category', d.category)+row2('Item / service', d.item)+row2('Vendor', d.vendor)
+    +row2('Needed by', d.needBy)+row2('Approval tier', d.tier)+'</div>';
+  html+='<div class="bd-sec">Purpose / justification</div><div class="bd-cmt">'+esc(d.purpose||'—')+'</div>';
+  html+= d.doc ? '<a class="bd-doc" href="'+esc(d.doc)+'" target="_blank">📎 View quotation / invoice</a>' : '';
+  if(r.comments){ html+='<div class="bd-sec">Approver remarks</div><div class="bd-cmt">'+esc(r.comments)+'</div>'; }
+  document.getElementById('cd-body').innerHTML=html;
+  document.getElementById('cost-drawer').classList.add('open'); document.getElementById('cost-drawer').setAttribute('aria-hidden','false'); document.getElementById('cost-ov').classList.add('open');
+}
+function row2(k,v){ if(v==null||v==='') return ''; return '<div class="kv"><span class="kk">'+esc(k)+'</span><span class="vv">'+esc(v)+'</span></div>'; }
+function closeCost(){ document.getElementById('cost-drawer').classList.remove('open'); document.getElementById('cost-drawer').setAttribute('aria-hidden','true'); document.getElementById('cost-ov').classList.remove('open'); }
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeCost(); });
+requireView(['hod','ceo'], function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

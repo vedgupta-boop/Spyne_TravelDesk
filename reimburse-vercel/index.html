@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spyne ReimburseDesk · New Claim</title>
+<style>
+  :root{
+    --navy:#0D1B2A; --ink:#1a2332; --gray-1:#f6f8fb; --gray-2:#eef2f7; --gray-3:#e2e8f0;
+    --gray-5:#8A97AA; --gray-6:#5b6b80; --red:#E8232A; --green:#0a8a0a; --sky:#0077CC;
+    --amber:#b8860b; --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;background:var(--gray-1);color:var(--ink);}
+  .topbar{background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .logo-sq{width:32px;height:32px;border-radius:8px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;}
+  .brand{font-weight:800;font-size:16px;letter-spacing:.2px;}
+  .brand span{color:#9fb3c8;font-weight:600;}
+  .topbar .sp{flex:1}
+  .wrap{max-width:840px;margin:22px auto;padding:0 16px 60px;}
+  .card{background:#fff;border:1px solid var(--gray-3);border-radius:var(--radius);padding:22px;margin-bottom:18px;box-shadow:0 1px 3px rgba(13,27,42,.05);}
+  h1{font-size:20px;margin:0 0 4px;color:var(--navy);}
+  .sub{color:var(--gray-5);font-size:13px;margin:0 0 18px;}
+  h2{font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--navy);margin:0 0 14px;border-bottom:1px solid var(--gray-2);padding-bottom:8px;}
+  label{display:block;font-size:12px;font-weight:700;color:#3D506A;margin:0 0 5px;}
+  .req::after{content:" *";color:var(--red);}
+  input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--gray-3);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink);}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 3px rgba(0,119,204,.12);}
+  textarea{resize:vertical;min-height:60px;}
+  .grid{display:grid;gap:14px;}
+  .g2{grid-template-columns:1fr 1fr;} .g3{grid-template-columns:1fr 1fr 1fr;}
+  .field{margin-bottom:14px;}
+  .hint{font-size:11.5px;color:var(--gray-5);margin-top:4px;}
+  .field-invalid input,.field-invalid select,.field-invalid textarea{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,35,42,.14);}
+  /* line items — Keka-style cards */
+  .lncard{border:1px solid var(--gray-3);border-radius:10px;padding:14px;margin-bottom:12px;background:#fcfdff;}
+  .ln-row{display:grid;gap:12px;align-items:end;margin-bottom:10px;}
+  .ln-row:last-child{margin-bottom:0;}
+  .ln-top{grid-template-columns:150px 1fr 150px 32px;}
+  .ln-mid{grid-template-columns:1fr 220px;}
+  .ln-compute{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+  .lncard label{font-size:11px;font-weight:700;color:#3D506A;margin-bottom:4px;}
+  .lncard input,.lncard select{padding:8px 9px;font-size:13px;}
+  .computed{font-size:16px;font-weight:900;color:var(--navy);padding:8px 0;}
+  .rcpt-btn{display:inline-block;font-size:12px;font-weight:700;color:var(--sky);cursor:pointer;border:1px dashed var(--gray-3);border-radius:7px;padding:8px 9px;text-align:center;width:100%;background:var(--gray-1);}
+  .rcpt-ok{color:var(--green);border-color:#bfe3bf;background:#f3fbf3;}
+  .rcpt-err{color:var(--red);border-color:#f3c0c0;background:#fff5f5;}
+  .rm{color:var(--red);cursor:pointer;font-weight:900;font-size:16px;border:none;background:none;padding:4px 6px;}
+  .addln{margin-top:8px;font-size:13px;font-weight:700;color:var(--sky);background:none;border:1px dashed var(--gray-3);border-radius:8px;padding:8px 12px;cursor:pointer;}
+  .totals{margin-top:14px;border-top:1px solid var(--gray-2);padding-top:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+  .totrow{display:flex;gap:14px;font-size:14px;} .totrow b{min-width:120px;text-align:right;}
+  .net{font-size:20px;font-weight:900;color:var(--navy);}
+  .tierbox{margin-top:10px;font-size:12.5px;font-weight:700;padding:9px 12px;border-radius:8px;background:#EEF2FF;border:1px solid #C7D2FE;color:#3730A3;}
+  .tierbox.hi{background:#FFF7E6;border-color:#F59E0B;color:#92400E;}
+  .actions{display:flex;gap:12px;align-items:center;margin-top:8px;}
+  button.primary{background:var(--red);color:#fff;border:none;border-radius:9px;padding:12px 26px;font-size:15px;font-weight:800;cursor:pointer;}
+  button.primary:disabled{opacity:.55;cursor:not-allowed;}
+  .msg{padding:11px 14px;border-radius:8px;font-size:13.5px;margin-bottom:14px;display:none;}
+  .msg.err{background:#fff5f5;border:1px solid #f3c0c0;color:#b00;display:block;}
+  .msg.warn{background:#FFF7E6;border:1px solid #F59E0B;color:#92400E;display:block;}
+  .timeline{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .step{font-size:12px;font-weight:700;padding:6px 12px;border-radius:16px;background:var(--gray-2);color:#3D506A;}
+  .step:first-child{background:#e6f5e6;color:var(--green);}
+  @media(max-width:680px){ .g2,.g3{grid-template-columns:1fr;} .ln-top,.ln-mid,.ln-compute{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo-sq">S</div>
+  <div class="brand">Spyne <span>ReimburseDesk</span></div>
+  <div class="sp"></div>
+  <div id="rmb-userbar"></div>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <h1>New reimbursement claim</h1>
+    <p class="sub">Claim money you've spent out of pocket. Attach a receipt for every line — it routes to your Department Head, then Finance.</p>
+    <div id="msg" class="msg"></div>
+
+    <div id="form">
+      <h2>Who & what</h2>
+      <div class="grid g2">
+        <div class="field"><label class="req" for="f-name">Your name</label><input id="f-name" autocomplete="name"><div class="hint" id="keka-status"></div></div>
+        <div class="field"><label for="f-empid">Employee ID</label><input id="f-empid" placeholder="optional"></div>
+      </div>
+      <div class="grid g2">
+        <div class="field"><label class="req" for="f-dept">Department</label><select id="f-dept"></select><div class="hint" id="hod-hint"></div></div>
+        <div class="field"><label class="req" for="f-title">Claim title</label><input id="f-title" placeholder="e.g. Client visit — Mumbai, June"></div>
+      </div>
+      <div class="grid g2">
+        <div class="field"><label for="f-project">Project / cost center</label><input id="f-project" placeholder="optional — e.g. ACME onboarding"></div>
+        <div class="field"></div>
+      </div>
+      <div class="grid g3">
+        <div class="field"><label for="f-from">Expense period — from</label><input id="f-from" type="date"></div>
+        <div class="field"><label for="f-to">Expense period — to</label><input id="f-to" type="date"></div>
+        <div class="field"><label class="req" for="f-cur">Currency</label><select id="f-cur"></select></div>
+      </div>
+      <div class="field"><label class="req" for="f-purpose">Purpose / business justification</label><textarea id="f-purpose" placeholder="Why was this spent? Who/what was it for?"></textarea></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Expense lines</h2>
+    <p class="hint" style="margin:-6px 0 12px">Each line is an expense, a <b>mileage</b> claim (distance × rate) or a <b>per-diem</b> (days × rate). A receipt is required for actual expenses.</p>
+    <div id="lines"></div>
+    <button type="button" class="addln" onclick="addLine()">＋ Add line</button>
+
+    <div class="totals">
+      <div class="totrow"><span>Total claimed</span><b id="t-total">—</b></div>
+      <div class="totrow"><span>Less advance taken</span><b id="t-adv">—</b></div>
+      <div class="totrow net"><span>Net reimbursable</span><b id="t-net" class="net">—</b></div>
+    </div>
+    <div id="tierbox" class="tierbox" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h2>Payout</h2>
+    <div class="grid g2">
+      <div class="field"><label for="f-advance">Advance already taken (if any)</label><input id="f-advance" type="number" min="0" step="1" placeholder="0"></div>
+      <div class="field"><label for="f-paymethod">Pay me back via</label><select id="f-paymethod"></select></div>
+    </div>
+    <div class="field"><label for="f-paydetail">Payment detail</label><input id="f-paydetail" placeholder="e.g. last 4 digits of account / UPI — optional"></div>
+    <div class="field"><label for="f-notes">Notes for approvers</label><textarea id="f-notes" placeholder="Anything Finance/HOD should know — optional"></textarea></div>
+
+    <div class="actions">
+      <button type="button" class="primary" id="submit-btn" onclick="submitForm()">Submit claim</button>
+      <span class="hint" id="busy"></span>
+    </div>
+  </div>
+
+  <div class="card" id="done-card" style="display:none;">
+    <h1 style="color:var(--green)">✓ Claim submitted</h1>
+    <p class="sub" id="done-sub"></p>
+    <div class="timeline" id="done-timeline"></div>
+    <p style="margin-top:16px;"><a href="/my" style="color:var(--sky);font-weight:700;">Track it on My Claims →</a></p>
+  </div>
+</div>
+
+<script src="/auth-guard.js"></script>
+<script>
+var CFG=null, ME=null, UPLOADING=0;
+
+function el(id){ return document.getElementById(id); }
+function money(a,c){ c=c||'INR'; return c+' '+Number(a||0).toLocaleString(c==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+
+requireView('requester', function(me){
+  ME=me;
+  renderUserbar(me);
+  el('f-name').value = me.name || '';
+  fetch('/api/config').then(function(r){return r.json();}).then(function(cfg){
+    CFG=cfg; initForm(); recalc(); kekaFill();
+  });
+});
+
+// Auto-fill Name + Employee ID from Keka HRMS (by signed-in work email). Graceful no-op if Keka isn't configured.
+function kekaFill(){
+  var st=el('keka-status'); st.textContent='Looking up Keka…';
+  fetch('/api/me?keka=1',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(k){
+    if(!k || k.available===false){ st.textContent=''; return; }
+    if(k.ok){
+      if(k.name) el('f-name').value=k.name;
+      if(k.employeeId) el('f-empid').value=k.employeeId;
+      st.innerHTML='✓ '+ (k.name?k.name:'') + (k.employeeId?' · '+k.employeeId:'') + ' — from Keka';
+      st.style.color='var(--green)';
+    } else { st.textContent=''; }
+  }).catch(function(){ st.textContent=''; });
+}
+
+function initForm(){
+  var dept=el('f-dept'); dept.innerHTML='<option value="">— select —</option>';
+  Object.keys(CFG.departments).forEach(function(d){ var o=document.createElement('option'); o.value=d; o.textContent=d; dept.appendChild(o); });
+  dept.onchange=onDept;
+  var cur=el('f-cur'); (CFG.policy.CURRENCIES||['INR','USD']).forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; cur.appendChild(o); });
+  cur.onchange=recalc;
+  var pm=el('f-paymethod'); (CFG.policy.PAYMENT_METHODS||[]).forEach(function(m){ var o=document.createElement('option'); o.value=m; o.textContent=m; pm.appendChild(o); });
+  el('f-advance').oninput=recalc;
+  addLine(); // start with one row
+}
+function onDept(){
+  var d=el('f-dept').value, info=CFG.departments[d];
+  el('hod-hint').textContent = info ? ('Approver: '+info.head) : '';
+  clearInvalidEl(el('f-dept'));
+}
+
+var LN=0;
+function addLine(){
+  LN++;
+  var box=el('lines'); var c=document.createElement('div'); c.className='lncard'; c.dataset.ln=LN;
+  var cats=(CFG.policy.CATEGORIES||[]).map(function(x){return '<option value="'+x+'">'+x+'</option>';}).join('');
+  var types=(CFG.policy.EXPENSE_TYPES||['Expense']).map(function(x){return '<option value="'+x+'">'+x+'</option>';}).join('');
+  var mrate=(CFG.policy.MILEAGE_RATE_PER_KM)||12;
+  c.innerHTML =
+    '<div class="ln-row ln-top">'+
+      '<div><label>Type</label><select class="ln-type" onchange="onType(this)">'+types+'</select></div>'+
+      '<div><label>Category</label><select class="ln-cat"><option value="">— category —</option>'+cats+'</select></div>'+
+      '<div><label>Date</label><input type="date" class="ln-date"></div>'+
+      '<div style="text-align:right"><button type="button" class="rm" title="Remove" onclick="rmLine(this)">×</button></div>'+
+    '</div>'+
+    '<div class="ln-row ln-mid">'+
+      '<div><label>Description</label><input class="ln-desc" placeholder="what was it for?"></div>'+
+      '<div><label>Merchant / vendor</label><input class="ln-merchant" placeholder="optional"></div>'+
+    '</div>'+
+    '<div class="ln-row ln-compute">'+
+      '<div class="ln-f-amount"><label>Amount</label><input type="number" min="0" step="1" class="ln-amt-in" placeholder="0" oninput="recalc()"></div>'+
+      '<div class="ln-f-distance" style="display:none"><label>Distance (km)</label><input type="number" min="0" step="0.1" class="ln-distance" placeholder="0" oninput="recalc()"></div>'+
+      '<div class="ln-f-rate" style="display:none"><label>Rate</label><input type="number" min="0" step="0.5" class="ln-rate" value="'+mrate+'" oninput="recalc()"></div>'+
+      '<div class="ln-f-days" style="display:none"><label>Days</label><input type="number" min="0" step="0.5" class="ln-days" placeholder="0" oninput="recalc()"></div>'+
+      '<div class="ln-f-computed" style="display:none"><label>Amount</label><div class="computed ln-computed">—</div></div>'+
+      '<div><label>Receipt <span class="ln-rcpt-req">*</span></label><label class="rcpt-btn">Upload<input type="file" class="ln-file" accept="image/*,application/pdf" style="display:none" onchange="uploadReceipt(this)"></label><input type="hidden" class="ln-receipt"></div>'+
+    '</div>';
+  box.appendChild(c);
+}
+function rmLine(btn){ var c=btn.closest('.lncard'); if(el('lines').children.length>1){ c.remove(); recalc(); } }
+
+// Toggle the computation fields by expense type (Keka model).
+function onType(sel){
+  var c=sel.closest('.lncard'); var t=sel.value;
+  var mileage=t==='Mileage', perdiem=t==='Per diem', expense=!mileage&&!perdiem;
+  c.querySelector('.ln-f-amount').style.display=expense?'':'none';
+  c.querySelector('.ln-f-distance').style.display=mileage?'':'none';
+  c.querySelector('.ln-f-rate').style.display=(mileage||perdiem)?'':'none';
+  c.querySelector('.ln-f-days').style.display=perdiem?'':'none';
+  c.querySelector('.ln-f-computed').style.display=(mileage||perdiem)?'':'none';
+  c.querySelector('.ln-rcpt-req').style.display=expense?'':'none';
+  // sensible category default
+  var cat=c.querySelector('.ln-cat');
+  if(mileage && !cat.value) cat.value='Fuel / Mileage';
+  if(perdiem && !cat.value) cat.value='Per Diem / Daily Allowance';
+  recalc();
+}
+
+function uploadReceipt(input){
+  var tr=input.closest('tr'); var btn=tr.querySelector('.rcpt-btn'); var hid=tr.querySelector('.ln-receipt');
+  var file=input.files[0]; if(!file) return;
+  if(file.size > 3*1024*1024){ btn.textContent='Too big (3MB max)'; btn.className='rcpt-btn rcpt-err'; return; }
+  btn.textContent='Uploading…'; btn.className='rcpt-btn'; UPLOADING++; updateBusy();
+  var reader=new FileReader();
+  reader.onload=function(){
+    var base64=String(reader.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+      body:JSON.stringify({filename:file.name,mimeType:file.type,base64:base64})})
+      .then(function(r){return r.json();}).then(function(res){
+        UPLOADING--; updateBusy();
+        if(res.ok && res.link){ hid.value=res.link; btn.innerHTML='✓ Receipt'; btn.className='rcpt-btn rcpt-ok'; clearInvalidEl(tr.querySelector('.ln-file')); }
+        else { btn.textContent=res.error||'Upload failed'; btn.className='rcpt-btn rcpt-err'; }
+      }).catch(function(){ UPLOADING--; updateBusy(); btn.textContent='Upload failed'; btn.className='rcpt-btn rcpt-err'; });
+  };
+  reader.readAsDataURL(file);
+}
+function updateBusy(){ el('busy').textContent = UPLOADING>0 ? ('Uploading '+UPLOADING+' receipt(s)…') : ''; el('submit-btn').disabled = UPLOADING>0; }
+
+function lineAmount(l){
+  if(l.type==='Mileage') return Math.round((l.distance||0)*(l.rate||0));
+  if(l.type==='Per diem') return Math.round((l.days||0)*(l.rate||0));
+  return Math.round(l.amount||0);
+}
+function gatherLines(){
+  var out=[];
+  Array.prototype.forEach.call(el('lines').children,function(c){
+    var l={ type:c.querySelector('.ln-type').value, date:c.querySelector('.ln-date').value, category:c.querySelector('.ln-cat').value,
+      description:c.querySelector('.ln-desc').value, merchant:c.querySelector('.ln-merchant').value,
+      distance:Number(c.querySelector('.ln-distance').value)||0, days:Number(c.querySelector('.ln-days').value)||0,
+      rate:Number(c.querySelector('.ln-rate').value)||0, amount:Number(c.querySelector('.ln-amt-in').value)||0,
+      receipt:c.querySelector('.ln-receipt').value, _c:c };
+    l.computed=lineAmount(l);
+    out.push(l);
+  });
+  return out;
+}
+function recalc(){
+  var cur=el('f-cur').value||'INR';
+  var lines=gatherLines();
+  lines.forEach(function(l){ var disp=l._c.querySelector('.ln-computed'); if(disp) disp.textContent=money(l.computed,cur); });
+  var total=lines.reduce(function(a,l){return a+(l.computed||0);},0);
+  var adv=Math.max(0,Number(el('f-advance').value)||0);
+  var net=Math.max(0,total-adv);
+  el('t-total').textContent=money(total,cur);
+  el('t-adv').textContent=adv>0?('− '+money(adv,cur)):'—';
+  el('t-net').textContent=money(net,cur);
+  var fx=(CFG&&CFG.policy.FX_USD_INR)||92, thr=(CFG&&CFG.policy.CEO_THRESHOLD_INR)||50000;
+  var inr = cur==='USD' ? Math.round(total*fx) : total;
+  var tb=el('tierbox');
+  if(total>0){
+    tb.style.display='block';
+    if(inr>thr){ tb.className='tierbox hi'; tb.textContent='High value — needs Dept Head → Finance → Sanjay (CEO) approval (total over ₹'+thr.toLocaleString('en-IN')+').'; }
+    else { tb.className='tierbox'; tb.textContent='Standard — Dept Head → Finance approval (total within ₹'+thr.toLocaleString('en-IN')+').'; }
+  } else tb.style.display='none';
+}
+
+function clearInvalidEl(elm){ var f=elm&&(elm.closest('.field')||elm.closest('td')); if(f) f.classList.remove('field-invalid'); }
+function markBad(elm){ var f=elm&&(elm.closest('.field')||elm.closest('td')); if(f) f.classList.add('field-invalid'); }
+function showErr(t){ var m=el('msg'); m.className='msg err'; m.textContent=t; m.scrollIntoView({behavior:'smooth',block:'center'}); }
+function showWarn(t){ var m=el('msg'); m.className='msg warn'; m.innerHTML=t; }
+function clearMsg(){ var m=el('msg'); m.className='msg'; m.textContent=''; }
+
+function validate(){
+  document.querySelectorAll('.field-invalid').forEach(function(f){f.classList.remove('field-invalid');});
+  var bad=[], firstEl=null;
+  function need(elm,name){ if(!String(elm.value||'').trim()){ bad.push(name); markBad(elm); if(!firstEl)firstEl=elm; } }
+  need(el('f-name'),'name'); need(el('f-dept'),'department'); need(el('f-title'),'claim title');
+  need(el('f-cur'),'currency'); need(el('f-purpose'),'purpose');
+  var lines=gatherLines(), valid=0;
+  lines.forEach(function(l,i){
+    var any=l.date||l.category||l.description||l.computed>0||l.receipt||l.merchant;
+    if(!any) return;
+    var expense=l.type!=='Mileage'&&l.type!=='Per diem';
+    if(!(l.computed>0)){ bad.push('amount on line '+(i+1)); markBad(l._c.querySelector(expense?'.ln-amt-in':(l.type==='Mileage'?'.ln-distance':'.ln-days'))); if(!firstEl)firstEl=l._c.querySelector('.ln-type'); }
+    if(!l.category){ bad.push('category on line '+(i+1)); markBad(l._c.querySelector('.ln-cat')); }
+    if(expense&&!l.receipt){ bad.push('receipt on line '+(i+1)); markBad(l._c.querySelector('.ln-file')); }
+    if(l.computed>0&&l.category&&(!expense||l.receipt)) valid++;
+  });
+  if(!valid) bad.push('at least one complete expense line');
+  if(bad.length){ showErr('Please fix the highlighted field(s): '+bad.join(', ')); if(firstEl){firstEl.scrollIntoView({behavior:'smooth',block:'center'}); firstEl.focus&&firstEl.focus();} return null; }
+  clearMsg();
+  return lines.filter(function(l){return l.computed>0;}).map(function(l){return {type:l.type,date:l.date,category:l.category,description:l.description,merchant:l.merchant,distance:l.distance,days:l.days,rate:l.rate,amount:l.amount,receipt:l.receipt};});
+}
+
+function buildPayload(lines){
+  return { name:el('f-name').value.trim(), empId:el('f-empid').value.trim(), dept:el('f-dept').value,
+    title:el('f-title').value.trim(), project:el('f-project').value.trim(), periodFrom:el('f-from').value, periodTo:el('f-to').value,
+    currency:el('f-cur').value, purpose:el('f-purpose').value.trim(), notes:el('f-notes').value.trim(),
+    advance:Math.max(0,Number(el('f-advance').value)||0), payMethod:el('f-paymethod').value, payDetail:el('f-paydetail').value.trim(),
+    lines:lines };
+}
+
+function submitForm(){
+  if(UPLOADING>0){ showErr('Please wait for receipt uploads to finish.'); return; }
+  var lines=validate(); if(!lines) return;
+  doSubmit(buildPayload(lines), false);
+}
+function doSubmit(payload, force){
+  payload.allowDuplicate = !!force;
+  el('submit-btn').disabled=true; el('busy').textContent='Submitting…';
+  fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)})
+    .then(function(r){return r.json();}).then(function(res){
+      el('submit-btn').disabled=false; el('busy').textContent='';
+      if(res.duplicate){ confirmDup(payload, res); return; }
+      if(!res.ok){ showErr(res.error||'Submit failed.'); return; }
+      onOk(res);
+    }).catch(function(e){ el('submit-btn').disabled=false; el('busy').textContent=''; showErr('Network error: '+e.message); });
+}
+function confirmDup(payload, res){
+  showWarn('⚠ '+res.error);
+  if(confirm(res.error+'\n\nSubmit anyway?')) doSubmit(payload, true);
+}
+function onOk(res){
+  clearMsg();
+  el('form').closest('.card').style.display='none';
+  document.querySelectorAll('.card').forEach(function(c){ if(c.id!=='done-card') c.style.display='none'; });
+  var done=el('done-card'); done.style.display='block';
+  el('done-sub').textContent='Claim '+res.id+' — net reimbursable '+money(res.net,res.currency)+'. We\'ve emailed you a confirmation and notified your approver.';
+  el('done-timeline').innerHTML=(res.chain||[]).map(function(s){return '<span class="step">'+s+'</span>';}).join('');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

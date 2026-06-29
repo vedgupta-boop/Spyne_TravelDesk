@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne Travel Request Form</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --red:#E8232A; --red-d:#B01820; --red-l:#FEF0F0; --red-m:#FCDCDD;
+  --navy:#0D1B2A; --navy2:#1C3148; --navy3:#243d57;
+  --sky:#0077CC; --sky-l:#EBF5FF;
+  --green:#0F9D58; --grn-l:#E6F4EA;
+  --amber:#F59E0B; --amb-l:#FFFBEB;
+  --orange:#EA580C; --org-l:#FFF3EC;
+  --red2:#DC2626; --red2-l:#FEE2E2;
+  --gray-1:#F7F9FC; --gray-2:#EDF1F7; --gray-3:#D6DCE8;
+  --gray-5:#8A97AA; --gray-7:#3D506A; --ink:#1A2332;
+  --white:#FFFFFF;
+  --radius:10px; --radius-lg:14px;
+}
+
+body{font-family:'Inter',system-ui,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--navy);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+.topbar-logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:34px;height:34px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;}
+.logo-txt{font-size:16px;font-weight:900;color:#fff;letter-spacing:-.3px;}
+.logo-sub{font-size:11px;color:var(--gray-5);margin-top:1px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.policy-chip{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--gray-5);}
+.policy-chip b{color:var(--amber);}
+
+/* ── PROGRESS BAR ── */
+.progress-bar{background:var(--navy2);padding:0 32px;}
+.progress-inner{display:flex;align-items:center;overflow-x:auto;gap:0;padding:16px 0;}
+.prog-step{display:flex;align-items:center;gap:0;flex-shrink:0;}
+.prog-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;transition:all .3s;border:2px solid transparent;}
+.prog-dot.done{background:var(--green);color:#fff;border-color:var(--green);}
+.prog-dot.active{background:var(--red);color:#fff;border-color:var(--red);}
+.prog-dot.pending{background:rgba(255,255,255,.08);color:var(--gray-5);border-color:rgba(255,255,255,.12);}
+.prog-label{font-size:11px;font-weight:600;margin-left:7px;white-space:nowrap;}
+.prog-label.done{color:var(--green);}
+.prog-label.active{color:#fff;}
+.prog-label.pending{color:var(--gray-5);}
+.prog-line{width:28px;height:2px;background:rgba(255,255,255,.1);margin:0 4px;flex-shrink:0;}
+.prog-line.done{background:var(--green);}
+
+/* ── MAIN LAYOUT ── */
+.main{display:grid;grid-template-columns:1fr 340px;gap:24px;max-width:1180px;margin:0 auto;padding:28px 24px 60px;}
+@media(max-width:900px){.main{grid-template-columns:1fr;}}
+
+/* ── FORM CARD ── */
+.form-card{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-3);overflow:hidden;}
+.section-header{padding:18px 28px 14px;border-bottom:2px solid var(--gray-2);display:flex;align-items:center;gap:12px;}
+.section-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.section-title{font-size:15px;font-weight:800;color:var(--navy);}
+.section-sub{font-size:12px;color:var(--gray-5);margin-top:2px;}
+.section-body{padding:24px 28px;}
+.section-body+.section-header{border-top:1px solid var(--gray-2);}
+
+/* ── FORM FIELDS ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.span2{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;}
+.field label .req{color:var(--red);margin-left:2px;}
+.field label .policy-note{font-size:11px;font-weight:500;color:var(--sky);text-transform:none;letter-spacing:0;margin-left:6px;}
+.field input,.field select,.field textarea{
+  padding:10px 13px;border-radius:var(--radius);
+  border:1.5px solid var(--gray-3);font-size:14px;
+  font-family:inherit;color:var(--ink);background:var(--white);
+  outline:none;transition:border-color .2s,box-shadow .2s;width:100%;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,35,42,.08);}
+.field input.err,.field select.err,.field textarea.err{border-color:var(--red2);}
+.field .err-msg{font-size:11px;color:var(--red2);font-weight:600;margin-top:2px;}
+.field textarea{resize:vertical;min-height:72px;}
+.field .hint{font-size:11px;color:var(--gray-5);margin-top:3px;line-height:1.4;}
+
+/* ── RADIO CARDS ── */
+.radio-cards{display:flex;gap:10px;flex-wrap:wrap;}
+.radio-card{flex:1;min-width:110px;padding:11px 14px;border-radius:var(--radius);border:2px solid var(--gray-3);cursor:pointer;transition:all .2s;user-select:none;text-align:center;}
+.radio-card:hover{border-color:var(--gray-5);}
+.radio-card.selected{border-color:var(--red);background:var(--red-l);}
+.radio-card.selected .rc-label{color:var(--red);}
+.rc-icon{font-size:20px;margin-bottom:4px;}
+.rc-label{font-size:12px;font-weight:700;color:var(--gray-7);}
+.rc-sub{font-size:10px;color:var(--gray-5);margin-top:2px;}
+input[type=radio]{display:none;}
+
+/* ── TRANSPORT MODE CARDS ── */
+.transport-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+.t-card{padding:12px;border-radius:var(--radius);border:2px solid var(--gray-3);cursor:pointer;transition:all .2s;text-align:center;}
+.t-card:hover{border-color:var(--gray-5);}
+.t-card.selected{border-color:var(--sky);background:var(--sky-l);}
+.t-card .t-icon{font-size:24px;margin-bottom:6px;}
+.t-card .t-name{font-size:12px;font-weight:700;color:var(--gray-7);}
+.t-card.selected .t-name{color:var(--sky);}
+.t-card .t-policy{font-size:10px;color:var(--gray-5);margin-top:3px;line-height:1.3;}
+
+/* ── TRANSPORT SUB-FORM ── */
+.transport-subform{background:var(--sky-l);border:1px solid #B3D7F5;border-radius:var(--radius);padding:16px 18px;margin-top:14px;display:none;}
+.transport-subform.show{display:block;}
+.tsf-title{font-size:12px;font-weight:800;color:var(--sky);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+
+/* ── POLICY PILL ── */
+.policy-pill{display:inline-flex;align-items:center;gap:6px;background:var(--sky-l);border:1px solid #B3D7F5;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--sky);}
+.policy-pill.amber{background:var(--amb-l);border-color:#FCD34D80;color:#B45309;}
+.policy-pill.green{background:var(--grn-l);border-color:#6EE7B780;color:#065F46;}
+.policy-pill.red{background:var(--red-l);border-color:#FECACA;color:var(--red);}
+
+/* ── TOGGLE SWITCH ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;}
+.toggle-label{font-size:13px;font-weight:600;color:var(--ink);}
+.toggle-sub{font-size:11px;color:var(--gray-5);margin-top:1px;}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{display:none;}
+.toggle-track{position:absolute;inset:0;background:var(--gray-3);border-radius:12px;cursor:pointer;transition:background .2s;}
+.toggle input:checked~.toggle-track{background:var(--green);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle input:checked~.toggle-track .toggle-thumb{transform:translateX(20px);}
+
+/* ── EXPENSE SECTION ── */
+.expense-section{margin-bottom:0;}
+.expense-row{display:grid;grid-template-columns:1fr 120px 120px;gap:12px;align-items:end;padding:12px 0;border-bottom:1px solid var(--gray-2);}
+.expense-row:last-child{border-bottom:none;}
+.exp-label{font-size:13px;font-weight:600;color:var(--ink);}
+.exp-policy{font-size:11px;color:var(--gray-5);margin-top:2px;}
+.exp-policy b{color:var(--sky);}
+.exp-allowed{font-size:11px;margin-top:4px;}
+.exp-allowed.yes{color:var(--green);}
+.exp-allowed.no{color:var(--red2);}
+
+/* ── BUDGET SUMMARY ── */
+.budget-summary{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-3);overflow:hidden;position:sticky;top:90px;}
+.bs-header{padding:16px 22px;border-bottom:1px solid var(--gray-2);display:flex;align-items:center;justify-content:space-between;}
+.bs-title{font-size:14px;font-weight:800;color:var(--navy);}
+.bs-body{padding:18px 22px;}
+.bs-line{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--gray-2);font-size:13px;}
+.bs-line:last-child{border-bottom:none;}
+.bs-line .bl-key{color:var(--gray-7);}
+.bs-line .bl-val{font-weight:700;color:var(--ink);}
+.bs-line .bl-val.over{color:var(--red2);}
+.bs-line .bl-val.ok{color:var(--green);}
+.bs-total{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:14px 16px;background:var(--gray-1);border-radius:var(--radius);border:1px solid var(--gray-2);}
+.bs-total .bt-key{font-size:13px;font-weight:700;color:var(--gray-7);}
+.bs-total .bt-val{font-size:20px;font-weight:900;color:var(--navy);}
+.bs-total .bt-val.over{color:var(--red2);}
+
+.budget-alert{margin:14px 22px 0;padding:12px 14px;border-radius:var(--radius);font-size:12px;line-height:1.5;display:none;}
+.budget-alert.show{display:block;}
+.budget-alert.over{background:var(--red2-l);border:1px solid #FECACA;color:var(--red2);}
+.budget-alert.ok{background:var(--grn-l);border:1px solid #6EE7B780;color:#065F46;}
+
+/* ── POLICY RULES PANEL ── */
+.rules-panel{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--gray-3);margin-top:18px;overflow:hidden;}
+.rp-header{padding:14px 18px;background:var(--navy);display:flex;align-items:center;gap:8px;}
+.rp-title{font-size:13px;font-weight:800;color:#fff;}
+.rp-body{padding:14px 18px;}
+.rule-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-2);font-size:12px;line-height:1.4;}
+.rule-item:last-child{border-bottom:none;}
+.rule-icon{flex-shrink:0;margin-top:1px;}
+.rule-text{color:var(--gray-7);}
+.rule-text b{color:var(--ink);}
+.rule-text .ok{color:var(--green);font-weight:700;}
+.rule-text .no{color:var(--red2);font-weight:700;}
+
+/* ── NOT REIMBURSABLE ── */
+.nr-list{background:var(--red2-l);border:1px solid #FECACA;border-radius:var(--radius);padding:14px 18px;margin-top:14px;}
+.nr-title{font-size:11px;font-weight:800;color:var(--red2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.nr-item{font-size:11px;color:#7F1D1D;padding:3px 0;display:flex;gap:6px;}
+.nr-item::before{content:'✗';flex-shrink:0;color:var(--red2);}
+
+/* ── SUBMIT AREA ── */
+.submit-area{padding:22px 28px;background:var(--gray-1);border-top:1px solid var(--gray-2);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.submit-note{font-size:12px;color:var(--gray-5);line-height:1.5;max-width:420px;}
+.submit-btns{display:flex;gap:10px;}
+.btn-clear{padding:11px 22px;border-radius:var(--radius);border:1.5px solid var(--gray-3);background:var(--white);font-family:inherit;font-size:14px;font-weight:700;color:var(--gray-7);cursor:pointer;transition:all .2s;}
+.btn-clear:hover{border-color:var(--gray-5);}
+.btn-submit{padding:11px 28px;border-radius:var(--radius);border:none;background:var(--red);color:#fff;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.btn-submit:hover{background:var(--red-d);}
+
+/* ── SUCCESS ── */
+.success-screen{display:none;padding:48px 32px;text-align:center;}
+.success-screen.show{display:block;}
+.success-icon{font-size:56px;margin-bottom:16px;}
+.success-title{font-size:24px;font-weight:900;color:var(--green);margin-bottom:8px;}
+.success-sub{font-size:14px;color:var(--gray-5);margin-bottom:24px;line-height:1.6;}
+.success-timeline{display:flex;gap:0;justify-content:center;flex-wrap:wrap;margin-bottom:28px;}
+.st-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 14px;}
+.st-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;}
+.st-label{font-size:11px;color:var(--gray-5);text-align:center;max-width:80px;}
+.st-line{width:40px;height:2px;background:var(--gray-3);margin-top:14px;flex-shrink:0;}
+
+/* ── MISC ── */
+.divider{height:1px;background:var(--gray-2);margin:4px 0;}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
+.tag.required{background:var(--red-l);color:var(--red);}
+.tag.optional{background:var(--gray-2);color:var(--gray-5);}
+.tag.intl{background:var(--sky-l);color:var(--sky);}
+.tag.auto{background:var(--amb-l);color:#92400E;}
+.info-box{background:var(--sky-l);border:1px solid #B3D7F5;border-radius:var(--radius);padding:12px 16px;font-size:12px;color:#1e3a5f;line-height:1.6;margin-top:10px;}
+.info-box.amber{background:var(--amb-l);border-color:#FCD34D80;color:#78350F;}
+.info-box.red{background:var(--red-l);border-color:var(--red-m);color:#7F1D1D;}
+.days-count{display:inline-block;background:var(--red);color:#fff;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:800;margin-left:6px;}
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-sq">S</div>
+    <div>
+      <div class="logo-txt">Spyne TravelDesk</div>
+      <div class="logo-sub">Travel Request Form</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="policy-chip">Policy <b>v2.0</b> · Apr 2026</div>
+    <div class="policy-chip">India & US</div>
+  </div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="progress-bar">
+  <div class="progress-inner" id="progress-inner">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: FORM -->
+  <div>
+    <div class="form-card" id="main-form-card">
+
+      <!-- SUCCESS SCREEN -->
+      <div class="success-screen" id="success-screen">
+        <div class="success-icon">✈️</div>
+        <div class="success-title">Request Submitted!</div>
+        <div class="success-sub">Your travel request has been sent to your <b>HOD</b> for approval.<br>You'll receive email updates at every step of the approval chain.</div>
+        <div class="success-timeline" id="success-timeline"></div>
+        <button class="btn-submit" onclick="resetForm()" style="margin:0 auto;">+ Submit Another Request</button>
+      </div>
+
+      <!-- SECTION 1: TRAVELLER -->
+      <div id="sec-traveller">
+        <div class="section-header">
+          <div class="section-icon" style="background:#FEF0F0;">👤</div>
+          <div>
+            <div class="section-title">Traveller Details</div>
+            <div class="section-sub">Your HOD name & email are auto-populated from the employee directory</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>Full Name <span class="req">*</span></label>
+              <input type="text" id="f-name" placeholder="Priya Sharma">
+              <div class="err-msg hidden" id="err-name">Required</div>
+            </div>
+            <div class="field">
+              <label>Employee ID <span class="req">*</span></label>
+              <input type="text" id="f-empid" placeholder="EMP-101" oninput="lookupHOD(this.value)">
+              <div class="hint">Your HOD details will auto-fill from the employee directory</div>
+              <div class="err-msg hidden" id="err-empid">Required</div>
+            </div>
+            <div class="field">
+              <label>Department <span class="req">*</span></label>
+              <select id="f-dept">
+                <option value="">Select department</option>
+                <option>Engineering</option><option>Marketing</option><option>Sales</option>
+                <option>Finance</option><option>HR</option><option>Operations</option>
+                <option>Product</option><option>Legal</option><option>Design</option>
+                <option>Customer Success</option>
+              </select>
+              <div class="err-msg hidden" id="err-dept">Required</div>
+            </div>
+            <div class="field">
+              <label>Official Email <span class="req">*</span></label>
+              <input type="email" id="f-email" placeholder="you@spyne.ai">
+              <div class="err-msg hidden" id="err-email">Valid email required</div>
+            </div>
+            <div class="field">
+              <label>HOD Name <span class="tag auto">Auto</span></label>
+              <input type="text" id="f-hod-name" placeholder="Auto-populated from directory" readonly style="background:var(--gray-1);color:var(--gray-7);">
+            </div>
+            <div class="field">
+              <label>HOD Email <span class="tag auto">Auto</span></label>
+              <input type="email" id="f-hod-email" placeholder="Auto-populated from directory" readonly style="background:var(--gray-1);color:var(--gray-7);">
+            </div>
+            <div class="field">
+              <label>Reporting Manager</label>
+              <input type="text" id="f-rm" placeholder="Direct reporting manager name">
+            </div>
+            <div class="field">
+              <label>Request Date <span class="tag auto">Auto</span></label>
+              <input type="text" id="f-req-date" readonly style="background:var(--gray-1);color:var(--gray-7);">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: TRAVEL TYPE -->
+      <div id="sec-traveltype">
+        <div class="section-header">
+          <div class="section-icon" style="background:#EBF5FF;">🗺️</div>
+          <div>
+            <div class="section-title">Travel Type & Route</div>
+            <div class="section-sub">Determines approval chain and applicable policy limits</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field span2" style="margin-bottom:18px;">
+            <label>Travel Type <span class="req">*</span></label>
+            <div class="radio-cards" id="travel-type-cards">
+              <div class="radio-card" onclick="selectTravelType('local')">
+                <div class="rc-icon">🏙️</div>
+                <div class="rc-label">Local / Within-city</div>
+                <div class="rc-sub">HOD only</div>
+              </div>
+              <div class="radio-card" onclick="selectTravelType('domestic')">
+                <div class="rc-icon">🇮🇳</div>
+                <div class="rc-label">Domestic Outstation</div>
+                <div class="rc-sub">HOD → Finance · 15 days notice</div>
+              </div>
+              <div class="radio-card" onclick="selectTravelType('international')">
+                <div class="rc-icon">🌐</div>
+                <div class="rc-label">International / Overseas</div>
+                <div class="rc-sub">HOD → CEO → Finance · 30 days</div>
+              </div>
+            </div>
+            <div class="err-msg hidden" id="err-ttype">Please select a travel type</div>
+          </div>
+
+          <!-- Notice period alert -->
+          <div class="info-box amber hidden" id="notice-alert"></div>
+
+          <div class="form-grid" style="margin-top:16px;">
+            <div class="field">
+              <label>From (City) <span class="req">*</span></label>
+              <input type="text" id="f-from" placeholder="Departure city / base location">
+              <div class="err-msg hidden" id="err-from">Required</div>
+            </div>
+            <div class="field">
+              <label>To (City / Country) <span class="req">*</span></label>
+              <input type="text" id="f-to" placeholder="Destination city or country" oninput="recalcBudget()">
+              <div class="err-msg hidden" id="err-to">Required</div>
+            </div>
+            <div class="field">
+              <label>Travel Start Date <span class="req">*</span></label>
+              <input type="date" id="f-start" onchange="calcDays();recalcBudget();">
+              <div class="err-msg hidden" id="err-start">Required</div>
+            </div>
+            <div class="field">
+              <label>Return Date <span class="req">*</span></label>
+              <input type="date" id="f-end" onchange="calcDays();recalcBudget();">
+              <div class="err-msg hidden" id="err-end">Required or must be after start</div>
+            </div>
+            <div class="field span2">
+              <label>Duration <span class="tag auto">Auto</span></label>
+              <input type="text" id="f-duration" readonly placeholder="Auto-calculated from dates" style="background:var(--gray-1);color:var(--gray-7);">
+            </div>
+            <div class="field">
+              <label>Purpose of Travel <span class="req">*</span></label>
+              <select id="f-purpose">
+                <option value="">Select purpose</option>
+                <option>Client Meeting</option><option>Conference / Event</option>
+                <option>Training</option><option>Site Visit</option>
+                <option>Audit</option><option>Product Launch</option>
+                <option>Partnership Meeting</option><option>Other</option>
+              </select>
+              <div class="err-msg hidden" id="err-purpose">Required</div>
+            </div>
+            <div class="field">
+              <label>Number of Travellers</label>
+              <input type="number" id="f-travellers" value="1" min="1" placeholder="1">
+              <div class="hint">If multiple employees, submit separate requests per policy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: PRIMARY TRANSPORT -->
+      <div id="sec-transport">
+        <div class="section-header">
+          <div class="section-icon" style="background:#E6F4EA;">✈️</div>
+          <div>
+            <div class="section-title">Primary Mode of Transport</div>
+            <div class="section-sub">Base city → destination. Booked by Admin team after approval.</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="field span2" style="margin-bottom:4px;">
+            <label>Select Transport Mode <span class="req">*</span></label>
+            <div class="transport-grid" id="transport-grid">
+
+              <div class="t-card" onclick="selectTransport('flight')">
+                <div class="t-icon">✈️</div>
+                <div class="t-name">Flight</div>
+                <div class="t-policy">Economy only · Booked by Admin</div>
+              </div>
+              <div class="t-card" onclick="selectTransport('train-2ac')">
+                <div class="t-icon">🚆</div>
+                <div class="t-name">Train — 2nd AC</div>
+                <div class="t-policy">Standard class · Rajdhani/Shatabdi</div>
+              </div>
+              <div class="t-card" onclick="selectTransport('train-1ac')">
+                <div class="t-icon">🚄</div>
+                <div class="t-name">Train — 1st AC</div>
+                <div class="t-policy">HOD pre-approval required</div>
+              </div>
+              <div class="t-card" onclick="selectTransport('bus')">
+                <div class="t-icon">🚌</div>
+                <div class="t-name">AC Bus / Coach</div>
+                <div class="t-policy">Where flight/train not practical</div>
+              </div>
+              <div class="t-card" onclick="selectTransport('cab')">
+                <div class="t-icon">🚕</div>
+                <div class="t-name">Cab / Taxi</div>
+                <div class="t-policy">Economy only · Ola Go / Uber Mini</div>
+              </div>
+              <div class="t-card" onclick="selectTransport('own-2w')">
+                <div class="t-icon">🛵</div>
+                <div class="t-name">Own 2-Wheeler</div>
+                <div class="t-policy">₹4.5/km · Max ₹500/day</div>
+              </div>
+              <div class="t-card" onclick="selectTransport('own-4w')">
+                <div class="t-icon">🚗</div>
+                <div class="t-name">Own 4-Wheeler</div>
+                <div class="t-policy">₹10/km · Max ₹800/day</div>
+              </div>
+            </div>
+            <div class="err-msg hidden" id="err-transport">Please select a transport mode</div>
+          </div>
+
+          <!-- FLIGHT sub-form -->
+          <div class="transport-subform" id="tsf-flight">
+            <div class="tsf-title">✈️ Flight Details</div>
+            <div class="info-box" style="margin-bottom:14px;">
+              <b>Policy:</b> Economy class only. Business/Premium Economy upgrades are at <b>your own expense</b> and will not be reimbursed. Tickets booked by Admin team after approval. Airport taxes & standard baggage: reimbursable. Excess baggage: your expense unless pre-approved.
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Preferred Airline (optional)</label>
+                <input type="text" id="f-flight-airline" placeholder="e.g. IndiGo, Air India">
+              </div>
+              <div class="field">
+                <label>Class <span class="req">*</span></label>
+                <select id="f-flight-class">
+                  <option value="economy" selected>Economy (Policy Compliant ✓)</option>
+                  <option value="premium" disabled>Premium Economy (Not Reimbursable)</option>
+                  <option value="business" disabled>Business (Not Reimbursable)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Home → Airport (₹) <span class="tag optional">Optional</span></label>
+                <input type="number" id="f-flight-homeairport" placeholder="Actuals — economy cab" oninput="recalcBudget()">
+                <div class="hint">Reimbursable on actuals — economy cab/auto/metro only</div>
+              </div>
+              <div class="field">
+                <label>Airport → Destination (₹) <span class="tag optional">Optional</span></label>
+                <input type="number" id="f-flight-airportdest" placeholder="Actuals at destination" oninput="recalcBudget()">
+                <div class="hint">Economy cab/auto/metro only at destination</div>
+              </div>
+              <div class="field span2">
+                <label>Special Requirements</label>
+                <input type="text" id="f-flight-notes" placeholder="e.g. Direct flight preferred, early morning departure">
+              </div>
+            </div>
+          </div>
+
+          <!-- TRAIN sub-form -->
+          <div class="transport-subform" id="tsf-train">
+            <div class="tsf-title" id="tsf-train-title">🚆 Train Details</div>
+            <div class="info-box" id="tsf-train-info"></div>
+            <div class="form-grid" style="margin-top:12px;">
+              <div class="field">
+                <label>Train Name / Number (optional)</label>
+                <input type="text" id="f-train-name" placeholder="e.g. Rajdhani Express 12951">
+              </div>
+              <div class="field">
+                <label>Departure Station</label>
+                <input type="text" id="f-train-dep" placeholder="e.g. Mumbai CSMT">
+              </div>
+              <div class="field">
+                <label>Home → Station (₹) <span class="tag optional">Optional</span></label>
+                <input type="number" id="f-train-homestation" placeholder="Actuals — economy mode" oninput="recalcBudget()">
+              </div>
+              <div class="field">
+                <label>Station → Destination (₹) <span class="tag optional">Optional</span></label>
+                <input type="number" id="f-train-stationdest" placeholder="Actuals at destination" oninput="recalcBudget()">
+              </div>
+            </div>
+          </div>
+
+          <!-- BUS sub-form -->
+          <div class="transport-subform" id="tsf-bus">
+            <div class="tsf-title">🚌 AC Bus Details</div>
+            <div class="info-box">Permitted where air or train is not practical. Standard AC bus/coach only. Booked by Admin team.</div>
+            <div class="form-grid" style="margin-top:12px;">
+              <div class="field">
+                <label>Bus Operator (optional)</label>
+                <input type="text" id="f-bus-op" placeholder="e.g. KSRTC Airavat, VRL Travels">
+              </div>
+              <div class="field">
+                <label>Estimated Fare (₹)</label>
+                <input type="number" id="f-bus-fare" placeholder="One-way fare" oninput="recalcBudget()">
+              </div>
+            </div>
+          </div>
+
+          <!-- CAB sub-form -->
+          <div class="transport-subform" id="tsf-cab">
+            <div class="tsf-title">🚕 Cab / Taxi Details</div>
+            <div class="info-box">
+              <b>Reimbursable:</b> Ola Go, Uber Mini/Go, Rapido, standard taxi, metro, auto-rickshaw.<br>
+              <b class="no" style="color:var(--red2)">NOT reimbursable:</b> Uber Black, Ola Prime XL, Meru, luxury/premium options.
+            </div>
+            <div class="form-grid" style="margin-top:12px;">
+              <div class="field">
+                <label>Estimated Fare (₹)</label>
+                <input type="number" id="f-cab-fare" placeholder="Actuals — economy only" oninput="recalcBudget()">
+              </div>
+              <div class="field">
+                <label>App / Provider</label>
+                <select id="f-cab-app">
+                  <option value="">Select</option>
+                  <option>Ola Go</option><option>Uber Go / Mini</option>
+                  <option>Rapido</option><option>Standard Taxi / Auto</option>
+                  <option>Metro</option><option>Other (Economy)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- OWN VEHICLE sub-form -->
+          <div class="transport-subform" id="tsf-own">
+            <div class="tsf-title" id="tsf-own-title">🛵 Personal Vehicle Details</div>
+            <div class="info-box" id="tsf-own-info"></div>
+            <div class="form-grid" style="margin-top:12px;">
+              <div class="field">
+                <label>Total Distance (km) <span class="req">*</span></label>
+                <input type="number" id="f-own-km" placeholder="One-way km" oninput="calcVehicleReimb()">
+                <div class="hint">Odometer reading proof required</div>
+              </div>
+              <div class="field">
+                <label>Number of Days</label>
+                <input type="number" id="f-own-days" placeholder="Travel days" oninput="calcVehicleReimb()">
+              </div>
+              <div class="field">
+                <label>Estimated Reimbursement <span class="tag auto">Auto</span></label>
+                <input type="text" id="f-own-reimb" readonly style="background:var(--gray-1);color:var(--green);font-weight:700;">
+              </div>
+              <div class="field">
+                <label>Daily Cap <span class="tag auto">Auto</span></label>
+                <input type="text" id="f-own-cap" readonly style="background:var(--gray-1);color:var(--gray-7);">
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SECTION 4: LOCAL TRANSPORT AT DESTINATION -->
+      <div id="sec-local">
+        <div class="section-header">
+          <div class="section-icon" style="background:#FFF3EC;">🚖</div>
+          <div>
+            <div class="section-title">Local Transport at Destination</div>
+            <div class="section-sub">Getting around at the destination city during the trip</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="info-box" style="margin-bottom:16px;" id="local-transport-policy">
+            Select your travel type first to see applicable limits.
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Local Transport Mode</label>
+              <select id="f-local-mode" onchange="updateLocalTransportHint()">
+                <option value="">Select mode</option>
+                <option>Ola Go / Uber Go (Economy Cab)</option>
+                <option>Rapido / Auto-rickshaw</option>
+                <option>Metro / Public Transport</option>
+                <option>Standard Taxi</option>
+                <option>Uber X / Lyft Standard (US)</option>
+                <option>Mix of above</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Estimated Daily Local Cost</label>
+              <input type="number" id="f-local-daily" placeholder="Per day estimate" oninput="recalcBudget()">
+              <div class="hint" id="local-daily-hint">Economy modes only. Actuals required with receipts.</div>
+            </div>
+            <div class="field span2">
+              <label>Total Local Transport Estimate <span class="tag auto">Auto</span></label>
+              <input type="text" id="f-local-total" readonly style="background:var(--gray-1);color:var(--gray-7);">
+            </div>
+          </div>
+          <div class="nr-list" style="margin-top:12px;">
+            <div class="nr-title">Not Reimbursable — Local Transport</div>
+            <div class="nr-item">Uber Black, Ola Prime XL, Meru, or any premium/luxury ride service</div>
+            <div class="nr-item">Daily home-to-office and office-to-home commute</div>
+            <div class="nr-item">Personal detours, leisure/tourism trips</div>
+            <div class="nr-item">Rental cars without driver (only with pre-approved HOD exception)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 5: HOTEL / ACCOMMODATION -->
+      <div id="sec-hotel">
+        <div class="section-header">
+          <div class="section-icon" style="background:#F0FDF4;">🏨</div>
+          <div>
+            <div class="section-title">Hotel / Accommodation</div>
+            <div class="section-sub">Policy cap applies per night based on city tier</div>
+          </div>
+        </div>
+        <div class="section-body">
+
+          <div class="toggle-row" style="margin-bottom:12px;">
+            <div>
+              <div class="toggle-label">Accommodation Required?</div>
+              <div class="toggle-sub" id="hotel-toggle-sub">Toggle if hotel stay is needed at the destination</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="f-hotel-toggle" onchange="toggleHotel();recalcBudget();">
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+            </label>
+          </div>
+
+          <div id="hotel-fields" class="hidden">
+            <div class="info-box" id="hotel-policy-info" style="margin-bottom:16px;"></div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Hotel Name (if known)</label>
+                <input type="text" id="f-hotel-name" placeholder="Preferred hotel or area">
+              </div>
+              <div class="field">
+                <label>Estimated Cost per Night <span class="req">*</span></label>
+                <input type="number" id="f-hotel-pnight" placeholder="Per night incl. taxes" oninput="recalcBudget()">
+                <div class="hint" id="hotel-cap-hint"></div>
+              </div>
+              <div class="field">
+                <label>Number of Nights <span class="tag auto">Auto</span></label>
+                <input type="number" id="f-hotel-nights" readonly style="background:var(--gray-1);color:var(--gray-7);">
+              </div>
+              <div class="field">
+                <label>Total Hotel Estimate <span class="tag auto">Auto</span></label>
+                <input type="text" id="f-hotel-total" readonly style="background:var(--gray-1);color:var(--gray-7);font-weight:700;">
+              </div>
+              <div class="field span2">
+                <label>Sharing Accommodation?</label>
+                <div style="display:flex;gap:16px;margin-top:4px;">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                    <input type="radio" name="sharing" value="no" checked> No, individual room
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                    <input type="radio" name="sharing" value="yes"> Yes, sharing with colleague
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                    <input type="radio" name="sharing" value="family"> Staying with family/friends
+                  </label>
+                </div>
+                <div class="hint">If sharing, only one lodging claim processed. Staying with family: flat per diem USD 100/day covers stay + meals (overseas only).</div>
+              </div>
+            </div>
+            <div class="nr-list" style="margin-top:12px;">
+              <div class="nr-title">Not Reimbursable — Hotel</div>
+              <div class="nr-item">Mini-bar, personal spa, gym, paid TV / streaming</div>
+              <div class="nr-item">In-room dining billed above meal limits</div>
+              <div class="nr-item">Damage to hotel property (employee's personal liability)</div>
+              <div class="nr-item">Non-Spyne guests in company-booked rooms</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 6: MEALS -->
+      <div id="sec-meals">
+        <div class="section-header">
+          <div class="section-icon" style="background:#FFF8E1;">🍽️</div>
+          <div>
+            <div class="section-title">Meal Reimbursement</div>
+            <div class="section-sub">Daily meal allowance per policy — bills required for all claims</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="info-box" id="meal-policy-info" style="margin-bottom:16px;">
+            Select travel type and destination to see applicable meal allowance.
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Daily Meal Allowance <span class="tag auto">Auto (Policy)</span></label>
+              <input type="text" id="f-meal-daily" readonly style="background:var(--gray-1);font-weight:700;color:var(--green);">
+            </div>
+            <div class="field">
+              <label>Number of Days <span class="tag auto">Auto</span></label>
+              <input type="text" id="f-meal-days" readonly style="background:var(--gray-1);color:var(--gray-7);">
+            </div>
+            <div class="field">
+              <label>Total Meal Estimate <span class="tag auto">Auto</span></label>
+              <input type="text" id="f-meal-total" readonly style="background:var(--gray-1);font-weight:700;color:var(--green);">
+            </div>
+            <div class="field">
+              <label>Estimated Actual Meals</label>
+              <input type="number" id="f-meal-actual" placeholder="Your estimate if different" oninput="recalcBudget()">
+              <div class="hint">GST-compliant bills required for all meal claims</div>
+            </div>
+          </div>
+          <div class="nr-list" style="margin-top:12px;">
+            <div class="nr-title">Not Reimbursable — Meals</div>
+            <div class="nr-item">Alcohol or tobacco — under any category, ever</div>
+            <div class="nr-item">Room service above meal daily limit</div>
+            <div class="nr-item">Meals for personal guests, family, or companions</div>
+            <div class="nr-item">Claims without valid GST invoices</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 7: OTHER ALLOWANCES -->
+      <div id="sec-others">
+        <div class="section-header">
+          <div class="section-icon" style="background:#EBF5FF;">➕</div>
+          <div>
+            <div class="section-title">Other Allowances & Expenses</div>
+            <div class="section-sub">Additional policy-permitted expenses for the trip</div>
+          </div>
+        </div>
+        <div class="section-body">
+
+          <!-- Phone/Comm — overseas only -->
+          <div id="comm-block">
+            <div class="expense-row">
+              <div>
+                <div class="exp-label">📱 Phone / Communication Allowance</div>
+                <div class="exp-policy">Max <b>USD 4/day</b> for mobile/data usage. Actual bills required. <span class="tag intl" id="comm-tag">Overseas Only</span></div>
+              </div>
+              <div class="field">
+                <label>Days</label>
+                <input type="number" id="f-comm-days" placeholder="Days" oninput="recalcBudget()">
+              </div>
+              <div class="field">
+                <label>Est. Total (USD)</label>
+                <input type="number" id="f-comm-total" placeholder="Max USD 4/day" oninput="recalcBudget()">
+              </div>
+            </div>
+
+            <!-- Laundry — overseas only -->
+            <div class="expense-row">
+              <div>
+                <div class="exp-label">👔 Laundry Allowance</div>
+                <div class="exp-policy">Flat <b>USD 10 per 10-day block</b>. Trips exceeding 10 days only. <span class="tag intl">Overseas Only</span></div>
+              </div>
+              <div class="field">
+                <label>Trip Length (days)</label>
+                <input type="number" id="f-laundry-days" placeholder="Total days" oninput="calcLaundry()">
+              </div>
+              <div class="field">
+                <label>Entitlement <span class="tag auto">Auto</span></label>
+                <input type="text" id="f-laundry-amt" readonly style="background:var(--gray-1);color:var(--gray-7);">
+              </div>
+            </div>
+          </div>
+
+          <!-- Client Entertainment -->
+          <div class="expense-row">
+            <div>
+              <div class="exp-label">🤝 Client Entertainment / Business Meals</div>
+              <div class="exp-policy">Actuals with itemised receipts. <b>Prior HOD approval required.</b> Record attendee names & companies.</div>
+              <div class="exp-allowed yes">✓ Reimbursable with pre-approval and documentation</div>
+            </div>
+            <div class="field">
+              <label>No. of Attendees</label>
+              <input type="number" id="f-client-count" placeholder="Total people">
+            </div>
+            <div class="field">
+              <label>Estimated Amount</label>
+              <input type="number" id="f-client-amt" placeholder="₹ or USD" oninput="recalcBudget()">
+            </div>
+          </div>
+
+          <!-- Tour Advance — overseas only -->
+          <div class="expense-row" id="advance-block">
+            <div>
+              <div class="exp-label">💴 Tour Advance Request</div>
+              <div class="exp-policy">Up to <b>USD 125/day</b> via company forex card. Settlement within 30 calendar days of return. <span class="tag intl">Overseas Only</span></div>
+            </div>
+            <div class="field">
+              <label>Days Required</label>
+              <input type="number" id="f-adv-days" placeholder="Days" oninput="calcAdvance()">
+            </div>
+            <div class="field">
+              <label>Advance Required (USD)</label>
+              <input type="number" id="f-adv-amt" placeholder="Max USD 125/day" oninput="recalcBudget()">
+            </div>
+          </div>
+
+          <!-- Field Day Meals — India local only -->
+          <div class="expense-row" id="fieldmeal-block">
+            <div>
+              <div class="exp-label">🧆 Field Day Meals (Full Day External)</div>
+              <div class="exp-policy">Up to <b>INR 500/day</b> with bill. Full day external or declared holiday only. Excess needs skip-level approval. <span class="tag" style="background:#F3F4F6;color:#374151;">India Local</span></div>
+            </div>
+            <div class="field">
+              <label>Days</label>
+              <input type="number" id="f-fieldmeal-days" placeholder="Full days out" oninput="recalcBudget()">
+            </div>
+            <div class="field">
+              <label>Amount (₹)</label>
+              <input type="number" id="f-fieldmeal-amt" placeholder="Max ₹500/day" oninput="recalcBudget()">
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SECTION 8: INTERNATIONAL CHECKLIST -->
+      <div id="sec-intl" class="hidden">
+        <div class="section-header">
+          <div class="section-icon" style="background:#EBF5FF;">🌐</div>
+          <div>
+            <div class="section-title">International Travel Checklist</div>
+            <div class="section-sub">Mandatory items — all must be confirmed before submission</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="info-box red" style="margin-bottom:16px;">
+            <b>Per Spyne Policy:</b> Employees travelling internationally are solely responsible for valid, complete travel documents. The company will NOT reimburse costs arising from document-related issues.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);transition:border-color .2s;" id="check-passport-row">
+              <input type="checkbox" id="check-passport" onchange="updateIntlCheck()" style="margin-top:2px;width:16px;height:16px;accent-color:var(--green);">
+              <div>
+                <div style="font-size:13px;font-weight:700;">Passport valid ≥ 6 months beyond return date</div>
+                <div style="font-size:11px;color:var(--gray-5);margin-top:2px;">Minimum 6 months validity beyond your return date. Carry physical + digital backup.</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);transition:border-color .2s;" id="check-visa-row">
+              <input type="checkbox" id="check-visa" onchange="updateIntlCheck()" style="margin-top:2px;width:16px;height:16px;accent-color:var(--green);">
+              <div>
+                <div style="font-size:13px;font-weight:700;">Valid visa for destination country confirmed</div>
+                <div style="font-size:11px;color:var(--gray-5);margin-top:2px;">Initiate visa application ≥ 30 working days in advance. Company not liable for visa rejections.</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);transition:border-color .2s;" id="check-insurance-row">
+              <input type="checkbox" id="check-insurance" onchange="updateIntlCheck()" style="margin-top:2px;width:16px;height:16px;accent-color:var(--green);">
+              <div>
+                <div style="font-size:13px;font-weight:700;">Travel insurance arranged with Admin team</div>
+                <div style="font-size:11px;color:var(--gray-5);margin-top:2px;">Mandatory overseas medical insurance. Company arranges via Admin. Carry certificate during trip.</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);transition:border-color .2s;" id="check-forex-row">
+              <input type="checkbox" id="check-forex" onchange="updateIntlCheck()" style="margin-top:2px;width:16px;height:16px;accent-color:var(--green);">
+              <div>
+                <div style="font-size:13px;font-weight:700;">Forex card / currency arrangement confirmed with Admin</div>
+                <div style="font-size:11px;color:var(--gray-5);margin-top:2px;">Tour advance up to USD 125/day. Settlement required within 30 calendar days of return.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 9: NOTES & SUBMIT -->
+      <div id="sec-notes">
+        <div class="section-header">
+          <div class="section-icon" style="background:#F7F9FC;">📋</div>
+          <div>
+            <div class="section-title">Additional Notes & Declaration</div>
+            <div class="section-sub">Any other details for the approver</div>
+          </div>
+        </div>
+        <div class="section-body">
+          <div class="form-grid">
+            <div class="field span2">
+              <label>Notes / Remarks for Approver</label>
+              <textarea id="f-notes" placeholder="Client name, meeting agenda, special requirements, vendor details, justification for any exceptions..."></textarea>
+            </div>
+            <div class="field span2">
+              <div style="background:var(--amb-l);border:1px solid #FCD34D80;border-radius:var(--radius);padding:14px 16px;font-size:12px;color:#78350F;line-height:1.6;">
+                <b>Declaration:</b> I confirm that this travel request is for a genuine business purpose, all details provided are accurate, and I have read and understood the Spyne Global Travel & Reimbursement Policy v2.0. I acknowledge that personal expenses, alcohol, tobacco, premium upgrades, and late claims will not be reimbursed. Verbal approvals are not valid.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="submit-area">
+          <div class="submit-note">
+            All fields marked <span style="color:var(--red)">*</span> are required. Your request will be routed to your HOD for approval. You will receive an email confirmation.
+          </div>
+          <div class="submit-btns">
+            <button class="btn-clear" onclick="resetForm()">Clear Form</button>
+            <button class="btn-submit" onclick="submitForm()">Submit Request ✈</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /form-card -->
+  </div><!-- /left -->
+
+  <!-- RIGHT: BUDGET SUMMARY + RULES -->
+  <div>
+
+    <!-- Budget Summary -->
+    <div class="budget-summary">
+      <div class="bs-header">
+        <div class="bs-title">💰 Budget Summary</div>
+        <span class="policy-pill" id="currency-pill">INR</span>
+      </div>
+      <div class="bs-body">
+        <div class="bs-line"><span class="bl-key">Primary Transport</span><span class="bl-val" id="bsum-transport">₹ —</span></div>
+        <div class="bs-line"><span class="bl-key">Local Transport</span><span class="bl-val" id="bsum-local">₹ —</span></div>
+        <div class="bs-line"><span class="bl-key">Hotel (est.)</span><span class="bl-val" id="bsum-hotel">₹ —</span></div>
+        <div class="bs-line"><span class="bl-key">Meals (policy cap)</span><span class="bl-val" id="bsum-meals">₹ —</span></div>
+        <div class="bs-line"><span class="bl-key">Other Allowances</span><span class="bl-val" id="bsum-others">₹ —</span></div>
+        <div class="bs-total">
+          <div class="bt-key">Total Estimated</div>
+          <div class="bt-val" id="bsum-total">₹ 0</div>
+        </div>
+        <div style="margin-top:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span style="color:var(--gray-5);">Policy Cap (Hotel + Meals)</span>
+            <span style="font-weight:700;" id="bsum-cap">— —</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--gray-5);">City Tier</span>
+            <span class="policy-pill" id="bsum-tier" style="font-size:10px;">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="budget-alert" id="budget-alert"></div>
+      <div style="padding:14px 22px 18px;">
+        <div style="font-size:10px;color:var(--gray-5);text-align:center;line-height:1.5;">
+          Submit claims on <b>Keka</b> within 10 days (domestic) or 15 days (international) of return.
+        </div>
+      </div>
+    </div>
+
+    <!-- Policy Rules Panel -->
+    <div class="rules-panel" id="rules-panel">
+      <div class="rp-header">
+        <span style="font-size:15px;">📋</span>
+        <div class="rp-title">Applicable Policy Rules</div>
+      </div>
+      <div class="rp-body" id="rules-body">
+        <div class="rule-item"><span class="rule-icon">ℹ️</span><span class="rule-text">Select a travel type to see your applicable rules and limits.</span></div>
+      </div>
+    </div>
+
+  </div><!-- /right -->
+
+</div><!-- /main -->
+
+<script>
+// ── STATE ──
+var state = {
+  travelType: '',
+  transportMode: '',
+  currency: 'INR',
+  days: 0,
+  nights: 0,
+  toCity: '',
+  tier: 'B',
+};
+
+// ── HOD MASTER (demo lookup) ──
+var HOD_MASTER = {
+  'EMP-101': { name:'Priya Sharma', email:'priya@spyne.ai', dept:'Engineering', hodName:'Anil Kumar', hodEmail:'anil.kumar@spyne.ai' },
+  'EMP-102': { name:'Rahul Mehta', email:'rahul@spyne.ai', dept:'Sales', hodName:'Sunita Rao', hodEmail:'sunita.rao@spyne.ai' },
+  'EMP-103': { name:'Ananya Singh', email:'ananya@spyne.ai', dept:'Finance', hodName:'Vikram Nair', hodEmail:'vikram.nair@spyne.ai' },
+  'EMP-104': { name:'Deepa Krishnan', email:'deepa@spyne.ai', dept:'HR', hodName:'Anil Kumar', hodEmail:'anil.kumar@spyne.ai' },
+  'EMP-105': { name:'Vikram Nair', email:'vikram@spyne.ai', dept:'Marketing', hodName:'Priya Sharma', hodEmail:'priya.sharma@spyne.ai' },
+};
+
+// ── POLICY DATA ──
+var POLICY = {
+  INDIA_TIER_A: ['delhi','gurugram','mumbai','bengaluru','bangalore','chennai','kolkata','hyderabad','ahmedabad','pune'],
+  US_TIER_A: ['new york','los angeles','san francisco','las vegas','boston','washington','houston','dallas','miami','seattle','atlanta'],
+  HOTEL: { india: { A:6000, B:3000 }, us: { A:130, B:120 } },
+  MEALS: { india_dom: 800, india_intl: 1200, us_A: 70, us_B: 60 },
+};
+
+// ── PROGRESS ──
+var STEPS = [
+  { id:'traveller', label:'Traveller' },
+  { id:'traveltype', label:'Trip Type' },
+  { id:'transport', label:'Transport' },
+  { id:'local', label:'Local Travel' },
+  { id:'hotel', label:'Hotel' },
+  { id:'meals', label:'Meals' },
+  { id:'others', label:'Others' },
+  { id:'notes', label:'Submit' },
+];
+
+function renderProgress(activeIdx) {
+  var el = document.getElementById('progress-inner');
+  el.innerHTML = STEPS.map(function(s, i) {
+    var st = i < activeIdx ? 'done' : i === activeIdx ? 'active' : 'pending';
+    var dotContent = i < activeIdx ? '✓' : (i+1);
+    var line = i < STEPS.length-1 ? '<div class="prog-line '+(i < activeIdx ? 'done' : '')+'"></div>' : '';
+    return '<div class="prog-step"><div class="prog-dot '+st+'">'+dotContent+'</div><div class="prog-label '+st+'">'+s.label+'</div></div>'+line;
+  }).join('');
+}
+renderProgress(0);
+
+// ── REQUEST DATE ──
+document.getElementById('f-req-date').value = new Date().toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'});
+
+// ── HOD LOOKUP ──
+function lookupHOD(empId) {
+  var emp = HOD_MASTER[empId.toUpperCase()];
+  if (emp) {
+    document.getElementById('f-hod-name').value  = emp.hodName;
+    document.getElementById('f-hod-email').value = emp.hodEmail;
+    if (!document.getElementById('f-dept').value) document.getElementById('f-dept').value = emp.dept;
+  } else {
+    document.getElementById('f-hod-name').value  = '';
+    document.getElementById('f-hod-email').value = '';
+  }
+}
+
+// ── TRAVEL TYPE ──
+function selectTravelType(type) {
+  state.travelType = type;
+  document.querySelectorAll('#travel-type-cards .radio-card').forEach(function(c,i){
+    c.classList.toggle('selected', ['local','domestic','international'][i] === type);
+  });
+  // Show/hide international section
+  document.getElementById('sec-intl').classList.toggle('hidden', type !== 'international');
+  // Update currency
+  state.currency = type === 'international' ? 'USD' : 'INR';
+  document.getElementById('currency-pill').textContent = state.currency;
+  // Update notice alert
+  updateNoticeAlert();
+  // Update all policy-dependent fields
+  updateLocalTransportPolicy();
+  updateHotelPolicy();
+  updateMealPolicy();
+  updateRulesPanel();
+  recalcBudget();
+  // Show/hide certain blocks
+  var isIntl = type === 'international';
+  document.getElementById('comm-block').style.opacity   = isIntl ? '1' : '0.4';
+  document.getElementById('advance-block').style.opacity= isIntl ? '1' : '0.4';
+  document.getElementById('fieldmeal-block').style.opacity = type === 'local' ? '1' : '0.4';
+}
+
+function updateNoticeAlert() {
+  var sd = document.getElementById('f-start').value;
+  var alert = document.getElementById('notice-alert');
+  if (!sd || !state.travelType) { alert.classList.add('hidden'); return; }
+  var days = Math.ceil((new Date(sd) - new Date()) / 86400000);
+  var needed = state.travelType === 'international' ? 42 : state.travelType === 'domestic' ? 21 : 0;
+  if (needed && days < needed) {
+    alert.classList.remove('hidden');
+    alert.innerHTML = '⚠ <b>Short Notice:</b> Travel is in '+ days +' days. Policy requires '+(state.travelType==='international'?'30':'15')+' business days advance notice. Finance Head co-approval will be required.';
+  } else {
+    alert.classList.add('hidden');
+  }
+}
+
+// ── DATES ──
+function calcDays() {
+  var s = document.getElementById('f-start').value;
+  var e = document.getElementById('f-end').value;
+  if (s && e && e >= s) {
+    var d = Math.ceil((new Date(e) - new Date(s)) / 86400000) + 1;
+    state.days = d;
+    state.nights = Math.max(0, d - 1);
+    document.getElementById('f-duration').value = d + ' day' + (d!==1?'s':'') + (state.nights > 0 ? ' · '+ state.nights +' night'+(state.nights!==1?'s':'') : '');
+    document.getElementById('f-hotel-nights').value = state.nights;
+    document.getElementById('f-meal-days').value = d + ' days';
+    updateNoticeAlert();
+    updateHotelPolicy();
+    updateMealPolicy();
+    recalcBudget();
+  } else {
+    state.days = 0; state.nights = 0;
+    document.getElementById('f-duration').value = '';
+    document.getElementById('f-hotel-nights').value = '';
+  }
+}
+
+// ── CITY TIER ──
+function getCityTier(city) {
+  if (!city) return 'B';
+  var c = city.toLowerCase();
+  var list = state.travelType === 'international' ? POLICY.US_TIER_A : POLICY.INDIA_TIER_A;
+  return list.some(function(x){ return c.indexOf(x) > -1; }) ? 'A' : 'B';
+}
+
+function recalcBudget() {
+  state.toCity = document.getElementById('f-to').value;
+  state.tier = getCityTier(state.toCity);
+  document.getElementById('bsum-tier').textContent = 'Tier ' + state.tier + (state.travelType==='international' ? ' (US)' : state.travelType ? ' (India)' : '');
+
+  var isIntl = state.travelType === 'international';
+  var curr = state.currency;
+
+  // Transport
+  var transport = 0;
+  if (state.transportMode === 'flight') {
+    transport += (+document.getElementById('f-flight-homeairport').value||0) + (+document.getElementById('f-flight-airportdest').value||0);
+  } else if (state.transportMode === 'train-2ac' || state.transportMode === 'train-1ac') {
+    transport += (+document.getElementById('f-train-homestation').value||0) + (+document.getElementById('f-train-stationdest').value||0);
+  } else if (state.transportMode === 'bus') {
+    transport += +document.getElementById('f-bus-fare').value||0;
+  } else if (state.transportMode === 'cab') {
+    transport += +document.getElementById('f-cab-fare').value||0;
+  } else if (state.transportMode === 'own-2w' || state.transportMode === 'own-4w') {
+    var km = +document.getElementById('f-own-km').value||0;
+    var rate = state.transportMode === 'own-2w' ? 4.5 : 10;
+    transport = km * rate * 2;
+  }
+
+  // Local
+  var localDaily = +document.getElementById('f-local-daily').value||0;
+  var localTotal = localDaily * (state.days||1);
+  document.getElementById('f-local-total').value = localTotal > 0 ? curr + ' ' + localTotal.toLocaleString('en-IN') : '—';
+  var local = localTotal;
+
+  // Hotel
+  var hotel = 0;
+  if (document.getElementById('f-hotel-toggle').checked) {
+    var pnight = +document.getElementById('f-hotel-pnight').value||0;
+    var nights = state.nights||0;
+    hotel = pnight * nights;
+    document.getElementById('f-hotel-total').value = hotel > 0 ? curr + ' ' + hotel.toLocaleString('en-IN') : '—';
+    // cap check
+    var cap = isIntl ? POLICY.HOTEL.us[state.tier] : POLICY.HOTEL.india[state.tier];
+    var capHint = document.getElementById('hotel-cap-hint');
+    if (pnight > cap) {
+      capHint.innerHTML = '⚠ Exceeds policy cap of '+curr+' '+cap+'/night (Tier '+state.tier+'). Excess NOT reimbursable.';
+      capHint.style.color = 'var(--red2)';
+    } else if (pnight > 0) {
+      capHint.innerHTML = '✓ Within policy cap of '+curr+' '+cap+'/night';
+      capHint.style.color = 'var(--green)';
+    }
+  }
+
+  // Meals
+  var mealDaily = getMealDaily();
+  var meals = mealDaily * (state.days||1);
+
+  // Others
+  var commTotal = +document.getElementById('f-comm-total').value||0;
+  var laundry   = parseLaundry();
+  var client    = +document.getElementById('f-client-amt').value||0;
+  var advance   = +document.getElementById('f-adv-amt').value||0;
+  var fieldmeal = +document.getElementById('f-fieldmeal-amt').value||0;
+  var others = commTotal + laundry + client + fieldmeal;
+
+  // Totals
+  var total = transport + local + hotel + meals + others;
+  var policyCap = (isIntl ? POLICY.HOTEL.us[state.tier] : POLICY.HOTEL.india[state.tier]) * (state.nights||0) + mealDaily * (state.days||1);
+
+  document.getElementById('bsum-transport').textContent = transport > 0 ? curr+' '+transport.toLocaleString('en-IN') : '—';
+  document.getElementById('bsum-local').textContent     = local > 0     ? curr+' '+local.toLocaleString('en-IN') : '—';
+  document.getElementById('bsum-hotel').textContent     = hotel > 0     ? curr+' '+hotel.toLocaleString('en-IN') : '—';
+  document.getElementById('bsum-meals').textContent     = meals > 0     ? curr+' '+meals.toLocaleString('en-IN') : '—';
+  document.getElementById('bsum-others').textContent    = others > 0    ? curr+' '+others.toLocaleString('en-IN') : '—';
+  document.getElementById('bsum-total').textContent     = curr+' '+total.toLocaleString('en-IN');
+  document.getElementById('bsum-total').className       = 'bt-val' + (hotel > policyCap ? ' over' : '');
+  document.getElementById('bsum-cap').textContent       = policyCap > 0 ? curr+' '+policyCap.toLocaleString('en-IN') : '—';
+
+  // Budget alert
+  var alert = document.getElementById('budget-alert');
+  if (total > 0 && policyCap > 0 && (hotel + meals) > policyCap) {
+    alert.className = 'budget-alert over show';
+    alert.innerHTML = '🚨 <b>Budget may exceed policy cap.</b> Hotel + meals estimate ('+curr+' '+(hotel+meals).toLocaleString('en-IN')+') exceeds policy cap ('+curr+' '+policyCap.toLocaleString('en-IN')+'). Approver remark will be mandatory.';
+  } else if (total > 0) {
+    alert.className = 'budget-alert ok show';
+    alert.innerHTML = '✓ Estimated total within reasonable policy range.';
+  } else {
+    alert.className = 'budget-alert';
+  }
+
+  updateHotelPolicy();
+  updateMealPolicy();
+}
+
+function getMealDaily() {
+  var isIntl = state.travelType === 'international';
+  if (isIntl) return state.tier === 'A' ? POLICY.MEALS.us_A : POLICY.MEALS.us_B;
+  if (state.travelType === 'domestic') return POLICY.MEALS.india_dom;
+  return 0;
+}
+
+function parseLaundry() {
+  var amt = document.getElementById('f-laundry-amt').value;
+  var match = amt ? parseFloat(amt.replace(/[^0-9.]/g,'')) : 0;
+  return isNaN(match) ? 0 : match;
+}
+
+// ── TRANSPORT ──
+function selectTransport(mode) {
+  state.transportMode = mode;
+  document.querySelectorAll('.t-card').forEach(function(c){ c.classList.remove('selected'); });
+  event.currentTarget.classList.add('selected');
+
+  // Hide all sub-forms
+  ['flight','train','bus','cab','own'].forEach(function(k){
+    document.getElementById('tsf-'+k).classList.remove('show');
+  });
+
+  if (mode === 'flight') {
+    document.getElementById('tsf-flight').classList.add('show');
+  } else if (mode === 'train-2ac') {
+    var sf = document.getElementById('tsf-train');
+    document.getElementById('tsf-train-title').textContent = '🚆 Train — 2nd AC Details';
+    document.getElementById('tsf-train-info').innerHTML = '<b>Policy:</b> 2nd AC class — standard permitted class. Rajdhani/Shatabdi AC included. Booked by Admin team.';
+    sf.classList.add('show');
+  } else if (mode === 'train-1ac') {
+    var sf = document.getElementById('tsf-train');
+    document.getElementById('tsf-train-title').textContent = '🚄 Train — 1st AC Details';
+    document.getElementById('tsf-train-info').innerHTML = '<b class="amber" style="color:#92400E;">⚠ 1st AC requires explicit HOD pre-approval.</b> Please ensure HOD approval covers this class before booking.';
+    sf.classList.add('show');
+  } else if (mode === 'bus') {
+    document.getElementById('tsf-bus').classList.add('show');
+  } else if (mode === 'cab') {
+    document.getElementById('tsf-cab').classList.add('show');
+  } else if (mode === 'own-2w') {
+    document.getElementById('tsf-own-title').textContent = '🛵 Personal 2-Wheeler Details';
+    document.getElementById('tsf-own-info').innerHTML = '<b>Rate:</b> ₹4.5 per km · <b>Daily cap:</b> ₹500 · Odometer reading required.';
+    document.getElementById('f-own-cap').value = '₹500/day';
+    document.getElementById('tsf-own').classList.add('show');
+  } else if (mode === 'own-4w') {
+    document.getElementById('tsf-own-title').textContent = '🚗 Personal 4-Wheeler Details';
+    document.getElementById('tsf-own-info').innerHTML = '<b>Rate:</b> ₹10 per km · <b>Daily cap:</b> ₹800 · Odometer reading required.';
+    document.getElementById('f-own-cap').value = '₹800/day';
+    document.getElementById('tsf-own').classList.add('show');
+  }
+  recalcBudget();
+}
+
+function calcVehicleReimb() {
+  var km   = +document.getElementById('f-own-km').value||0;
+  var days = +document.getElementById('f-own-days').value||1;
+  var rate = state.transportMode === 'own-2w' ? 4.5 : 10;
+  var cap  = state.transportMode === 'own-2w' ? 500 : 800;
+  var reimb = Math.min(km * rate * 2, cap * days);
+  document.getElementById('f-own-reimb').value = reimb > 0 ? '₹ ' + reimb.toLocaleString('en-IN') : '—';
+  recalcBudget();
+}
+
+// ── LOCAL TRANSPORT ──
+function updateLocalTransportPolicy() {
+  var box = document.getElementById('local-transport-policy');
+  var isIntl = state.travelType === 'international';
+  if (!state.travelType) { box.innerHTML = 'Select your travel type first to see applicable limits.'; return; }
+  if (state.travelType === 'local') {
+    box.innerHTML = '<b>Within-city:</b> Actuals — economy cab/metro/auto/Rapido. No daily cap for cab. Personal 2W: ₹4.5/km (cap ₹500/day). Personal 4W: ₹10/km (cap ₹800/day). Bills required for all.';
+  } else if (isIntl) {
+    box.innerHTML = '<b>Overseas local transport:</b> Actuals — economy cab/metro/shuttle only. <b>Daily cap: USD 50/day</b> with receipts. Uber X/Go, Lyft standard only. Premium rides NOT covered.';
+  } else {
+    box.innerHTML = '<b>Outstation destination:</b> Actuals via Ola Mini, Uber Go, Rapido, metro, or public transport. Receipts required. Rental cars only with HOD pre-approval.';
+  }
+}
+
+function updateLocalTransportHint() {
+  var isIntl = state.travelType === 'international';
+  var hint = document.getElementById('local-daily-hint');
+  if (isIntl) hint.textContent = 'Daily cap USD 50 for overseas. Economy modes only. Receipts required.';
+  else hint.textContent = 'Economy modes only — Ola Go/Uber Go/Metro/Auto. Receipts required.';
+  recalcBudget();
+}
+
+// ── HOTEL ──
+function toggleHotel() {
+  var on = document.getElementById('f-hotel-toggle').checked;
+  document.getElementById('hotel-fields').classList.toggle('hidden', !on);
+  updateHotelPolicy();
+}
+
+function updateHotelPolicy() {
+  var box = document.getElementById('hotel-policy-info');
+  if (!state.travelType || state.travelType === 'local') {
+    box.innerHTML = 'No hotel claim applicable for local / within-city travel.';
+    return;
+  }
+  var isIntl = state.travelType === 'international';
+  var cap = isIntl ? POLICY.HOTEL.us[state.tier] : POLICY.HOTEL.india[state.tier];
+  var curr = isIntl ? 'USD' : 'INR';
+  box.innerHTML = '<b>Policy Cap:</b> '+curr+' '+cap+'/night (Tier '+state.tier+' '+( isIntl?'US':'India')+') including room + taxes + service charge. Stays >7 consecutive nights: service apartment recommended. <b>Check-in with valid ID. Mini-bar and personal upgrades are NOT reimbursable.</b>';
+  document.getElementById('hotel-toggle-sub').textContent = 'Policy cap: '+curr+' '+cap+'/night (Tier '+state.tier+')';
+}
+
+// ── MEALS ──
+function updateMealPolicy() {
+  var box = document.getElementById('meal-policy-info');
+  var daily = getMealDaily();
+  var curr = state.currency;
+  if (!state.travelType || !daily) {
+    box.innerHTML = 'Select travel type and destination to see applicable meal allowance.';
+    document.getElementById('f-meal-daily').value = '';
+    document.getElementById('f-meal-total').value = '';
+    return;
+  }
+  var total = daily * (state.days||0);
+  document.getElementById('f-meal-daily').value = curr+' '+daily+'/day';
+  document.getElementById('f-meal-total').value = total > 0 ? curr+' '+total.toLocaleString('en-IN') : '—';
+  box.innerHTML = '<b>Daily limit:</b> '+curr+' '+daily+'/day · <b>Bills required</b> (GST invoices for India; receipts needed for US domestic, not needed for US overseas per diem). Alcohol, tobacco, room service above limit: NOT reimbursable.';
+}
+
+// ── LAUNDRY ──
+function calcLaundry() {
+  var days = +document.getElementById('f-laundry-days').value||0;
+  var blocks = Math.floor(days / 10);
+  var entitlement = blocks * 10;
+  document.getElementById('f-laundry-amt').value = entitlement > 0 ? 'USD '+entitlement+' ('+blocks+' block'+(blocks!==1?'s':'')+')' : days >= 10 ? 'USD 10' : 'N/A (trips <10 days)';
+  recalcBudget();
+}
+
+// ── ADVANCE ──
+function calcAdvance() {
+  var days = +document.getElementById('f-adv-days').value||0;
+  var max = days * 125;
+  var current = +document.getElementById('f-adv-amt').value||0;
+  if (current > max) document.getElementById('f-adv-amt').value = max;
+  recalcBudget();
+}
+
+// ── INTL CHECKLIST ──
+function updateIntlCheck() {
+  ['passport','visa','insurance','forex'].forEach(function(id){
+    var checked = document.getElementById('check-'+id).checked;
+    var row = document.getElementById('check-'+id+'-row');
+    row.style.borderColor = checked ? 'var(--green)' : 'var(--gray-3)';
+    row.style.background  = checked ? 'var(--grn-l)' : '';
+  });
+}
+
+// ── RULES PANEL ──
+function updateRulesPanel() {
+  var body = document.getElementById('rules-body');
+  var rules = [];
+  if (!state.travelType) {
+    rules = [{icon:'ℹ️', text:'Select a travel type to see applicable rules.'}];
+  } else if (state.travelType === 'local') {
+    rules = [
+      {icon:'✅', text:'<b>Approval:</b> HOD only required. Before travel commences.'},
+      {icon:'✅', text:'<b>Transport:</b> Ola Go, Uber Mini, Rapido, metro, auto. Actuals reimbursed.'},
+      {icon:'✅', text:'<b>Personal 2W:</b> ₹4.5/km · max ₹500/day. Odometer reading required.'},
+      {icon:'✅', text:'<b>Personal 4W:</b> ₹10/km · max ₹800/day. Odometer reading required.'},
+      {icon:'✅', text:'<b>Field day meals:</b> Up to ₹500/day with bill (full day external only).'},
+      {icon:'✅', text:'<b>Claims:</b> Submit within <span class="ok">7 business days</span> of expense date on Keka.'},
+      {icon:'❌', text:'<b class="no">Daily home-to-office commute</b> is NEVER reimbursable.'},
+      {icon:'❌', text:'<b class="no">Premium cab options</b> (Uber Black, Ola Prime) not covered.'},
+    ];
+  } else if (state.travelType === 'domestic') {
+    var cap = POLICY.HOTEL.india[state.tier];
+    rules = [
+      {icon:'✅', text:'<b>Approval chain:</b> HOD → Finance Head. <span class="ok">15 business days</span> advance notice.'},
+      {icon:'✅', text:'<b>Flight:</b> Economy class only. Admin books tickets.'},
+      {icon:'✅', text:'<b>Train:</b> 2nd AC standard. 1st AC requires HOD pre-approval.'},
+      {icon:'✅', text:'<b>Hotel:</b> Tier '+state.tier+' cap — <b>₹'+cap+'/night</b> + applicable taxes.'},
+      {icon:'✅', text:'<b>Meals:</b> Up to <b>₹800/day</b>. GST bills required. No alcohol.'},
+      {icon:'✅', text:'<b>Local transport:</b> Ola Go/Uber Go/Metro/Auto. Actuals with receipts.'},
+      {icon:'✅', text:'<b>Claims:</b> Submit within <span class="ok">10 business days</span> of return on Keka.'},
+      {icon:'❌', text:'<b class="no">Business/First class</b> flights or 1st AC without HOD approval: not reimbursed.'},
+    ];
+  } else if (state.travelType === 'international') {
+    var cap = POLICY.HOTEL.us[state.tier];
+    var meal = state.tier === 'A' ? POLICY.MEALS.us_A : POLICY.MEALS.us_B;
+    rules = [
+      {icon:'✅', text:'<b>Approval chain:</b> HOD → CEO → Finance. <span class="ok">30 business days</span> advance notice required.'},
+      {icon:'✅', text:'<b>Flight:</b> Economy only. Business/Premium Economy at own expense.'},
+      {icon:'✅', text:'<b>Hotel:</b> US Tier '+state.tier+' cap — <b>USD '+cap+'/night</b> incl. taxes.'},
+      {icon:'✅', text:'<b>Per diem:</b> <b>USD '+meal+'/day</b> (Tier '+state.tier+'). No receipts needed for overseas per diem.'},
+      {icon:'✅', text:'<b>Local transport:</b> Uber X/Go, Lyft standard, metro, shuttle. <b>USD 50/day cap</b> with receipts.'},
+      {icon:'✅', text:'<b>Phone allowance:</b> Up to USD 4/day. Actual bills required.'},
+      {icon:'✅', text:'<b>Laundry:</b> USD 10 per 10-day block (trips >10 days only).'},
+      {icon:'✅', text:'<b>Tour advance:</b> Up to USD 125/day via forex card. Settle within 30 days of return.'},
+      {icon:'✅', text:'<b>Travel insurance:</b> Mandatory. Company arranges via Admin. Carry certificate.'},
+      {icon:'✅', text:'<b>Claims:</b> Submit within <span class="ok">15 business days</span> of return on Keka.'},
+      {icon:'❌', text:'<b class="no">Mini-bar, personal spa, paid TV, laundry below 10 days</b>: not reimbursable.'},
+    ];
+  }
+  body.innerHTML = rules.map(function(r){
+    return '<div class="rule-item"><span class="rule-icon">'+r.icon+'</span><span class="rule-text">'+r.text+'</span></div>';
+  }).join('');
+}
+
+// ── VALIDATION ──
+function validate() {
+  var ok = true;
+  function check(id, errId, cond) {
+    var el = document.getElementById(id);
+    var em = document.getElementById(errId);
+    if (!cond) { el.classList.add('err'); em.classList.remove('hidden'); ok=false; }
+    else { el.classList.remove('err'); em.classList.add('hidden'); }
+  }
+  check('f-name', 'err-name', document.getElementById('f-name').value.trim());
+  check('f-empid', 'err-empid', document.getElementById('f-empid').value.trim());
+  check('f-dept', 'err-dept', document.getElementById('f-dept').value);
+  check('f-email', 'err-email', document.getElementById('f-email').value.includes('@'));
+  var tterr = document.getElementById('err-ttype');
+  if (!state.travelType) { tterr.classList.remove('hidden'); ok=false; }
+  else tterr.classList.add('hidden');
+  check('f-from', 'err-from', document.getElementById('f-from').value.trim());
+  check('f-to', 'err-to', document.getElementById('f-to').value.trim());
+  check('f-start', 'err-start', document.getElementById('f-start').value);
+  var e = document.getElementById('f-end').value, s = document.getElementById('f-start').value;
+  check('f-end', 'err-end', e && e >= s);
+  check('f-purpose', 'err-purpose', document.getElementById('f-purpose').value);
+  var terr = document.getElementById('err-transport');
+  if (!state.transportMode) { terr.classList.remove('hidden'); ok=false; }
+  else terr.classList.add('hidden');
+  return ok;
+}
+
+// ── SUBMIT ──
+function submitForm() {
+  if (!validate()) {
+    document.querySelector('.err,.err-msg:not(.hidden)')?.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  var isIntl = state.travelType === 'international';
+  var chain = isIntl ? ['HOD', 'CEO', 'Finance', 'Admin', 'Confirmed ✅']
+    : state.travelType === 'domestic' ? ['HOD', 'Finance', 'Admin', 'Confirmed ✅']
+    : ['HOD', 'Admin', 'Confirmed ✅'];
+  var colors = ['#FCD34D','#60B8FF','#FB923C','#4ADE80','#4ADE80'];
+
+  var timeline = document.getElementById('success-timeline');
+  timeline.innerHTML = chain.map(function(s,i){
+    return '<div style="display:flex;align-items:center;">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">'
+      +'<div style="width:32px;height:32px;border-radius:50%;background:'+colors[i]+'20;border:2px solid '+colors[i]+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:'+colors[i]+';">'+(i+1)+'</div>'
+      +'<div style="font-size:10px;color:var(--gray-5);text-align:center;max-width:70px;">'+s+'</div></div>'
+      +(i<chain.length-1?'<div style="width:32px;height:2px;background:var(--gray-3);margin-bottom:18px;"></div>':'')
+      +'</div>';
+  }).join('');
+
+  document.getElementById('success-screen').classList.add('show');
+  document.querySelectorAll('#main-form-card > div:not(#success-screen)').forEach(function(el){ el.style.display='none'; });
+  renderProgress(STEPS.length - 1);
+}
+
+function resetForm() {
+  document.getElementById('success-screen').classList.remove('show');
+  document.querySelectorAll('#main-form-card > div:not(#success-screen)').forEach(function(el){ el.style.display=''; });
+  document.querySelectorAll('input:not([readonly]),select,textarea').forEach(function(el){
+    if(el.type==='checkbox') el.checked=false;
+    else if(el.type==='radio') el.checked = el.value==='no'||el.defaultChecked;
+    else el.value='';
+  });
+  document.querySelectorAll('.radio-card,.t-card').forEach(function(c){ c.classList.remove('selected'); });
+  document.querySelectorAll('.transport-subform').forEach(function(s){ s.classList.remove('show'); });
+  document.getElementById('hotel-fields').classList.add('hidden');
+  document.getElementById('sec-intl').classList.add('hidden');
+  document.querySelectorAll('.err-msg').forEach(function(e){ e.classList.add('hidden'); });
+  document.getElementById('f-req-date').value = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('notice-alert').classList.add('hidden');
+  state = {travelType:'',transportMode:'',currency:'INR',days:0,nights:0,toCity:'',tier:'B'};
+  renderProgress(0);
+  updateRulesPanel();
+  recalcBudget();
+}
+
+// Init
+updateRulesPanel();
+recalcBudget();
+</script>
+</body>
+</html>

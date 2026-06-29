@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · Forex Card</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;
+--amber:#F59E0B;--amb-l:#FFFBEB;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1400px;margin:0 auto;padding:22px 20px 60px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:14px 18px;display:inline-block;margin-bottom:18px;}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--gray-5);text-transform:uppercase;letter-spacing:.5px;}
+.kpi .num{font-size:24px;font-weight:900;color:#B45309;margin-top:4px;}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);}
+.filters{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.chip.active{border-color:var(--navy);background:var(--navy);color:#fff;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12px;min-width:2400px;}
+th{background:var(--navy);color:#fff;text-align:left;padding:11px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;position:sticky;top:0;}
+th.r,td.r{text-align:right;}
+td{padding:10px 12px;border-bottom:1px solid var(--gray-2);white-space:nowrap;vertical-align:top;}
+tr:hover td{background:var(--gray-1);}
+.id{font-weight:800;color:var(--navy);}
+.muted{color:var(--gray-5);}
+.amt{font-variant-numeric:tabular-nums;}
+.fx-amt{font-weight:900;color:#B45309;font-variant-numeric:tabular-nums;}
+.st{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.done{background:var(--grn-l);color:#065F46;}
+.empty{padding:50px;text-align:center;color:var(--gray-5);}
+.loading{padding:60px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.docs-cell{white-space:normal;min-width:230px;}
+.docs-cell a{color:var(--sky);font-size:11.5px;margin-right:10px;white-space:nowrap;}
+.docs-cell span{color:var(--gray-5);font-size:11.5px;margin-right:10px;}
+.act-cell{white-space:normal;min-width:300px;}
+.act-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
+.btn{border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;}
+.btn-letter{background:var(--navy);color:#fff;}.btn-done{background:var(--green);color:#fff;}.btn[disabled]{opacity:.45;cursor:default;}
+.hint{font-size:11px;color:var(--gray-5);}.hint.ok{color:var(--green);font-weight:600;}.hint.bad{color:var(--red);font-weight:600;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Forex Card — Issuance</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="downloadCSV()">⬇ CSV</button>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div id="kpi" class="kpi"><div class="lb">Pending Forex Cards</div><div class="num" id="kpi-num">—</div></div>
+  <div class="bar"><div class="title">Forex Card Issuance</div>
+    <div class="filters" id="filters">
+      <span class="chip active" data-f="pending" onclick="setFilter('pending')">Pending</span>
+      <span class="chip" data-f="done" onclick="setFilter('done')">Done</span>
+      <span class="chip" data-f="all" onclick="setFilter('all')">All</span>
+    </div>
+  </div>
+  <div class="panel">
+    <div id="loading" class="loading">Loading…</div>
+    <div class="tbl-scroll hidden" id="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="r">Sr.</th><th>Request ID</th><th>Employee</th><th>Department</th><th>Country</th>
+          <th>Purpose</th><th>Travel Start</th><th>Days</th><th>Nationality</th><th>Passport No.</th>
+          <th>Designation</th><th>Mobile</th><th>Residential Address</th>
+          <th class="r">Forex / day</th><th class="r">Forex Amount</th><th>Ticket Info</th>
+          <th>Documents</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty hidden">No forex card requests for this filter.</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var DATA={rows:[]};
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmt(cur,x){ cur=cur||'USD'; return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
+function csvCell(v){ v=String(v==null?'':v); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; }
+function downloadCSV(){
+  var rows=DATA.rows||[]; if(!rows.length){ alert('No forex requests to export.'); return; }
+  var cols=[
+    ['TRF ID',function(r){return r.id;}],['Traveller',function(r){return r.name;}],['Email',function(r){return r.email;}],
+    ['Department',function(r){return r.dept;}],['Destination',function(r){return r.to||r.route;}],['Purpose',function(r){return r.purpose;}],
+    ['Travel date',function(r){return r.start;}],['Days',function(r){return r.days;}],['Nationality',function(r){return r.nationality;}],
+    ['Passport No',function(r){return r.passportNo;}],['Currency',function(r){return r.currency;}],
+    ['Forex total (USD)',function(r){return r.forexTotal!=null?r.forexTotal:r.forex;}],['Forex base (USD)',function(r){return r.forexBase!=null?r.forexBase:'';}],
+    ['Top-ups',function(r){return (r.topups||[]).map(function(t){return t.amount+(t.note?(' ('+t.note+')'):'');}).join(' | ');}],
+    ['Trip total',function(r){return (r.currency||'')+' '+(r.total||0);}],['Route',function(r){return r.route;}],
+    ['Flight ticket / PNR',function(r){return r.ticketInfo;}],
+    ['Status',function(r){return r.done?'Card issued':'Card pending';}],['Issue date',function(r){return r.forexIssueDate||'';}]
+  ];
+  var lines=[cols.map(function(c){return csvCell(c[0]);}).join(',')];
+  rows.forEach(function(r){ lines.push(cols.map(function(c){return csvCell(c[1](r));}).join(',')); });
+  var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='forex-requests.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+}
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden'); document.getElementById('empty').classList.add('hidden');
+  fetch('/api/forex',{credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('forex '+r.status); return r.json(); }).then(onData).catch(onFail);
+}
+function onFail(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); }
+var FILTER='pending';
+function onData(d){
+  DATA=d||{rows:[]};
+  document.getElementById('loading').classList.add('hidden');
+  updateKpi(); render();
+}
+function updateKpi(){
+  var pending=(DATA.rows||[]).filter(function(r){return !r.done;}).length;
+  document.getElementById('kpi-num').textContent=pending;
+}
+function setFilter(f){
+  FILTER=f;
+  document.querySelectorAll('#filters .chip').forEach(function(c){ c.classList.toggle('active', c.dataset.f===f); });
+  render();
+}
+function filteredRows(){
+  return (DATA.rows||[]).filter(function(r){ return FILTER==='all' || (FILTER==='done'?r.done:!r.done); });
+}
+function docLink(label,url){ return url ? '<a href="'+esc(url)+'" target="_blank">📎 '+label+'</a>' : '<span>'+label+': —</span>'; }
+function render(){
+  var rows=filteredRows();
+  if(!rows.length){ document.getElementById('empty').classList.remove('hidden'); document.getElementById('tbl-wrap').classList.add('hidden'); return; }
+  document.getElementById('empty').classList.add('hidden');
+  document.getElementById('tbl-wrap').classList.remove('hidden');
+  document.getElementById('rows').innerHTML=rows.map(row).join('');
+}
+function row(r,i){
+  var b=r.breakdown||{}; var days=Number(b.days||r.days||0);
+  var perDay=days>0?Math.round((b.forex||r.forex||0)/days):(b.forex||r.forex||0);
+  var docs=docLink('Passport',r.docPassport)+docLink('Visa',r.docVisa);
+  if(r.docAadhaar) docs+=docLink('Aadhaar',r.docAadhaar);
+  if(r.docPan) docs+=docLink('PAN',r.docPan);
+  if(r.docNationalId) docs+=docLink(r.idDocType||'National ID',r.docNationalId);
+  if(r.docPanAadhaar) docs+=docLink('PAN & Aadhaar',r.docPanAadhaar);
+  if(r.prefFlightDoc) docs+=docLink('Preferred flight',r.prefFlightDoc);
+  // Every booked flight ticket + hotel voucher (all attachments needed to issue the forex card).
+  var bk=r.bookings||{}; var fl=(bk.flights||[]), ht=(bk.hotels||[]); var seen={};
+  if(r.docTicket){ seen[r.docTicket]=1; }
+  fl.forEach(function(f,n){ if(f&&f.doc){ docs+=docLink('Flight ticket'+(fl.length>1?' '+(n+1):'')+(f.airline?' ('+f.airline+')':''),f.doc); seen[f.doc]=1; } });
+  ht.forEach(function(h,n){ if(h&&h.doc){ docs+=docLink('Hotel voucher'+(ht.length>1?' '+(n+1):''),h.doc); seen[h.doc]=1; } });
+  if(r.docTicket && !fl.some(function(f){return f&&f.doc===r.docTicket;})) docs+=docLink('Air Ticket',r.docTicket);
+  docs+=docLink('Forex Confirmation',r.docForexConfirm);
+  if(r.docForexCard) docs+=docLink('Forex card (back)',r.docForexCard);
+  return '<tr>'
+    +'<td class="r muted">'+(i+1)+'</td>'
+    +'<td class="id">'+esc(r.id)+'</td>'
+    +'<td>'+esc(r.name)+'<div class="muted" style="font-size:11px;">'+esc(r.email)+'</div></td>'
+    +'<td class="muted">'+esc(r.dept)+'</td>'
+    +'<td>'+esc(r.to)+'</td>'
+    +'<td class="muted">'+esc(r.purpose)+'</td>'
+    +'<td class="muted">'+esc(r.start)+'</td>'
+    +'<td class="muted">'+esc(days)+'</td>'
+    +'<td class="muted">'+esc(r.nationality||'—')+'</td>'
+    +'<td>'+esc(r.passportNo||'—')+'</td>'
+    +'<td class="muted">'+esc(r.designation||'—')+'</td>'
+    +'<td class="muted">'+esc(r.mobile||'—')+'</td>'
+    +'<td class="muted" style="white-space:normal;min-width:160px;">'+esc(r.address||'—')+'</td>'
+    +'<td class="r amt muted">USD '+perDay+'</td>'
+    +'<td class="r fx-amt">'+fmt('USD',(r.forexTotal!=null?r.forexTotal:(b.forex||r.forex||0)))+((r.topups||[]).length?'<div class="muted" style="font-size:10px;">base '+fmt('USD',r.forexBase||b.forex||r.forex||0)+' + '+(r.topups||[]).length+' top-up'+((r.topups||[]).length>1?'s':'')+'</div>':'')+'</td>'
+    +'<td class="muted" style="white-space:normal;min-width:140px;">'+esc(r.ticketInfo||'—')+'</td>'
+    +'<td class="docs-cell">'+docs+'</td>'
+    +'<td>'+(r.done?'<span class="st done">Card issued'+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</span>':'<span class="st pending">Card pending</span>')+'</td>'
+    +'<td class="act-cell">'+actions(r)+'</td>'
+  +'</tr>';
+}
+function topupBlock(r){
+  var list=(r.topups||[]).map(function(t){return '<div class="hint">+ '+fmt('USD',t.amount)+(t.note?' ('+esc(t.note)+')':'')+' · '+esc(t.by)+' · '+esc(t.date)+'</div>';}).join('');
+  var added=(r.forexTotal!=null&&r.forexBase!=null)?(r.forexTotal-r.forexBase):0;
+  return '<div class="act-row" style="flex-direction:column;align-items:flex-start;gap:4px;">'
+    +(list?('<div style="font-size:11px;font-weight:700;color:var(--gray-7);">Top-ups (added '+fmt('USD',added)+'):</div>'+list):'')
+    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:2px;">'
+      +'<input id="tu-'+esc(r.id)+'" type="number" min="1" placeholder="USD amount" style="width:110px;padding:6px 9px;border:1.5px solid var(--gray-3);border-radius:7px;font-size:12px;font-family:inherit;">'
+      +'<input id="tn-'+esc(r.id)+'" placeholder="note (optional)" style="width:140px;padding:6px 9px;border:1.5px solid var(--gray-3);border-radius:7px;font-size:12px;font-family:inherit;">'
+      +'<button class="btn btn-letter" onclick="addTopup(\''+esc(r.id)+'\')">+ Top-up</button>'
+      +'<span class="hint" id="tust-'+esc(r.id)+'"></span>'
+    +'</div></div>';
+}
+function actions(r){
+  var letter='<div class="act-row"><a class="btn btn-letter" href="/api/forex?download=letter&id='+encodeURIComponent(r.id)+'">⬇ Forex Letter</a></div>';
+  if(r.done){
+    return letter
+      +'<div class="act-row">'+(r.docForexConfirm?'<a class="lnk" href="'+esc(r.docForexConfirm)+'" target="_blank">📎 View confirmation</a>':'<span class="hint">No confirmation uploaded</span>')+'</div>'
+      +'<div class="hint ok">✓ Forex card issued'+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</div>'
+      +topupBlock(r);
+  }
+  return letter
+    +'<div class="act-row">'
+      +'<label class="hint">Upload confirmation: <input type="file" id="fc-'+esc(r.id)+'" accept="image/*,.pdf" onchange="uploadConfirm(\''+esc(r.id)+'\')"></label>'
+      +'<span class="hint" id="fcst-'+esc(r.id)+'"></span>'
+    +'</div>'
+    +topupBlock(r)
+    +'<div class="act-row">'
+      +'<button class="btn btn-done" onclick="markComplete(\''+esc(r.id)+'\')">✓ Mark Completed</button>'
+    +'</div>';
+}
+function addTopup(id){
+  var amt=document.getElementById('tu-'+id).value, note=document.getElementById('tn-'+id).value, st=document.getElementById('tust-'+id);
+  if(!(Number(amt)>0)){ st.className='hint bad'; st.textContent='Enter amount'; return; }
+  st.className='hint'; st.textContent='Saving…';
+  fetch('/api/forex',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'topup',amount:Number(amt),note:note})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast('Top-up '+fmt('USD',res.amount)+' added · total '+fmt('USD',res.total)); load(); } else { st.className='hint bad'; st.textContent=(res&&res.error)||'failed'; } })
+    .catch(function(){ st.className='hint bad'; st.textContent='error'; });
+}
+function uploadConfirm(id){
+  var f=document.getElementById('fc-'+id).files[0], st=document.getElementById('fcst-'+id);
+  if(!f) return; if(f.size>3*1024*1024){ st.className='hint bad'; st.textContent='Max 3 MB'; return; }
+  st.className='hint'; st.textContent='Uploading…';
+  var reader=new FileReader();
+  reader.onload=function(){
+    var base64=String(reader.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:base64})})
+      .then(function(r){return r.json();})
+      .then(function(d){ if(!d.ok){ st.className='hint bad'; st.textContent='Upload failed: '+(d.error||''); return; }
+        return fetch('/api/forex',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'confirm',confirmDoc:d.link})})
+          .then(function(r){return r.json();}).then(function(){ st.className='hint ok'; st.textContent='✓ Confirmation uploaded'; var row=(DATA.rows||[]).find(function(x){return x.id===id;}); if(row) row.docForexConfirm=d.link; render(); });
+      }).catch(function(){ st.className='hint bad'; st.textContent='Upload failed'; });
+  };
+  reader.readAsDataURL(f);
+}
+function markComplete(id){
+  if(!confirm('Mark forex card issued and complete '+id+'?')) return;
+  fetch('/api/forex',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'complete'})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast(id+' — forex card completed'); var row=(DATA.rows||[]).find(function(x){return x.id===id;}); if(row){ row.done=true; row.status='Completed — Forex card issued'; } updateKpi(); render(); } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(){ toast('Error'); });
+}
+var toastT;
+function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove('show');},2400); }
+
+requireView('forex', function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

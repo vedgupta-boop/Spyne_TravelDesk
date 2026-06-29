@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+# Vercel local link + cache
+.vercel/
+# Real environment secrets (templates like .env.example ARE committed)
+.env
+.env.local
+.env*.local
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+# OS / logs
+.DS_Store
+*.log
+npm-debug.log*
+
+# Local Claude settings at any depth
+settings.local.json
+**/settings.local.json

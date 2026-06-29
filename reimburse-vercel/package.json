@@ -1,0 +1,15 @@
+{
+  "name": "spyne-reimburse-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Spyne ReimburseDesk — out-of-pocket employee reimbursement claim & approval workflow (static UI + serverless API, Google Sheets storage, Resend email).",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "google-auth-library": "^9.0.0",
+    "googleapis": "^144.0.0",
+    "resend": "^4.0.0"
+  }
+}
