@@ -1,5 +1,7 @@
 import { CONFIG, POLICY } from '../lib/config.js';
 import { applyPolicyOverrides } from '../lib/policystore.js';
+import { flightsAvailable } from '../lib/flights.js';
+import { amadeusAvailable } from '../lib/amadeus.js';
 
 export default async function handler(req, res) {
   try { await applyPolicyOverrides(); } catch (e) { /* best-effort: fall back to code defaults */ }
@@ -16,6 +18,7 @@ export default async function handler(req, res) {
     fx: CONFIG.FX,
     reportingCurrency: CONFIG.REPORTING_CURRENCY,
     deptBudgets: CONFIG.DEPT_BUDGETS,
+    flightSearch: flightsAvailable() || amadeusAvailable(), // live flight search configured?
     userEmail: '',
   });
 }

@@ -449,9 +449,13 @@ export async function approverDecision({ id, decision, comment, email, roles }, 
     return { ok: true, id, title: 'On Hold', msg: `${id} placed on hold.` };
   }
   if (decision !== 'approve' && decision !== 'reject') return { ok: false, error: 'Unknown decision' };
-  // record the comment first (applyDecision clears the hold flag)
-  if (comment) await updateCells(rec.__row, [[COL.COMMENTS, appendComment(rec, stage, who, comment)]]);
-  const r = await applyDecision(rec, stage, decision, baseUrl);
+  // ALWAYS capture who decided (email), even when no free-text remark is given, so the approver
+  // is recorded in the audit trail / timeline. Append a stamped line: "Approved by <email> — <remark>".
+  const verb = decision === 'approve' ? 'Approved' : 'Rejected';
+  const note = verb + ' by ' + String(email || who) + (comment ? ' — ' + comment : '');
+  const newComments = appendComment(rec, stage, who, note);
+  await updateCells(rec.__row, [[COL.COMMENTS, newComments]]);
+  const r = await applyDecision({ ...rec, [COL.COMMENTS]: newComments }, stage, decision, baseUrl);
   return { ok: true, id, title: r.title, msg: r.msg };
 }
 
@@ -643,6 +647,10 @@ export async function myData(email) {
     finance: decStatus(r[COL.FIN_DEC]) || 'N/A',
     booking: r[COL.ADMIN] || (['arrange', 'admin'].includes(String(r[COL.STAGE])) ? 'Pending' : ''),
     forexIssued: r[COL.FOREX_ISSUE_DATE] ? 'Issued' : (String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0 ? 'Pending' : 'N/A'),
+    // Who the request is currently pending with (the live stage approver/owner) — email + label.
+    pendingWith: ['dept', 'ceo', 'finance', 'arrange', 'admin', 'forex'].includes(String(r[COL.STAGE]))
+      ? ((String(r[COL.STAGE]) === 'dept' && deptHeadIsRequester(r)) ? CONFIG.CEO_EMAIL : ownerForStage(r, String(r[COL.STAGE]))) : '',
+    pendingStage: { dept: 'Department Head', ceo: 'CEO', finance: 'Finance', arrange: 'Admin (booking)', admin: 'Admin', forex: 'Forex officer' }[String(r[COL.STAGE])] || '',
     // Self-service flags: both edit & withdraw are allowed ONLY before the first (HOD) approval.
     // (Edit additionally needs the request not to be on hold.)
     canEdit: ['dept', 'clarify'].includes(String(r[COL.STAGE])) && !r[COL.HOLD],
