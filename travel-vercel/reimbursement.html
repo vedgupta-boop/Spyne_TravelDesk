@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · Travel Reimbursement</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:880px;margin:0 auto;padding:22px 20px 60px;}
+.title{font-size:18px;font-weight:800;color:var(--navy);}
+.sub{font-size:13px;color:var(--gray-5);margin-top:3px;margin-bottom:18px;}
+.hidden{display:none!important;}
+.card{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+label.fld{display:block;font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+select.trip,input,select{font-family:inherit;}
+select.trip{width:100%;padding:11px 12px;border:1.5px solid var(--gray-3);border-radius:9px;font-size:14px;background:#fff;color:var(--ink);}
+.empty,.loading{padding:46px;text-align:center;color:var(--gray-5);background:#fff;border:1px solid var(--gray-3);border-radius:12px;}
+.tmeta{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:13px;color:var(--gray-7);margin-top:12px;}
+.tmeta b{color:var(--navy);}
+.st{display:inline-block;padding:3px 10px;border-radius:7px;font-size:11.5px;font-weight:800;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.approved{background:var(--grn-l);color:#065F46;}.st.closed{background:var(--grn-l);color:#065F46;}
+.acttbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:14px;}
+.acttbl th{text-align:left;color:var(--gray-5);font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:5px 8px;border-bottom:2px solid var(--gray-2);}
+.acttbl td{padding:6px 8px;border-bottom:1px solid var(--gray-2);}
+.acttbl td.r,.acttbl th.r{text-align:right;}
+.acttbl tr.tot td{font-weight:800;color:var(--navy);border-top:2px solid var(--gray-3);}
+.actsum{margin-top:10px;font-size:13px;color:var(--gray-7);}
+.actform{margin-top:14px;padding-top:12px;border-top:1px dashed var(--gray-3);}
+.actform-h{font-size:12px;font-weight:800;color:var(--navy);margin-bottom:10px;}
+.actline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;}
+.actlbl{min-width:130px;font-size:12.5px;font-weight:700;color:var(--gray-7);}
+.actinp{padding:7px 9px;border:1.5px solid var(--gray-3);border-radius:7px;font-size:13px;font-family:inherit;}
+.act{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:none;border:1px solid var(--gray-3);background:#fff;color:var(--gray-7);font-family:inherit;}
+.act.edit{border-color:#B3D7F5;color:var(--sky);}.act.cancel{border-color:var(--red2-l);color:var(--red2);}
+.acrcpt{font-size:11px;color:var(--green);font-weight:700;}
+.lnk{color:var(--sky);font-weight:700;}
+.note{font-size:12px;color:var(--gray-5);margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Travel Reimbursement</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div class="title">Travel Reimbursement</div>
+  <div class="sub">Pick a trip and claim what you spent out of pocket. Attach a receipt for each amount — your department head approves, then Finance settles.</div>
+
+  <div id="loading" class="loading">Loading your trips…</div>
+  <div id="empty" class="empty hidden">No trips are open for a reimbursement claim yet. A trip becomes claimable once it’s booked/completed (and until Finance closes it). You can also claim from <a href="/my" class="lnk">My Requests</a>.</div>
+
+  <div id="picker" class="card hidden">
+    <label class="fld" for="trip-sel">Select a trip to claim against</label>
+    <select id="trip-sel" class="trip" onchange="onPick()"><option value="">— Choose a trip —</option></select>
+  </div>
+
+  <div id="claim"></div>
+</div>
+
+<script>
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function m(cur,n){ return (cur||'INR')+' '+Math.round(Number(n||0)).toLocaleString(cur==='USD'?'en-US':'en-IN'); }
+var ROWS=[], ELIGIBLE=[], ACT_DOCS={}, ACT_CUR={}, ACT_CIDX={};
+var ACT_CATS=['Airport transfer / cab','Taxi / ride-share','Internet / phone','Laundry','Tips / gratuity','Parking / tolls','Currency conversion fee','Excess baggage','Conference / registration','Office supplies','Other'];
+function ensureCatList(){ if(document.getElementById('actcats')) return; var dl=document.createElement('datalist'); dl.id='actcats'; dl.innerHTML=ACT_CATS.map(function(c){return '<option value="'+esc(c)+'">';}).join(''); document.body.appendChild(dl); }
+
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  document.getElementById('picker').classList.add('hidden');
+  document.getElementById('claim').innerHTML='';
+  fetch('/api/me?mine=1',{credentials:'same-origin'}).then(function(r){ if(!r.ok) throw new Error('my '+r.status); return r.json(); }).then(onData)
+    .catch(function(e){ document.getElementById('loading').textContent='Could not load: '+(e&&e.message||e); });
+}
+function onData(d){
+  document.getElementById('loading').classList.add('hidden');
+  ROWS=(d&&d.rows)||[];
+  // Claimable = booked/completed and not closed (canAddActuals), or already has a claim to view/update.
+  ELIGIBLE=ROWS.filter(function(r){ return r.canAddActuals || (r.actuals && r.actuals.hasActuals); });
+  if(!ELIGIBLE.length){ document.getElementById('empty').classList.remove('hidden'); return; }
+  var sel=document.getElementById('trip-sel');
+  sel.innerHTML='<option value="">— Choose a trip —</option>'+ELIGIBLE.map(function(r,i){
+    var a=r.actuals||{}; var tag=a.status&&a.status!=='Pending'?(' · '+a.status):'';
+    return '<option value="'+i+'">'+esc(r.id+' · '+r.route+' · '+r.start+(r.end?('–'+r.end):'')+tag)+'</option>';
+  }).join('');
+  document.getElementById('picker').classList.remove('hidden');
+  // keep selection across reloads
+  if(CUR_IDX!=null && ELIGIBLE[CUR_IDX]){ sel.value=String(CUR_IDX); onPick(); }
+}
+var CUR_IDX=null;
+function onPick(){
+  var sel=document.getElementById('trip-sel'); var i=sel.value;
+  if(i===''){ CUR_IDX=null; document.getElementById('claim').innerHTML=''; return; }
+  CUR_IDX=Number(i); renderClaim(ELIGIBLE[CUR_IDX]);
+}
+function custRow(rid,key,item,cur){ item=item||{}; cur=cur||ACT_CUR[rid]||'INR'; var pb=(item.paidBy==='company')?'company':'own';
+  return '<div class="actline" data-ckey="'+key+'">'
+    +'<input list="actcats" id="axcat-'+rid+'-'+key+'" class="actinp" placeholder="Category" value="'+esc(item.label||'')+'" style="min-width:130px;">'
+    +'<input id="axca-'+rid+'-'+key+'" type="number" min="0" step="any" class="actinp" placeholder="Amount '+cur+'" value="'+(item.actual||'')+'">'
+    +'<select id="axcp-'+rid+'-'+key+'" class="actinp"><option value="own"'+(pb==='own'?' selected':'')+'>Own money (reimburse)</option><option value="company"'+(pb==='company'?' selected':'')+'>Company card / forex</option></select>'
+    +'<label class="act" style="cursor:pointer;">📎<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadActual(\''+rid+'\',\''+key+'\',this)"></label>'
+    +'<span class="acrcpt" id="axr-'+rid+'-'+key+'">'+(item.doc?'<a class="lnk" href="'+esc(item.doc)+'" target="_blank">📎 receipt ✓</a>':'')+'</span>'
+    +'<button type="button" class="act cancel" title="Remove" onclick="this.closest(\'.actline\').remove()" style="padding:4px 9px;">✕</button>'
+  +'</div>';
+}
+function addActLine(rid){ ensureCatList(); var cont=document.getElementById('axc-'+rid); if(!cont) return;
+  var idx=ACT_CIDX[rid]||0, key='custom-'+idx;
+  while(document.getElementById('axcat-'+rid+'-'+key)){ idx++; key='custom-'+idx; }
+  ACT_CIDX[rid]=idx+1;
+  var wrap=document.createElement('div'); wrap.innerHTML=custRow(rid,key,{},ACT_CUR[rid]); cont.appendChild(wrap.firstChild);
+}
+function renderClaim(r){
+  var a=r.actuals||{}; var cur=a.currency||'INR';
+  ACT_DOCS[r.id]=ACT_DOCS[r.id]||{}; (a.items||[]).forEach(function(it){ if(it.doc && !ACT_DOCS[r.id][it.key]) ACT_DOCS[r.id][it.key]=it.doc; });
+  var st=a.status||'Pending';
+  var stCls=st==='Closed'?'closed':(/approved/i.test(st)?'approved':'pending');
+  var rows=(a.items||[]).filter(function(it){return it.actual>0;}).map(function(it){
+    return '<tr><td>'+esc(it.label)+'</td><td class="r">'+m(cur,it.actual)+'</td><td>'+(it.paidBy==='company'?'Company card / forex':'Own money')+'</td></tr>';
+  }).join('');
+  var summary='<table class="acttbl"><thead><tr><th>Line</th><th class="r">Amount you spent</th><th>Paid by</th></tr></thead><tbody>'
+    +(rows||'<tr><td colspan="3" style="color:#999;">No expenses submitted yet.</td></tr>')
+    +'<tr class="tot"><td>Total spent</td><td class="r">'+m(cur,a.actualTotal)+'</td><td></td></tr></tbody></table>'
+    +'<div class="actsum">Reimbursement due (your own money): <b>'+m(cur,a.reimbursable)+'</b>'+(a.advance?(' · Advance given: '+m(cur,a.advance)):'')+'</div>';
+  var statusLine=(st==='Closed'?('<span class="st closed">Closed — approved '+m(cur,a.reimburseApproved)+'</span>')
+    :st==='HOD Approved'?'<span class="st approved">✓ HOD approved — awaiting Finance settlement</span>'
+    :st==='Submitted'?'<span class="st pending">Submitted — awaiting HOD approval</span>'
+    :'<span class="st pending">Not submitted yet</span>')
+    +(a.late?(' <span class="st pending">⚠ '+a.late.days+' day'+(a.late.days===1?'':'s')+' late</span>'):'');
+  var form='';
+  if(r.canAddActuals){
+    ensureCatList(); ACT_CUR[r.id]=cur;
+    var byKey={}; (a.items||[]).forEach(function(it){byKey[it.key]=it;});
+    var lines=[['meals','Meals'],['local','Local conveyance'],['visa','Visa'],['baggage','Baggage'],['misc','Misc']];
+    var customItems=(a.items||[]).filter(function(it){return it.custom;});
+    ACT_CIDX[r.id]=customItems.length;
+    form='<div class="actform"><div class="actform-h">Add / update your trip expenses — a receipt is required for each amount</div>'
+      +lines.map(function(L){ var it=byKey[L[0]]||{}; var pb=(it.paidBy==='company')?'company':'own';
+        return '<div class="actline"><span class="actlbl">'+L[1]+'</span>'
+          +'<input id="ax-'+r.id+'-'+L[0]+'" type="number" min="0" step="any" value="'+(it.actual||'')+'" placeholder="Amount '+cur+'" class="actinp">'
+          +'<select id="axp-'+r.id+'-'+L[0]+'" class="actinp"><option value="own"'+(pb==='own'?' selected':'')+'>Own money (reimburse)</option><option value="company"'+(pb==='company'?' selected':'')+'>Company card / forex</option></select>'
+          +'<label class="act" style="cursor:pointer;">📎<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadActual(\''+r.id+'\',\''+L[0]+'\',this)"></label>'
+          +'<span class="acrcpt" id="axr-'+r.id+'-'+L[0]+'">'+(it.doc?'<a class="lnk" href="'+esc(it.doc)+'" target="_blank">📎 receipt ✓</a>':'')+'</span>'
+        +'</div>'; }).join('')
+      +'<div class="actform-h" style="margin-top:12px;">Other expenses — add your own category</div>'
+      +'<div id="axc-'+r.id+'">'+customItems.map(function(it){return custRow(r.id, it.key, it, cur);}).join('')+'</div>'
+      +'<button type="button" class="act" onclick="addActLine(\''+r.id+'\')" style="margin-bottom:10px;">＋ Add expense line</button><br>'
+      +'<button type="button" class="act edit" onclick="submitActuals(\''+r.id+'\')">💾 Submit reimbursement claim</button></div>';
+  } else {
+    form='<div class="note">This trip’s claim can no longer be edited'+(st==='Closed'?' — Finance has closed it.':'.')+'</div>';
+  }
+  document.getElementById('claim').innerHTML='<div class="card">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">'
+      +'<div><div style="font-weight:800;color:var(--navy);">'+esc(r.id)+'</div>'
+        +'<div class="tmeta"><span>'+esc(cap(r.type)+' · '+r.trip)+'</span><span><b>'+esc(r.route)+'</b></span><span>'+esc(r.start+(r.end?(' → '+r.end):''))+'</span></div></div>'
+      +'<div>'+statusLine+'</div></div>'
+    +summary+form+'</div>';
+}
+function uploadActual(id,key,inp){
+  var f=inp.files[0]; var st=document.getElementById('axr-'+id+'-'+key); if(!f) return;
+  if(f.size>3*1024*1024){ st.textContent='Max 3 MB'; return; }
+  st.textContent='Uploading…';
+  var rd=new FileReader();
+  rd.onload=function(){ var b64=String(rd.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:b64})})
+      .then(function(r){return r.json();})
+      .then(function(d){ if(d&&d.ok){ ACT_DOCS[id]=ACT_DOCS[id]||{}; ACT_DOCS[id][key]=d.link; st.innerHTML='<a class="lnk" href="'+esc(d.link)+'" target="_blank">📎 receipt ✓</a>'; } else st.textContent='Upload failed'; })
+      .catch(function(){ st.textContent='Upload failed'; }); };
+  rd.readAsDataURL(f);
+}
+function submitActuals(id){
+  var keys=['meals','local','visa','baggage','misc']; var actuals={}; var missing=[]; var needCat=false;
+  keys.forEach(function(k){ var amt=Number((document.getElementById('ax-'+id+'-'+k)||{}).value)||0; var pb=(document.getElementById('axp-'+id+'-'+k)||{}).value||'own'; var doc=(ACT_DOCS[id]||{})[k]||'';
+    if(amt>0 && !doc) missing.push(k);
+    actuals[k]={amount:amt,paidBy:pb,doc:doc}; });
+  var custom=[]; var cont=document.getElementById('axc-'+id);
+  if(cont){ Array.prototype.forEach.call(cont.querySelectorAll('.actline[data-ckey]'), function(row){
+    var key=row.getAttribute('data-ckey');
+    var label=((document.getElementById('axcat-'+id+'-'+key)||{}).value||'').trim();
+    var amt=Number((document.getElementById('axca-'+id+'-'+key)||{}).value)||0;
+    var pb=(document.getElementById('axcp-'+id+'-'+key)||{}).value||'own';
+    var doc=(ACT_DOCS[id]||{})[key]||'';
+    if(amt<=0 && !label) return;
+    if(amt>0 && !label) needCat=true;
+    if(amt>0 && !doc) missing.push(label||'added expense');
+    custom.push({label:label,amount:amt,paidBy:pb,doc:doc});
+  }); }
+  if(needCat){ alert('Please choose a category for each added expense line.'); return; }
+  if(missing.length){ alert('Please attach a receipt for: '+missing.join(', ')); return; }
+  actuals.custom=custom;
+  fetch('/api/me',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'actuals',id:id,actuals:actuals})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d&&d.ok){ alert('✓ Reimbursement claim submitted — it now goes to your department head for approval.'); load(); } else alert('Could not submit: '+((d&&d.error)||'error')); })
+    .catch(function(e){ alert('Submit failed: '+(e&&e.message||e)); });
+}
+requireView('requester', function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

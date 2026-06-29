@@ -26,6 +26,7 @@
     var isFin = me.roles.indexOf('finance')>-1; // finance = superuser: sees all dashboards
     var nav = [ navlink('/','Form', p==='/'||p==='/index.html') ];
     nav.push(navlink('/my','My Requests', p.indexOf('/my')>-1));
+    nav.push(navlink('/reimbursement','Reimbursement', p.indexOf('reimburs')>-1));
     if (['hod','ceo','finance'].some(function(r){return me.roles.indexOf(r)>-1;})) nav.push(navlink('/hod','Approvals', p.indexOf('hod')>-1));
     if (me.roles.indexOf('hod')>-1 || me.roles.indexOf('ceo')>-1) nav.push(navlink('/department','Department', p.indexOf('department')>-1));
     if (isFin) nav.push(navlink('/finance','Finance', p.indexOf('finance')>-1));
