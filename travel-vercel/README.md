@@ -75,3 +75,7 @@ Without env vars the UI loads, but submitting needs the Sheets + Resend values.
 - Approval links carry a token stored in the sheet; it rotates after each decision,
   so links can't be reused.
 - `GOOGLE_PRIVATE_KEY` must keep its `\n` escapes (the code converts them to newlines).
+
+## Deployment
+
+This app is deployed via **Vercel’s GitHub integration** — every push to `main` auto-deploys (root directory: `travel-vercel`). No manual CLI deploys.
