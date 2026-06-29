@@ -18,7 +18,10 @@ export default async function handler(req, res) {
     fx: CONFIG.FX,
     reportingCurrency: CONFIG.REPORTING_CURRENCY,
     deptBudgets: CONFIG.DEPT_BUDGETS,
-    flightSearch: flightsAvailable() || amadeusAvailable(), // live flight search configured?
+    // Live flight search panel: hidden by default. Only shows when explicitly opted in
+    // (FLIGHT_SEARCH_UI=true) AND a flight provider key is configured. Set the env flag
+    // in Vercel when you're ready to turn it on; leave it unset to keep the panel hidden.
+    flightSearch: (String(process.env.FLIGHT_SEARCH_UI || '').toLowerCase() === 'true') && (flightsAvailable() || amadeusAvailable()),
     userEmail: '',
   });
 }

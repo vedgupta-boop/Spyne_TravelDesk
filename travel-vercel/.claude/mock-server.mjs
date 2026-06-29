@@ -9,7 +9,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Signed-in finance superuser + HOD (sees every dashboard, incl. the HOD/My views)
 const ME = { authenticated: true, email: 'finance.demo@spyne.ai', name: 'Finance Demo', roles: ['requester', 'hod', 'ceo', 'finance', 'admin', 'forex'] };
 const CONFIG_RES = { company: CONFIG.COMPANY_NAME, domain: CONFIG.COMPANY_DOMAIN, departments: CONFIG.DEPARTMENTS, policy: POLICY, userEmail: ME.email,
-  fx: CONFIG.FX, reportingCurrency: CONFIG.REPORTING_CURRENCY, deptBudgets: CONFIG.DEPT_BUDGETS };
+  fx: CONFIG.FX, reportingCurrency: CONFIG.REPORTING_CURRENCY, deptBudgets: CONFIG.DEPT_BUDGETS, flightSearch: false };
 
 // ---- Approvals dashboard (scoped to the signed-in approver) ----
 const APPROVALS = { scope: 'Technology', rows: [
@@ -54,12 +54,14 @@ const MINE = { rows: [
   { id: 'TRF-20260918-MINE1', type: 'domestic', trip: 'Round trip', purpose: 'Site Visit', route: 'Delhi (DEL) → Mumbai (BOM)', traveller: 'Finance Demo', raisedForOther: false,
     start: '18 Sep 2026', end: '20 Sep 2026', submission: '17 Jun 2026', stage: 'dept', status: 'Pending HOD Approval',
     hod: 'Pending', ceo: 'N/A', finance: 'N/A', booking: '', forexIssued: 'N/A',
+    pendingWith: 'jatin@spyne.ai', pendingStage: 'Department Head',
     canEdit: true, canWithdraw: true,
     edit: { dept: 'Technology', travelType: 'domestic', tripType: 'round', from: 'Delhi (DEL)', to: 'Mumbai (BOM)', returnFrom: 'Mumbai (BOM)', returnTo: 'Delhi (DEL)', startDate: '2026-09-18', returnDate: '2026-09-20', purpose: 'Site Visit', transportMode: 'Flight (Economy)', notes: '', forexNeeded: false, visaNeeded: false, extraFlights: [], extraHotels: [], extraPassengers: [] },
     timeline: { steps: [ { label: 'Submitted', status: 'done', date: '17 Jun 2026' }, { label: 'HOD', status: 'pending', date: '' }, { label: 'Booking', status: 'pending', date: '' } ], comments: [] } },
   { id: 'TRF-20260905-MINE2', type: 'domestic', trip: 'Round trip', purpose: 'Site Visit', route: 'Mumbai → Delhi', traveller: 'Ravi Kumar', raisedForOther: true,
     start: '05 Sep 2026', end: '07 Sep 2026', submission: '16 Jun 2026', stage: 'arrange', status: 'Approved — With Admin for Arrangements',
     hod: 'Approved', ceo: 'N/A', finance: 'N/A', booking: 'Pending', forexIssued: 'N/A',
+    pendingWith: 'shankul.rastogi@spyne.ai', pendingStage: 'Admin (booking)',
     canEdit: false, canWithdraw: true, canAddFlightDoc: true, prefFlightDoc: '', prefFlightNotes: 'Prefer morning non-stop, IndiGo',
     flights: [ { label: 'Outbound', from: 'Mumbai', to: 'Delhi', date: '05 Sep 2026', time: '08:30', timeLabel: '08:30 IST' }, { label: 'Return', from: 'Delhi', to: 'Mumbai', date: '07 Sep 2026', time: '19:15', timeLabel: '19:15 IST' } ],
     edit: {}, timeline: { steps: [ { label: 'Submitted', status: 'done', date: '16 Jun 2026' }, { label: 'HOD', status: 'done', date: '16 Jun 2026' }, { label: 'Booking', status: 'pending', date: '' } ], comments: [ '[Department Head · jatin · 16 Jun 2026] Approved.' ] } },
