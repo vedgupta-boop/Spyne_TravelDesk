@@ -23,13 +23,15 @@ export function chainFor(type) {
   // request breaks policy. Local: Admin is the final approver. Domestic/Intl: Admin is
   // notified for arrangements only (no approval).
   const broken = arguments[1];
+  const ceoReq = arguments[2]; // CEO's own trip → Finance approves (no HOD/CEO self-approval)
+  if (ceoReq) return ['finance'];
   if (type === 'international') return broken ? ['dept', 'ceo', 'finance'] : ['dept', 'ceo'];
   // Local & domestic: HOD approves (+ Finance only if policy-broken). Admin then arranges (no approval).
   return broken ? ['dept', 'finance'] : ['dept'];
 }
-export function chainLabels(type, broken) {
+export function chainLabels(type, broken, ceoReq) {
   const map = { dept: 'HOD', ceo: 'CEO', finance: 'Finance', admin: 'Admin' };
-  const steps = chainFor(type, broken).map((s) => map[s]);
+  const steps = chainFor(type, broken, ceoReq).map((s) => map[s]);
   steps.push('Admin'); // Admin arranges/books (all trip types) — informational, no approval
   steps.push('Confirmed');
   return steps;
@@ -45,8 +47,8 @@ function approverEmailFor(stage, rec) {
   return CONFIG.ADMIN_TEAM;
 }
 // Next APPROVAL stage, or null if the current stage was the last approval.
-function nextStage(type, current, broken) {
-  const chain = chainFor(type, broken);
+function nextStage(type, current, broken, ceoReq) {
+  const chain = chainFor(type, broken, ceoReq);
   const i = chain.indexOf(current);
   if (i === -1) return null;
   return (i + 1 < chain.length) ? chain[i + 1] : null;
@@ -227,27 +229,33 @@ export async function submitRequest(p, baseUrl) {
     (now - Date.parse(x[COL.TS])) < 2 * 60 * 1000);
   if (dup) {
     return { ok: true, id: dup[COL.ID], duplicate: true, currency: dup[COL.CURRENCY],
-      total: Number(dup[COL.C_TOTAL] || 0), chain: chainLabels(dup[COL.TYPE], /^POLICY BREAK/.test(String(dup[COL.FLAG] || ''))) };
+      total: Number(dup[COL.C_TOTAL] || 0), chain: chainLabels(dup[COL.TYPE], /^POLICY BREAK/.test(String(dup[COL.FLAG] || '')), ceoIsRequester(dup)) };
   }
 
   const { trip, personal, costs } = await computeTripFields(p);
   const id = 'TRF-' + stamp() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-  const rec = {
+  const rec0 = {
     [COL.ID]: id, [COL.TS]: new Date().toISOString(), [COL.EMAIL]: (p.email || '').trim(),
     ...trip, ...personal,
-    [COL.STATUS]: 'Pending HOD Approval', [COL.STAGE]: 'dept', [COL.TOKEN]: randomUUID(), [COL.ADMIN]: '',
-    [COL.DOC_TICKET]: '', [COL.FOREX_TOPUPS]: '', [COL.BOOKINGS]: '',
-    [COL.ACTUALS]: '', [COL.ACTUALS_STATUS]: 'Pending', [COL.REIMBURSE_AMT]: '',
     // Who filed this request. Equals the traveller's email when self-booking; differs when
     // raised on behalf of someone else. Status emails go here (the requester), not the traveller.
     [COL.REQUESTED_BY]: (p.requestedBy || p.email || '').trim(),
   };
+  // The CEO's own trip can't be self-approved and has no HOD above → it goes straight to Finance.
+  const ceoReq = ceoIsRequester(rec0);
+  const firstStage = ceoReq ? 'finance' : 'dept';
+  const rec = {
+    ...rec0,
+    [COL.STATUS]: ceoReq ? ('Pending ' + stageLabel('finance') + ' Approval') : 'Pending HOD Approval', [COL.STAGE]: firstStage, [COL.TOKEN]: randomUUID(), [COL.ADMIN]: '',
+    [COL.DOC_TICKET]: '', [COL.FOREX_TOPUPS]: '', [COL.BOOKINGS]: '',
+    [COL.ACTUALS]: '', [COL.ACTUALS_STATUS]: 'Pending', [COL.REIMBURSE_AMT]: '',
+  };
 
   await ensureHeaders();
   await appendRecord(rec);
-  await emailApprover('dept', rec, baseUrl);
+  await emailApprover(firstStage, rec, baseUrl);
 
-  return { ok: true, id, currency: costs.currency, total: costs.total, chain: chainLabels(p.travelType, costs.broken) };
+  return { ok: true, id, currency: costs.currency, total: costs.total, chain: chainLabels(p.travelType, costs.broken, ceoReq) };
 }
 
 // ---- requester self-service: edit (while still at HOD) / withdraw ----
@@ -263,6 +271,15 @@ function deptHeadIsRequester(rec) {
   const filer = String(rec[COL.REQUESTED_BY] || rec[COL.EMAIL] || '').toLowerCase();
   const traveller = String(rec[COL.EMAIL] || '').toLowerCase();
   return head === filer || head === traveller;
+}
+// True when the CEO is the traveller / raised the request. The CEO can't approve their own
+// trip (and has no one above them), so it routes straight to Finance for approval.
+function ceoIsRequester(rec) {
+  const ceo = String(CONFIG.CEO_EMAIL || '').toLowerCase();
+  if (!ceo) return false;
+  const filer = String(rec[COL.REQUESTED_BY] || rec[COL.EMAIL] || '').toLowerCase();
+  const traveller = String(rec[COL.EMAIL] || '').toLowerCase();
+  return ceo === filer || ceo === traveller;
 }
 // The current owner/approver address for a stage (for withdraw notifications).
 function ownerForStage(rec, stage) {
@@ -289,15 +306,18 @@ export async function editRequest(id, p, email, baseUrl) {
   if (!p.empId) p.empId = rec[COL.EMPID];
   const { trip, costs } = await computeTripFields(p);
   const who = String(email || '').split('@')[0];
+  // The CEO's own trip resubmits straight to Finance (no HOD/CEO self-approval); everyone else → HOD.
+  const ceoReq = ceoIsRequester(rec);
+  const reStage = ceoReq ? 'finance' : 'dept';
   const updates = Object.entries(trip).concat([
-    [COL.STATUS, 'Pending HOD Approval'], [COL.STAGE, 'dept'], [COL.TOKEN, randomUUID()],
-    [COL.DEPT_DEC, ''], [COL.DEPT_TIME, ''], [COL.HOLD, ''], [COL.BOOKINGS, ''], [COL.DOC_TICKET, ''],
+    [COL.STATUS, ceoReq ? ('Pending ' + stageLabel('finance') + ' Approval') : 'Pending HOD Approval'], [COL.STAGE, reStage], [COL.TOKEN, randomUUID()],
+    [COL.DEPT_DEC, ''], [COL.DEPT_TIME, ''], [COL.FIN_DEC, ''], [COL.FIN_TIME, ''], [COL.HOLD, ''], [COL.BOOKINGS, ''], [COL.DOC_TICKET, ''],
     [COL.LAST_REMINDER, ''], [COL.REMINDER_COUNT, 0], [COL.DELEGATE_EMAIL, ''], [COL.CLARIFY_NOTE, ''],
-    [COL.COMMENTS, appendComment(rec, 'dept', who, (stage === 'clarify' ? 'Clarification provided — resubmitted by requester' : 'Request edited & resubmitted by requester'))],
+    [COL.COMMENTS, appendComment(rec, reStage, who, (stage === 'clarify' ? 'Clarification provided — resubmitted by requester' : 'Request edited & resubmitted by requester'))],
   ]);
   await updateCells(rec.__row, updates);
   const fresh = { ...rec, ...trip, [COL.TOKEN]: updates.find((u) => u[0] === COL.TOKEN)[1] };
-  await emailApprover('dept', fresh, baseUrl, { edited: true }); // notify HOD it was edited & resubmitted
+  await emailApprover(reStage, fresh, baseUrl, { edited: true }); // notify the approver it was edited & resubmitted
   return { ok: true, id, status: 'Updated — resent for HOD approval', currency: costs.currency, total: costs.total };
 }
 
@@ -371,7 +391,7 @@ async function applyDecision(rec, stage, decision, baseUrl) {
   }
   if (decision !== 'approve') return { title: 'Unknown Action', msg: 'Unrecognized decision.', color: '#b00' };
 
-  const next = nextStage(type, stage, broken);
+  const next = nextStage(type, stage, broken, ceoIsRequester(rec));
   const newToken = randomUUID();
   const updates = [[decCol, 'Approved'], [COL.TOKEN, newToken], [COL.HOLD, ''], [COL.DELEGATE_EMAIL, '']];
   if (timeCol) updates.push([timeCol, now]);
@@ -546,7 +566,7 @@ export async function approverData({ email, roles }) {
     else if (amHOD) { relevant = true; myStage = 'dept'; myDec = decStatus(rec[COL.DEPT_DEC]); myTime = fmtDate(rec[COL.DEPT_TIME]); scopes.add(deptsForHod(email).join(', ') || dept); }
     else if (escCEO) { relevant = true; myStage = 'dept'; myDec = decStatus(rec[COL.DEPT_DEC]); myTime = fmtDate(rec[COL.DEPT_TIME]); scopes.add('CEO — dept-head requests'); }
     else if (isCEO && intl) { relevant = true; myStage = 'ceo'; myDec = decStatus(rec[COL.CEO_DEC]); myTime = fmtDate(rec[COL.CEO_TIME]); scopes.add('CEO — International'); }
-    else if (isFin && broken) { relevant = true; myStage = 'finance'; myDec = decStatus(rec[COL.FIN_DEC]); myTime = fmtDate(rec[COL.FIN_TIME]); scopes.add('Finance — Policy breaks'); }
+    else if (isFin && (broken || ceoIsRequester(rec))) { relevant = true; myStage = 'finance'; myDec = decStatus(rec[COL.FIN_DEC]); myTime = fmtDate(rec[COL.FIN_TIME]); scopes.add(ceoIsRequester(rec) ? 'Finance — CEO travel' : 'Finance — Policy breaks'); }
     if (!relevant) continue;
     const stage = String(rec[COL.STAGE]);
     const awaitingMe = stage === myStage;
@@ -915,7 +935,7 @@ export async function financeData() {
     let ceoStatus = decStatus(r[COL.CEO_DEC]);
     if (!ceoStatus) ceoStatus = String(r[COL.TYPE]) === 'international' ? 'Pending' : 'N/A'; // CEO only for international
     let financeStatus = decStatus(r[COL.FIN_DEC]);
-    if (!financeStatus) financeStatus = broken ? 'Pending' : 'N/A';
+    if (!financeStatus) financeStatus = (broken || ceoIsRequester(r)) ? 'Pending' : 'N/A';
     let forexStatus = 'N/A';
     if (isForex) forexStatus = (r[COL.FOREX_ISSUE_DATE] || /forex card issued/i.test(status)) ? 'Issued' : 'Pending';
 
