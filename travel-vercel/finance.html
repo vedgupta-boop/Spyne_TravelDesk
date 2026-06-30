@@ -579,7 +579,7 @@ function openBreak(i){
     +'<table class="bd-tbl" style="margin-top:14px;"><tbody>'
     +reasons.map(function(x,n){ return '<tr><td><div class="li">Reason '+(n+1)+'</div><div class="bs">'+esc(x)+'</div></td></tr>'; }).join('')
     +'</tbody></table>'
-    +'<div class="bd-note">Policy-break thresholds: flight over cap, total over threshold, or short notice. See the Policy Summary panel for exact limits.</div>';
+    +'<div class="bd-note">Routes to Finance on short notice (or CEO travel). Budget caps are reference only — over-cap is not a policy breach. See the Policy Summary panel.</div>';
   document.getElementById('cd-body').innerHTML=html;
   document.getElementById('cost-drawer').classList.add('open');
   document.getElementById('cost-drawer').setAttribute('aria-hidden','false');
@@ -922,10 +922,13 @@ function renderPolicy(P){
     ['Top-ups','Forex officer can add further top-ups; they add to the advance on both the Forex &amp; Finance dashboards'],
     ['Treatment','Settled within 30 days of return. Not added to Total Expenses.'],
   ]);
-  h+=tbl('Policy-break → routes to Finance for review', [
-    ['Flight over cap',inr(P.CAPS.FLIGHT.domestic)+' (domestic) · USD '+(P.CAPS.FLIGHT.us_domestic!=null?P.CAPS.FLIGHT.us_domestic+' (US domestic) · USD ':'')+P.CAPS.FLIGHT.international+' (intl)'],
-    ['Total expenses over threshold',inr(P.CAPS.TOTAL.domestic)+' (domestic) · USD '+P.CAPS.TOTAL.international+' (intl)'],
-    ['Short notice','< '+P.NOTICE_DAYS.domestic+' days (domestic) · < '+P.NOTICE_DAYS.international+' days (international)'],
+  h+=tbl('Routes to Finance for review (per policy v2.0 §4.1)', [
+    ['Short notice','< '+P.NOTICE_DAYS.domestic+' days (domestic) · < '+P.NOTICE_DAYS.international+' days (international) — needs Finance approval'],
+    ['CEO travel','The CEO’s own trips go to Finance for approval'],
+  ]);
+  h+=tbl('Budget caps — reference only (over-cap is NOT a policy breach, does not route to Finance)', [
+    ['Flight cap',inr(P.CAPS.FLIGHT.domestic)+' (domestic) · USD '+(P.CAPS.FLIGHT.us_domestic!=null?P.CAPS.FLIGHT.us_domestic+' (US domestic) · USD ':'')+P.CAPS.FLIGHT.international+' (intl)'],
+    ['Total cap',inr(P.CAPS.TOTAL.domestic)+' (domestic) · USD '+P.CAPS.TOTAL.international+' (intl)'],
   ]);
   pb.innerHTML=editor+h;
 }
