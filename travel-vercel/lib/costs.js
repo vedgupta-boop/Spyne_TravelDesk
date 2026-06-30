@@ -55,7 +55,8 @@ export function isUsRegion(p) {
 // Authoritative, server-side cost computation. Mirrors the client preview.
 // Estimate the primary transport cost (round-trip) from the mode. Flight uses the
 // live price when provided (opts.flightCost), else the policy estimate.
-function transportEstimate(mode, usd) {
+function transportEstimate(mode, usd, usDomestic) {
+  if (usDomestic) return POLICY.ESTIMATES.FLIGHT.us_domestic; // flight within the US
   if (usd) return POLICY.ESTIMATES.FLIGHT.international; // USD region assumed flight
   const m = String(mode || '').toLowerCase();
   if (m.includes('flight')) return POLICY.ESTIMATES.FLIGHT.domestic;
@@ -75,6 +76,7 @@ function transportEstimate(mode, usd) {
 export function computeCosts(p, dur, opts = {}) {
   const intl = p.travelType === 'international';
   const usd = isUsRegion(p);              // USD currency + US policy tables
+  const usDomestic = usd && !intl;        // flight WITHIN the US (cheaper than international)
   const currency = usd ? 'USD' : 'INR';
   const tier = cityTier(p.to, usd);
   const { days, nights } = dur;
@@ -83,10 +85,11 @@ export function computeCosts(p, dur, opts = {}) {
   // Transport — live flight price if available, else estimate by mode.
   const baseTransport = (opts.flightCost != null && opts.flightCost !== '')
     ? num(opts.flightCost)
-    : transportEstimate(p.transportMode, usd);
+    : transportEstimate(p.transportMode, usd, usDomestic);
   // Extra flight legs (multi-city) — each estimated at the policy flight fare.
   const extraFlights = Array.isArray(opts.extraFlights) ? opts.extraFlights : [];
-  const perExtraFlight = usd ? POLICY.ESTIMATES.FLIGHT.international : POLICY.ESTIMATES.FLIGHT.domestic;
+  const perExtraFlight = usDomestic ? POLICY.ESTIMATES.FLIGHT.us_domestic
+    : (usd ? POLICY.ESTIMATES.FLIGHT.international : POLICY.ESTIMATES.FLIGHT.domestic);
   const extraFlightCost = extraFlights.length * perExtraFlight;
   const transport = baseTransport + extraFlightCost;
 
@@ -126,7 +129,6 @@ export function computeCosts(p, dur, opts = {}) {
 
   // ---- Additional allowances / one-off costs (USD) ----
   const X = POLICY.EXTRAS;
-  const usDomestic = usd && !intl;
   const hotelCount = (hotelN > 0 ? 1 : 0) + extraHotels.length;
   const extras = {};
   if (intl) {
@@ -145,7 +147,8 @@ export function computeCosts(p, dur, opts = {}) {
   const total = transport + local + hotel + meals + other;
 
   // ---- Policy break determination (any reason -> Finance approval required) ----
-  const flightCap = usd ? POLICY.CAPS.FLIGHT.international : POLICY.CAPS.FLIGHT.domestic;
+  const flightCap = usDomestic ? POLICY.CAPS.FLIGHT.us_domestic
+    : (usd ? POLICY.CAPS.FLIGHT.international : POLICY.CAPS.FLIGHT.domestic);
   const totalCap  = usd ? POLICY.CAPS.TOTAL.international  : POLICY.CAPS.TOTAL.domestic;
   const reasons = [];
   if (transport > flightCap) reasons.push(`Transport ${money(transport, currency)} over cap ${money(flightCap, currency)}`);

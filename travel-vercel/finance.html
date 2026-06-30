@@ -816,7 +816,7 @@ function renderPolicy(P){
   ]);
   h+=tbl('Hotel cap — per night', [['India — Tier A',inr(P.HOTEL.india.A)],['India — Tier B',inr(P.HOTEL.india.B)],['US — Tier A','USD '+P.HOTEL.us.A],['US — Tier B','USD '+P.HOTEL.us.B]]);
   h+=tbl('Meal per-diem — per day', [['India / domestic',inr(P.MEALS.domestic)+' (bills required)'],['US / international — Tier A','USD '+P.MEALS.us_A],['US / international — Tier B','USD '+P.MEALS.us_B]]);
-  h+=tbl('Transport estimate (round-trip, when no live price)', [['Flight — domestic',inr(P.ESTIMATES.FLIGHT.domestic)],['Flight — international / US','USD '+P.ESTIMATES.FLIGHT.international],['Train',inr(P.ESTIMATES.TRANSPORT.train)],['Bus',inr(P.ESTIMATES.TRANSPORT.bus)],['Cab',inr(P.ESTIMATES.TRANSPORT.cab)]]);
+  h+=tbl('Transport estimate (round-trip, when no live price)', [['Flight — domestic (India)',inr(P.ESTIMATES.FLIGHT.domestic)],['Flight — US domestic','USD '+(P.ESTIMATES.FLIGHT.us_domestic!=null?P.ESTIMATES.FLIGHT.us_domestic:'-')],['Flight — international','USD '+P.ESTIMATES.FLIGHT.international],['Train',inr(P.ESTIMATES.TRANSPORT.train)],['Bus',inr(P.ESTIMATES.TRANSPORT.bus)],['Cab',inr(P.ESTIMATES.TRANSPORT.cab)]]);
   h+=tbl('Local conveyance', [['Airport transfers (home↔airport, per leg)',inr(P.ESTIMATES.LOCAL_LEG.domestic.homeAirport+P.ESTIMATES.LOCAL_LEG.domestic.airportDest)+' / USD '+(P.ESTIMATES.LOCAL_LEG.international.homeAirport+P.ESTIMATES.LOCAL_LEG.international.airportDest)+' · ×2 for round trip'],['Daily cab at destination',''+P.ESTIMATES.LOCAL_CONVEYANCE.kmPerDay+' km/day × INR '+P.ESTIMATES.LOCAL_CONVEYANCE.ratePerKm.domestic+'/km (domestic) · USD '+P.ESTIMATES.LOCAL_CONVEYANCE.ratePerKm.international+'/km (intl)']]);
   h+=tbl('Additional allowances — added to trip expenses', [
     ['Visa fee (international, if no valid visa)','by destination — US USD '+(X.VISA_FEE_BY_COUNTRY&&X.VISA_FEE_BY_COUNTRY['United States']||X.VISA_FEE)+' · UK '+(X.VISA_FEE_BY_COUNTRY&&X.VISA_FEE_BY_COUNTRY['United Kingdom']||'-')+' · India '+(X.VISA_FEE_BY_COUNTRY&&X.VISA_FEE_BY_COUNTRY['India']||'-')+' · default USD '+X.VISA_FEE],
@@ -847,7 +847,7 @@ function renderPolicy(P){
     ['Treatment','Settled within 30 days of return. Not added to Total Expenses.'],
   ]);
   h+=tbl('Policy-break → routes to Finance for review', [
-    ['Flight over cap',inr(P.CAPS.FLIGHT.domestic)+' (domestic) · USD '+P.CAPS.FLIGHT.international+' (intl)'],
+    ['Flight over cap',inr(P.CAPS.FLIGHT.domestic)+' (domestic) · USD '+(P.CAPS.FLIGHT.us_domestic!=null?P.CAPS.FLIGHT.us_domestic+' (US domestic) · USD ':'')+P.CAPS.FLIGHT.international+' (intl)'],
     ['Total expenses over threshold',inr(P.CAPS.TOTAL.domestic)+' (domestic) · USD '+P.CAPS.TOTAL.international+' (intl)'],
     ['Short notice','< '+P.NOTICE_DAYS.domestic+' days (domestic) · < '+P.NOTICE_DAYS.international+' days (international)'],
   ]);

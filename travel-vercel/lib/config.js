@@ -58,7 +58,7 @@ export const POLICY = {
   // Backend cost ESTIMATES (used when no policy figure / no live price). Currency:
   // INR for domestic & local, USD for international.
   ESTIMATES: {
-    FLIGHT:    { domestic: 9000, international: 800 },     // round-trip fallback if no live price
+    FLIGHT:    { domestic: 9000, us_domestic: 300, international: 800 }, // round-trip fallback if no live price (us_domestic = flight within the US)
     TRANSPORT: { train: 4000, bus: 2000, cab: 3000, own: 2500 }, // domestic non-flight (INR)
     LOCAL_LEG: { domestic: { homeAirport: 1000, airportDest: 1000 },   // INR per leg
                  international: { homeAirport: 30, airportDest: 40 } }, // USD per leg
@@ -82,7 +82,7 @@ export const POLICY = {
   },
   // Policy-break thresholds → adding Finance approval.
   CAPS: {
-    FLIGHT: { domestic: 15000, international: 900 },
+    FLIGHT: { domestic: 15000, us_domestic: 600, international: 900 },
     TOTAL:  { domestic: 50000, international: 3000 },
   },
   NOTICE_DAYS: { domestic: 15, international: 30 }, // required advance notice

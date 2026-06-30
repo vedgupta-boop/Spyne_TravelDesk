@@ -26,6 +26,7 @@ export const EDITABLE = [
   { path: 'POLICY.LOCAL_DAILY_CAP.international', label: 'Intl local transport cap ($/day)', group: 'Local & forex' },
   { path: 'POLICY.FOREX_PER_DAY.international', label: 'Forex advance ($/day)', group: 'Local & forex' },
   { path: 'POLICY.CAPS.FLIGHT.domestic', label: 'Flight cap — domestic (₹)', group: 'Policy-break caps' },
+  { path: 'POLICY.CAPS.FLIGHT.us_domestic', label: 'Flight cap — US domestic ($)', group: 'Policy-break caps' },
   { path: 'POLICY.CAPS.FLIGHT.international', label: 'Flight cap — international ($)', group: 'Policy-break caps' },
   { path: 'POLICY.CAPS.TOTAL.domestic', label: 'Total cap — domestic (₹)', group: 'Policy-break caps' },
   { path: 'POLICY.CAPS.TOTAL.international', label: 'Total cap — international ($)', group: 'Policy-break caps' },
@@ -38,6 +39,7 @@ export const EDITABLE = [
   { path: 'POLICY.EXTRAS.BAGGAGE_PER_LEG', label: 'Baggage — US domestic ($/leg)', group: 'Overseas extras' },
   { path: 'POLICY.EXTRAS.SECURITY_DEPOSIT', label: 'Hotel security deposit ($/hotel)', group: 'Overseas extras' },
   { path: 'POLICY.ESTIMATES.FLIGHT.domestic', label: 'Flight estimate — domestic (₹)', group: 'Transport estimates' },
+  { path: 'POLICY.ESTIMATES.FLIGHT.us_domestic', label: 'Flight estimate — US domestic ($)', group: 'Transport estimates' },
   { path: 'POLICY.ESTIMATES.FLIGHT.international', label: 'Flight estimate — international ($)', group: 'Transport estimates' },
   { path: 'CONFIG.FX.USD_INR', label: 'USD → INR rate', group: 'FX' },
 ];
