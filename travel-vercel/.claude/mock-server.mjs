@@ -100,7 +100,6 @@ const FINANCE = {
     { path: 'POLICY.HOTEL.us.1', label: 'Hotel cap — US Tier 1 ($/night)', group: 'Hotel caps', value: 175 },
     { path: 'POLICY.MEALS.domestic', label: 'Meals — India domestic (₹/day)', group: 'Meal per-diem', value: 800 },
     { path: 'POLICY.MEALS.overseas', label: 'Meals — overseas, no breakfast ($/day)', group: 'Meal per-diem', value: 70 },
-    { path: 'POLICY.CAPS.TOTAL.international', label: 'Total cap — international ($)', group: 'Budget caps (reference only)', value: 3000 },
     { path: 'CONFIG.FX.USD_INR', label: 'USD → INR rate', group: 'FX', value: 92 },
   ],
   policyChanges: [

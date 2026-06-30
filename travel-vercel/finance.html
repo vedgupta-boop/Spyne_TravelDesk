@@ -929,10 +929,6 @@ function renderPolicy(P){
     ['Short notice','< '+P.NOTICE_DAYS.domestic+' days (domestic) · < '+P.NOTICE_DAYS.international+' days (international) — needs Finance approval'],
     ['CEO travel','The CEO’s own trips go to Finance for approval'],
   ]);
-  h+=tbl('Budget caps — reference only (over-cap is NOT a policy breach, does not route to Finance)', [
-    ['Flight cap',inr(P.CAPS.FLIGHT.domestic)+' (domestic) · USD '+(P.CAPS.FLIGHT.us_domestic!=null?P.CAPS.FLIGHT.us_domestic+' (US domestic) · USD ':'')+P.CAPS.FLIGHT.international+' (intl)'],
-    ['Total cap',inr(P.CAPS.TOTAL.domestic)+' (domestic) · USD '+P.CAPS.TOTAL.international+' (intl)'],
-  ]);
   pb.innerHTML=editor+h;
 }
 
