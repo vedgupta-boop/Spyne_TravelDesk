@@ -51,6 +51,13 @@ export function hotelCapFor(usd, tier) {
   return usd ? (POLICY.HOTEL.us[tier] || POLICY.HOTEL.us[4]) : (POLICY.HOTEL.india[tier] || POLICY.HOTEL.india[3]);
 }
 
+// Resolve a city's per-night hotel cap. Non-US INTERNATIONAL cities have no tier in the policy
+// (§6.3 only defines US tiers) → they use HOTEL.intl_default instead of the US Tier-4 catch-all.
+export function hotelCapForCity(usd, intl, city) {
+  if (usd && intl && !isListedUsCity(city)) return POLICY.HOTEL.intl_default;
+  return hotelCapFor(usd, cityTier(city, usd));
+}
+
 // Per-diem (§6.4 overseas, §7.4 India). Overseas is breakfast-based, not tier-based; budget uses
 // the no-breakfast rate (the higher allowance). Actuals are claimed on bills post-trip.
 export function mealPerDiem(usd, type) {
@@ -126,8 +133,7 @@ export function computeCosts(p, dur, opts = {}) {
   let hotelN = nights;
   if (p.hotelCheckIn && p.hotelCheckOut) hotelN = Math.max(0, hotelNights(p.hotelCheckIn, p.hotelCheckOut));
   if (!hotelWanted) hotelN = 0;
-  const hotelTier     = cityTier(p.hotelCity || p.to, usd);
-  const hotelPerNight = hotelN > 0 ? ((opts.hotelRate != null && opts.hotelRate !== '') ? num(opts.hotelRate) : hotelCapFor(usd, hotelTier)) : 0;
+  const hotelPerNight = hotelN > 0 ? ((opts.hotelRate != null && opts.hotelRate !== '') ? num(opts.hotelRate) : hotelCapForCity(usd, intl, p.hotelCity || p.to)) : 0;
   const baseHotel     = hotelPerNight * hotelN;
   // Extra hotel stays (multi-city) — each at its city's cap × nights between check-in/out.
   const extraHotels = Array.isArray(opts.extraHotels) ? opts.extraHotels : [];
@@ -135,7 +141,7 @@ export function computeCosts(p, dur, opts = {}) {
   for (const h of extraHotels) {
     const nn = Math.max(0, hotelNights(h.checkIn, h.checkOut));
     extraHotelNights += nn;
-    extraHotelCost += hotelCapFor(usd, cityTier(h.city, usd)) * nn;
+    extraHotelCost += hotelCapForCity(usd, intl, h.city) * nn;
   }
   const hotel         = baseHotel + extraHotelCost;
   const mealsPerDay   = mealPerDiem(usd, p.travelType);

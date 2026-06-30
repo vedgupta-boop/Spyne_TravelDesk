@@ -68,7 +68,9 @@ export const POLICY = {
               'des moines','charlotte','raleigh','durham','columbus','cincinnati','cleveland','indianapolis',
               'milwaukee','madison','richmond','providence','hartford','albany','buffalo','rochester','louisville',
               'memphis','oklahoma city','tulsa','albuquerque','spokane'],
-  HOTEL: { india: { 1: 6000, 2: 3000, 3: 2500 }, us: { 1: 175, 2: 150, 3: 125, 4: 100 } }, // per night (+ taxes), §6.3 / §7.3
+  // per night (+ taxes), §6.3 / §7.3. intl_default = non-US international cities (the policy only
+  // defines US tier caps; everywhere else overseas uses this default).
+  HOTEL: { india: { 1: 6000, 2: 3000, 3: 2500 }, us: { 1: 175, 2: 150, 3: 125, 4: 100 }, intl_default: 175 },
   // Meals/per-diem (§6.4, §7.4). Overseas is breakfast-based, NOT tier-based: USD 70 (no breakfast) / USD 50
   // (breakfast included). Budget uses the no-breakfast rate (70); actuals are claimed on bills.
   MEALS: { domestic: 800, overseas: 70, overseas_breakfast: 50, local: 0 },  // per day

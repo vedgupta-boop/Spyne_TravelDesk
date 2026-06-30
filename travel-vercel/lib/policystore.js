@@ -23,6 +23,7 @@ export const EDITABLE = [
   { path: 'POLICY.HOTEL.us.2', label: 'Hotel cap — US Tier 2 ($/night)', group: 'Hotel caps' },
   { path: 'POLICY.HOTEL.us.3', label: 'Hotel cap — US Tier 3 ($/night)', group: 'Hotel caps' },
   { path: 'POLICY.HOTEL.us.4', label: 'Hotel cap — US Tier 4 ($/night)', group: 'Hotel caps' },
+  { path: 'POLICY.HOTEL.intl_default', label: 'Hotel cap — international, non-US ($/night)', group: 'Hotel caps' },
   { path: 'POLICY.MEALS.domestic', label: 'Meals — India domestic (₹/day)', group: 'Meal per-diem' },
   { path: 'POLICY.MEALS.overseas', label: 'Meals — overseas, no breakfast ($/day)', group: 'Meal per-diem' },
   { path: 'POLICY.MEALS.overseas_breakfast', label: 'Meals — overseas, breakfast incl. ($/day)', group: 'Meal per-diem' },
