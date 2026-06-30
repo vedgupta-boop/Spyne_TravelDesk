@@ -169,13 +169,15 @@ export function computeCosts(p, dur, opts = {}) {
   // Forex/tour advance is also a refundable company advance — both kept out of the expense total.
   const total = transport + local + hotel + meals + other;
 
-  // ---- Policy break determination (any reason -> Finance approval required) ----
+  // ---- Policy break determination ----
+  // Per Policy v2.0 §4.1, ONLY an advance-notice (short-notice) deviation routes to Finance.
+  // The flight/total caps are BUDGET references shown to approvers — exceeding them is NOT a
+  // policy breach (it sets `overBudget` for guidance only, never `broken`).
   const flightCap = usDomestic ? POLICY.CAPS.FLIGHT.us_domestic
     : (usd ? POLICY.CAPS.FLIGHT.international : POLICY.CAPS.FLIGHT.domestic);
   const totalCap  = usd ? POLICY.CAPS.TOTAL.international  : POLICY.CAPS.TOTAL.domestic;
+  const overBudget = transport > flightCap || total > totalCap; // budget guidance only
   const reasons = [];
-  if (transport > flightCap) reasons.push(`Transport ${money(transport, currency)} over cap ${money(flightCap, currency)}`);
-  if (total > totalCap)      reasons.push(`Total ${money(total, currency)} over threshold ${money(totalCap, currency)}`);
   if (opts.advanceDays != null) {
     const need = intl ? POLICY.NOTICE_DAYS.international : (p.travelType === 'domestic' ? POLICY.NOTICE_DAYS.domestic : 0);
     if (need && opts.advanceDays < need) reasons.push(`Short notice — ${opts.advanceDays}d (needs ${need}d)`);
@@ -188,7 +190,7 @@ export function computeCosts(p, dur, opts = {}) {
   const pax = Math.max(1, parseInt(opts.passengers, 10) || 1);
   const exPax = {}; for (const k in extras) exPax[k] = extras[k] * pax;
   return {
-    currency, tier, hotelPerNight, mealsPerDay, days, nights, hotelNights: hotelN, hotelReq: hotelWanted, pax, broken, flag,
+    currency, tier, hotelPerNight, mealsPerDay, days, nights, hotelNights: hotelN, hotelReq: hotelWanted, pax, broken, flag, overBudget,
     transport: transport * pax, local: local * pax, hotel: hotel * pax, meals: meals * pax,
     other: other * pax, extras: exPax, forex: forex * pax, deposit: deposit * pax, total: total * pax,
   };

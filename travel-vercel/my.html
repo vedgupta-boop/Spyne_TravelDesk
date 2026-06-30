@@ -177,11 +177,11 @@ var ACT_DOCS={}, ACT_CUR={}, ACT_CIDX={};
 var ACT_CATS=['Airport transfer / cab','Taxi / ride-share','Internet / phone','Laundry','Tips / gratuity','Parking / tolls','Currency conversion fee','Excess baggage','Conference / registration','Office supplies','Other'];
 function ensureCatList(){ if(document.getElementById('actcats')) return; var dl=document.createElement('datalist'); dl.id='actcats'; dl.innerHTML=ACT_CATS.map(function(c){return '<option value="'+esc(c)+'">';}).join(''); document.body.appendChild(dl); }
 // One traveller-added expense line: category (with suggestions) + amount + paid-by + receipt + remove.
-function custRow(rid,key,item,cur){ item=item||{}; cur=cur||ACT_CUR[rid]||'INR'; var pb=(item.paidBy==='company')?'company':'own';
+function custRow(rid,key,item,cur){ item=item||{}; cur=cur||ACT_CUR[rid]||'INR'; var pb=(item.paidBy==='company'||item.paidBy==='brex')?item.paidBy:'own';
   return '<div class="actline" data-ckey="'+key+'">'
     +'<input list="actcats" id="axcat-'+rid+'-'+key+'" class="actinp" placeholder="Category" value="'+esc(item.label||'')+'" style="min-width:130px;">'
     +'<input id="axca-'+rid+'-'+key+'" type="number" min="0" step="any" class="actinp" placeholder="Amount '+cur+'" value="'+(item.actual||'')+'">'
-    +'<select id="axcp-'+rid+'-'+key+'" class="actinp"><option value="own"'+(pb==='own'?' selected':'')+'>Own money (reimburse)</option><option value="company"'+(pb==='company'?' selected':'')+'>Company card / forex</option></select>'
+    +'<select id="axcp-'+rid+'-'+key+'" class="actinp"><option value="own"'+(pb==='own'?' selected':'')+'>Own money (reimburse)</option><option value="company"'+(pb==='company'?' selected':'')+'>Company card / forex</option><option value="brex"'+(pb==='brex'?' selected':'')+'>Brex Card</option></select>'
     +'<label class="act ghost" style="cursor:pointer;">📎<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadActual(\''+rid+'\',\''+key+'\',this)"></label>'
     +'<span class="acrcpt" id="axr-'+rid+'-'+key+'">'+(item.doc?'<a class="lnk" href="'+esc(item.doc)+'" target="_blank">📎 receipt ✓</a>':'')+'</span>'
     +'<button type="button" class="act cancel" title="Remove this line" onclick="this.closest(\'.actline\').remove()" style="padding:4px 9px;">✕</button>'
@@ -200,7 +200,7 @@ function actualsHtml(r){
   // Traveller sees only their OWN spend (what they paid + how) — the internal budget &
   // budget-vs-actual variance are a Finance-only view (finance.html cost drawer).
   var rows=(a.items||[]).filter(function(it){return it.actual>0;}).map(function(it){
-    return '<tr><td>'+esc(it.label)+'</td><td class="r">'+m(cur,it.actual)+'</td><td>'+(it.paidBy==='company'?'Company card / forex':'Own money')+'</td></tr>';
+    return '<tr><td>'+esc(it.label)+'</td><td class="r">'+m(cur,it.actual)+'</td><td>'+(it.paidBy==='brex'?'Brex Card':(it.paidBy==='company'?'Company card / forex':'Own money'))+'</td></tr>';
   }).join('');
   var summary='<table class="acttbl"><thead><tr><th>Line</th><th class="r">Amount you spent</th><th>Paid by</th></tr></thead><tbody>'
     +(rows||'<tr><td colspan="3" style="color:#999;">No expenses submitted yet.</td></tr>')
@@ -218,10 +218,10 @@ function actualsHtml(r){
     var customItems=(a.items||[]).filter(function(it){return it.custom;});
     ACT_CIDX[r.id]=customItems.length; // next free index for newly-added lines
     form='<div class="actform"><div class="actform-h">Add / update your trip expenses — a receipt is required for each amount</div>'
-      +lines.map(function(L){ var it=byKey[L[0]]||{}; var pb=(it.paidBy==='company')?'company':'own';
+      +lines.map(function(L){ var it=byKey[L[0]]||{}; var pb=(it.paidBy==='company'||it.paidBy==='brex')?it.paidBy:'own';
         return '<div class="actline"><span class="actlbl">'+L[1]+'</span>'
           +'<input id="ax-'+r.id+'-'+L[0]+'" type="number" min="0" step="any" value="'+(it.actual||'')+'" placeholder="Amount '+cur+'" class="actinp">'
-          +'<select id="axp-'+r.id+'-'+L[0]+'" class="actinp"><option value="own"'+(pb==='own'?' selected':'')+'>Own money (reimburse)</option><option value="company"'+(pb==='company'?' selected':'')+'>Company card / forex</option></select>'
+          +'<select id="axp-'+r.id+'-'+L[0]+'" class="actinp"><option value="own"'+(pb==='own'?' selected':'')+'>Own money (reimburse)</option><option value="company"'+(pb==='company'?' selected':'')+'>Company card / forex</option><option value="brex"'+(pb==='brex'?' selected':'')+'>Brex Card</option></select>'
           +'<label class="act ghost" style="cursor:pointer;">📎<input type="file" accept="image/*,.pdf" style="display:none;" onchange="uploadActual(\''+r.id+'\',\''+L[0]+'\',this)"></label>'
           +'<span class="acrcpt" id="axr-'+r.id+'-'+L[0]+'">'+(it.doc?'<a class="lnk" href="'+esc(it.doc)+'" target="_blank">📎 receipt ✓</a>':'')+'</span>'
         +'</div>'; }).join('')

@@ -83,6 +83,7 @@ const MINE = { rows: [
 // ---- mock master tracker (finance) ----
 const FINANCE = {
   reconciliation: { available: true, fx: 92, linked: 1, estimateINR: 219880, actualINR: 195000, paidINR: 120000 },
+  paymentMethods: { own: 27600, company: 156400, brex: 41400 },
   policyValues: [
     { path: 'POLICY.HOTEL.india.1', label: 'Hotel cap — India Tier 1 (₹/night)', group: 'Hotel caps', value: 6000 },
     { path: 'POLICY.HOTEL.india.2', label: 'Hotel cap — India Tier 2 (₹/night)', group: 'Hotel caps', value: 3000 },

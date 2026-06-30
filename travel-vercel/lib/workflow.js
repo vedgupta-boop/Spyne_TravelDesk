@@ -789,13 +789,15 @@ export async function saveActuals(id, email, payload) {
   if (!ownsRequest(rec, email)) return { ok: false, error: 'Only the requester can submit this trip’s expenses.' };
   if (String(rec[COL.ACTUALS_STATUS]) === 'Closed') return { ok: false, error: 'This trip is closed by Finance — actuals are locked.' };
   const cur = parseJSON(rec[COL.ACTUALS], {}) || {}; // preserve admin-set flight/hotel
+  // Payment method: own (reimbursed to employee) · company (company card/forex) · brex (Brex corporate card).
+  const normPaid = (v) => (v === 'company' || v === 'brex') ? v : 'own';
   const TRAV = ['meals', 'local', 'visa', 'baggage', 'misc'];
   for (const k of TRAV) {
     const it = payload && payload[k];
     if (!it) continue;
     const amount = Number(it.amount) || 0;
     if (amount > 0 && !it.doc) return { ok: false, error: `A receipt is required for ${ACT_LABEL[k]} (₹${amount}).` };
-    cur[k] = { amount, paidBy: it.paidBy === 'company' ? 'company' : 'own', doc: String(it.doc || '') };
+    cur[k] = { amount, paidBy: normPaid(it.paidBy), doc: String(it.doc || '') };
   }
   // Traveller-added custom expense lines: each carries its own category label.
   if (Array.isArray(payload && payload.custom)) {
@@ -806,7 +808,7 @@ export async function saveActuals(id, email, payload) {
       if (amount <= 0 && !label) continue; // skip blank rows
       if (amount > 0 && !label) return { ok: false, error: 'Please choose a category for each added expense.' };
       if (amount > 0 && !(c && c.doc)) return { ok: false, error: `A receipt is required for ${label} (${amount}).` };
-      clean.push({ label: label || 'Other', amount, paidBy: c.paidBy === 'company' ? 'company' : 'own', doc: String((c && c.doc) || '') });
+      clean.push({ label: label || 'Other', amount, paidBy: normPaid(c.paidBy), doc: String((c && c.doc) || '') });
     }
     cur.custom = clean;
   }
@@ -891,6 +893,8 @@ export async function financeData() {
   const toINR = (amt, cur) => (String(cur).toUpperCase() === 'USD' ? Number(amt || 0) * fx : Number(amt || 0));
   const reconTotals = { linked: 0, estimateINR: 0, actualINR: 0, paidINR: 0 };
   const summaries = {};
+  // Actual spend split by who paid (normalised to INR): own money (reimbursed), company card/forex, Brex.
+  const pm = { own: 0, company: 0, brex: 0 };
   const rows = [];
   for (const r of all) {
     const cur = String(r[COL.CURRENCY] || 'INR');
@@ -926,6 +930,13 @@ export async function financeData() {
       if (!rejected) { reconTotals.linked++; reconTotals.estimateINR += estimateINR; reconTotals.actualINR += ex.actualINR; reconTotals.paidINR += ex.paidINR; }
     }
 
+    // Payment-method split from this trip's submitted actuals (skip rejected trips).
+    const ad = actualsData(r);
+    if (!rejected) for (const it of (ad.items || [])) {
+      const meth = (it.paidBy === 'brex') ? 'brex' : (it.paidBy === 'company' ? 'company' : 'own');
+      pm[meth] += toINR(Number(it.actual) || 0, cur);
+    }
+
     rows.push({
       recon,
       id: r[COL.ID], name: r[COL.NAME], dept: r[COL.DEPT], purpose: r[COL.PURPOSE],
@@ -945,14 +956,14 @@ export async function financeData() {
       expenseDate: fmtDate(r[COL.EXPENSE_DATE]), closureDate: fmtDate(r[COL.CLOSURE_DATE]),
       finalStatus: status, status, type: r[COL.TYPE], route: `${r[COL.FROM]} → ${r[COL.TO]}`,
       trip: r[COL.TRIP] || '', flag: String(r[COL.FLAG] || ''),
-      breakdown: costBreakdown(r), actuals: actualsData(r), ...paxInfo(r),
+      breakdown: costBreakdown(r), actuals: ad, ...paxInfo(r),
       flights: itineraryFor(r).flights, hotels: itineraryFor(r).hotels,
     });
   }
   rows.reverse();
   const policyChanges = (await readChanges()).reverse(); // newest first
   return { currencySummaries: summaries, rows, reconciliation: { available: reconAvailable, fx, ...reconTotals },
-    policyValues: editableSnapshot(), policyChanges };
+    paymentMethods: pm, policyValues: editableSnapshot(), policyChanges };
 }
 
 function parseJSON(s, fallback) { try { const v = JSON.parse(s); return v == null ? fallback : v; } catch { return fallback; } }

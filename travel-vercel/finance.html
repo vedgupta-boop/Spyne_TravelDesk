@@ -359,6 +359,17 @@ function renderExec(){
       +'<div class="ex-sc-r"><span>Pending</span><b style="color:var(--amber);">'+f(Math.max(0,p.pipe-p.appr))+'</b></div>'
       +'<div class="ex-sc-r"><span>Advance</span><b>'+f(p.adv)+'</b></div></div>';
   }).join('')+'</div>';
+  // Actual spend split by who paid (claimed actuals, normalised to ₹).
+  var pmd=DATA.paymentMethods||{own:0,company:0,brex:0};
+  var pmTot=(pmd.own||0)+(pmd.company||0)+(pmd.brex||0);
+  function pmRow(label,val,color){ var pct=pmTot>0?Math.round(val/pmTot*100):0;
+    return '<div class="ex-sc-r"><span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:'+color+';margin-right:6px;vertical-align:middle;"></span>'+label+'</span><b>₹'+Math.round(val).toLocaleString('en-IN')+(pmTot>0?(' · '+pct+'%'):'')+'</b></div>'; }
+  var pmBox='<div class="ex-h">Actual spend by payment method</div><div class="ex-sum"><div class="ex-sumcard" style="grid-column:1/-1;"><div class="ex-sc-h">Who paid (claimed actuals, ₹)</div>'
+    +pmRow('Own money (reimbursed)',pmd.own||0,'#2563EB')
+    +pmRow('Company card / forex',pmd.company||0,'#0F9D58')
+    +pmRow('Brex Card',pmd.brex||0,'#E8232A')
+    +(pmTot===0?'<div class="bd-note" style="color:var(--gray-5);margin-top:6px;">No actuals submitted yet.</div>':'')
+    +'</div></div>';
   // ---- Insights charts: spend-by-dept (pie), request-status (donut), monthly trend (line) ----
   var deptArr=Object.keys(deptSpend).map(function(k){return {label:k,val:deptSpend[k]};}).sort(function(a,b){return b.val-a.val;});
   var topDept=deptArr.slice(0,5); var othersVal=deptArr.slice(5).reduce(function(s,d){return s+d.val;},0);
@@ -373,7 +384,7 @@ function renderExec(){
     +'<div class="ex-chart"><div class="ex-ct">Request status</div><div class="ex-chart-row">'+svgPie(statusData,true)+exLegend(statusData,statusTotal)+'</div></div>'
     +'<div class="ex-chart" style="grid-column:1/-1;"><div class="ex-ct">Monthly spend (last 6 months, ₹)</div>'+svgLine(months)+'</div>'
     +'</div>';
-  box.innerHTML=actions+kpis+alerts+charts+sum;
+  box.innerHTML=actions+kpis+alerts+charts+sum+pmBox;
 }
 // ---- Email-reminder master switch (Finance self-service) ----
 var REM_ON=false;
