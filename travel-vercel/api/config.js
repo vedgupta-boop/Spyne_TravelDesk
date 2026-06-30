@@ -1,10 +1,13 @@
 import { CONFIG, POLICY, POLICY_VERSIONS } from '../lib/config.js';
 import { applyPolicyOverrides } from '../lib/policystore.js';
+import { mergedVersions } from '../lib/policyversionsstore.js';
 import { flightsAvailable } from '../lib/flights.js';
 import { amadeusAvailable } from '../lib/amadeus.js';
 
 export default async function handler(req, res) {
   try { await applyPolicyOverrides(); } catch (e) { /* best-effort: fall back to code defaults */ }
+  let policyVersions = POLICY_VERSIONS;
+  try { policyVersions = await mergedVersions(); } catch (e) { /* best-effort: fall back to the code registry */ }
   const departments = {};
   Object.keys(CONFIG.DEPARTMENTS).forEach((d) => {
     departments[d] = { head: CONFIG.DEPARTMENTS[d].head, email: CONFIG.DEPARTMENTS[d].email };
@@ -14,7 +17,7 @@ export default async function handler(req, res) {
     domain: CONFIG.COMPANY_DOMAIN,
     departments,
     policy: POLICY,
-    policyVersions: POLICY_VERSIONS,
+    policyVersions,
     // Reporting config for the Finance analytics tab.
     fx: CONFIG.FX,
     reportingCurrency: CONFIG.REPORTING_CURRENCY,

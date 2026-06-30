@@ -280,7 +280,7 @@ http.createServer((req, res) => {
     return json(res, { ok: true, configured: true, currency: cur, count: 4, options, more });
   }
   if (url === '/api/me') return json(res, /mine/.test(qs) ? MINE : ME);
-  if (url === '/api/config') return json(res, CONFIG_RES);
+  if (url === '/api/config') { CONFIG_RES.policyVersions = mockVersions(); return json(res, CONFIG_RES); }
   if (url === '/api/finance') { FINANCE.policyVersions = mockVersions(); return json(res, FINANCE); }
   if (url === '/api/admin') return json(res, ADMIN);
   if (url === '/api/forex') return json(res, FOREX);
