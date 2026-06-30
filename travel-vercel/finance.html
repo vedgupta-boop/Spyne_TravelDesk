@@ -162,7 +162,7 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
       <div style="font-weight:800;color:var(--navy);">📋 Policy Summary &amp; Rules <span style="font-weight:700;font-size:11px;color:var(--sky);background:var(--sky-l);border:1px solid #B3D7F5;border-radius:6px;padding:1px 7px;margin-left:6px;">✎ Finance can edit</span></div>
       <span id="pol-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
     </div>
-    <div id="policy-body" class="hidden" style="padding:0 18px 16px;"></div>
+    <div id="policy-body" class="hidden" style="padding:0 18px 16px;overflow-x:auto;"></div>
   </div>
 
   <div class="panel" style="margin-bottom:16px;">
@@ -836,7 +836,7 @@ function renderPolicy(P){
   if(!P){ pb.innerHTML = editor || '<div class="bd-note">Loading policy…</div>'; return; }
   function tbl(title, rows){
     return '<div style="margin-top:14px;"><div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">'+title+'</div>'
-      +'<table style="border-collapse:collapse;width:100%;font-size:12.5px;">'+rows.map(function(r){return '<tr><td style="padding:5px 10px;border:1px solid var(--gray-2);color:var(--gray-7);width:55%;">'+r[0]+'</td><td style="padding:5px 10px;border:1px solid var(--gray-2);font-weight:600;">'+r[1]+'</td></tr>';}).join('')+'</table></div>';
+      +'<table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12.5px;">'+rows.map(function(r){return '<tr><td style="padding:5px 10px;border:1px solid var(--gray-2);color:var(--gray-7);width:50%;word-break:break-word;">'+r[0]+'</td><td style="padding:5px 10px;border:1px solid var(--gray-2);font-weight:600;word-break:break-word;">'+r[1]+'</td></tr>';}).join('')+'</table></div>';
   }
   var X=P.EXTRAS||{};
   function inr(n){ return 'INR '+Number(n||0).toLocaleString('en-IN'); }
