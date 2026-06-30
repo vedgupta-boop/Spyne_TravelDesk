@@ -272,6 +272,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
                 <option>Partnership Meeting</option><option>Other</option></select></div>
             <div class="field span2 hidden" id="purpose-other-wrap"><label>Please specify <span class="req">*</span></label>
               <input id="f-purpose-other" placeholder="Describe the purpose of travel"></div>
+            <div class="field span2 hidden" id="purpose-event-wrap"><label>Event name <span class="req">*</span></label>
+              <input id="f-purpose-event" placeholder="Name of the conference / event"></div>
           </div>
         </div>
 
@@ -639,6 +641,14 @@ function onTrip(t){
 }
 function onPurpose(){
   $('purpose-other-wrap').classList.toggle('hidden', val('f-purpose')!=='Other');
+  $('purpose-event-wrap').classList.toggle('hidden', val('f-purpose')!=='Conference / Event');
+}
+// Build the purpose string: presets pass through; Other/Conference append the typed detail.
+function purposeVal(){
+  var p=val('f-purpose');
+  if(p==='Other') return 'Other — '+val('f-purpose-other');
+  if(p==='Conference / Event'){ var e=val('f-purpose-event'); return e ? ('Conference / Event — '+e) : p; }
+  return p;
 }
 // Country-specific identity documents. India → Aadhaar + PAN (separate). US → US ID dropdown + upload.
 // Other → single Government/National ID upload. Clears any previously-uploaded ID docs on change.
@@ -837,7 +847,7 @@ function buildPayload(){
     hotelNeeded:(state.hotel!=='no'),
     hotelCountry:val('f-hotel-country'), hotelCity:cityVal('f-hotel-city'),
     hotelCheckIn:val('f-hotel-checkin'), hotelCheckOut:val('f-hotel-checkout'),
-    purpose:(val('f-purpose')==='Other' ? ('Other — '+val('f-purpose-other')) : val('f-purpose')), transportMode:val('f-mode'),
+    purpose:purposeVal(), transportMode:val('f-mode'),
     forexNeeded:(isIntl() && $('f-forex').checked),
     visaNeeded:(isIntl() && !($('f-visa') && $('f-visa').checked)),
     nationality:val('f-nationality'), passportNo:val('f-passportno'), passportIssue:val('f-passportissue'),
@@ -902,6 +912,7 @@ function submitForm(){
     if(i&&i.value){ if(i.value<_t) mark('A hotel check-in is in the past',i); else if(i.value>_tmax) mark('A hotel check-in is more than 90 days from today',i); }
     if(i&&o&&i.value&&o.value){ if(o.value<i.value) mark('A hotel check-out is before check-in',o); else if(o.value>addDaysISO(i.value,MAX_BOOK_DAYS)) mark('A hotel check-out is more than 90 days after check-in',o); } });
   if(val('f-purpose')==='Other' && !val('f-purpose-other')) mark('Purpose details','f-purpose-other');
+  if(val('f-purpose')==='Conference / Event' && !val('f-purpose-event')) mark('Event name','f-purpose-event');
   if($('breach-justify-wrap') && !$('breach-justify-wrap').classList.contains('hidden') && !val('f-breach-justify')) mark('Reason for short notice','f-breach-justify');
   if(isIntl()){
     // Documents are mandatory for ALL international trips (passport + ID). Visa copy only if held; PAN No. only when forex card needed.
@@ -1032,10 +1043,12 @@ function prefillForm(ed){
   }
   if(ed.transportMode){ $('f-mode').value=ed.transportMode; onMode(); }
   if(ed.notes) $('f-notes').value=ed.notes;
-  // purpose may be a preset or "Other — …"
+  // purpose may be a preset, "Other — …", or "Conference / Event — …"
   if(ed.purpose){
-    var sel=$('f-purpose'); sel.value=ed.purpose;
-    if(sel.value!==ed.purpose){ sel.value='Other'; onPurpose(); var o=$('f-purpose-other'); if(o) o.value=ed.purpose.replace(/^Other — /,''); }
+    var sel=$('f-purpose');
+    if(/^Conference \/ Event — /.test(ed.purpose)){ sel.value='Conference / Event'; onPurpose(); var ev=$('f-purpose-event'); if(ev) ev.value=ed.purpose.replace(/^Conference \/ Event — /,''); }
+    else { sel.value=ed.purpose;
+      if(sel.value!==ed.purpose){ sel.value='Other'; onPurpose(); var o=$('f-purpose-other'); if(o) o.value=ed.purpose.replace(/^Other — /,''); } }
   }
   if(isIntl()){
     if($('f-forex')){ $('f-forex').checked=!!ed.forexNeeded; recalc(); }
@@ -1064,7 +1077,7 @@ function snapshotDraft(){
     flightTimes:{ out:val('f-start-time'), ret:val('f-return-time') }, prefFlightNotes:val('f-prefflight-notes'),
     hotelNeeded:(state.hotel!=='no'), hotelCountry:val('f-hotel-country'), hotelCity:cityVal('f-hotel-city'),
     hotelCheckIn:val('f-hotel-checkin'), hotelCheckOut:val('f-hotel-checkout'),
-    purpose:(val('f-purpose')==='Other'?('Other — '+val('f-purpose-other')):val('f-purpose')),
+    purpose:purposeVal(),
     transportMode:val('f-mode'), notes:val('f-notes'),
     forexNeeded:(isIntl()&&$('f-forex')&&$('f-forex').checked),
     visaNeeded:(isIntl()&&!($('f-visa')&&$('f-visa').checked)),
