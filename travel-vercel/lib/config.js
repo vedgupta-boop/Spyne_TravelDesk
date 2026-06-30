@@ -45,14 +45,34 @@ export const CONFIG = {
 };
 
 export const POLICY = {
-  // Tier A per policy v2.0 §6.1. (Noida & Chicago intentionally excluded → they fall to Tier B.)
-  INDIA_TIER_A: ['delhi','gurugram','gurgaon','mumbai','bengaluru','bangalore',
+  // City tiers per policy v2.0 (§6.1 country/city classification, §7.2 India outstation).
+  // India = 3 tiers, US = 4 tiers. Tiers drive the per-night hotel cap (HOTEL below).
+  // India Tier 1 (metro) → INR 6,000.
+  INDIA_TIER_1: ['delhi','gurugram','gurgaon','mumbai','bengaluru','bangalore',
                  'chennai','kolkata','hyderabad','ahmedabad','pune'],
-  US_TIER_A:    ['new york','los angeles','san francisco','las vegas','boston','washington',
-                 'houston','dallas','miami','seattle','atlanta'],
-  HOTEL: { india: { A: 6000, B: 3000 }, us: { A: 130, B: 120 } }, // per night
-  MEALS: { domestic: 800, us_A: 70, us_B: 60, local: 0 },         // per day
-  LOCAL_DAILY_CAP: { international: 50 },                          // USD/day
+  // India Tier 2 — state capitals & union-territory capitals → INR 3,000. (Tier 3 = all others → INR 2,500.)
+  INDIA_TIER_2: ['jaipur','lucknow','bhopal','patna','raipur','ranchi','bhubaneswar','dehradun','shimla',
+                 'gandhinagar','panaji','thiruvananthapuram','trivandrum','chandigarh','itanagar','dispur',
+                 'guwahati','imphal','shillong','aizawl','kohima','agartala','gangtok','srinagar','jammu',
+                 'amaravati','vijayawada','puducherry','pondicherry','port blair','kavaratti','daman','silvassa','leh'],
+  // US Tier 1 → USD 175.
+  US_TIER_1: ['new york','san francisco','boston','cambridge','washington','arlington','alexandria','seattle',
+              'san jose','santa clara','palo alto','sunnyvale','mountain view','silicon valley'],
+  // US Tier 2 → USD 150.
+  US_TIER_2: ['los angeles','san diego','chicago','miami','fort lauderdale','denver','austin','nashville',
+              'new orleans','portland','philadelphia','oakland','sacramento','scottsdale','westchester','white plains'],
+  // US Tier 3 → USD 125. (Tier 4 = every other US location → USD 100.)
+  US_TIER_3: ['atlanta','dallas','houston','san antonio','phoenix','tempe','tucson','las vegas','reno',
+              'minneapolis','st. paul','saint paul','detroit','grand rapids','pittsburgh','baltimore','tampa',
+              'orlando','jacksonville','salt lake city','boise','kansas city','st. louis','saint louis','omaha',
+              'des moines','charlotte','raleigh','durham','columbus','cincinnati','cleveland','indianapolis',
+              'milwaukee','madison','richmond','providence','hartford','albany','buffalo','rochester','louisville',
+              'memphis','oklahoma city','tulsa','albuquerque','spokane'],
+  HOTEL: { india: { 1: 6000, 2: 3000, 3: 2500 }, us: { 1: 175, 2: 150, 3: 125, 4: 100 } }, // per night (+ taxes), §6.3 / §7.3
+  // Meals/per-diem (§6.4, §7.4). Overseas is breakfast-based, NOT tier-based: USD 70 (no breakfast) / USD 50
+  // (breakfast included). Budget uses the no-breakfast rate (70); actuals are claimed on bills.
+  MEALS: { domestic: 800, overseas: 70, overseas_breakfast: 50, local: 0 },  // per day
+  LOCAL_DAILY_CAP: { domestic: 1000, international: 50 },          // INR/day (India overseas) · USD/day (§6.5)
   FOREX_PER_DAY: { international: 125 },                           // USD/day tour advance (forex)
 
   // Backend cost ESTIMATES (used when no policy figure / no live price). Currency:

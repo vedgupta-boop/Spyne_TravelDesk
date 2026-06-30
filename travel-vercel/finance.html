@@ -809,13 +809,17 @@ function renderPolicy(P){
     ['Flight class','Economy only (upgrades at own cost)'],
     ['Forex card','International + forex → routed to Forex officer after booking'],
   ]);
-  h+=tbl('City classification — Tier A (higher caps)', [
-    ['India — Tier A', cities(P.INDIA_TIER_A)],
-    ['US — Tier A', cities(P.US_TIER_A)],
-    ['Everything else','Tier B'],
+  h+=tbl('City classification (drives the hotel cap)', [
+    ['India — Tier 1', cities(P.INDIA_TIER_1)],
+    ['India — Tier 2', 'State & UT capitals — '+cities(P.INDIA_TIER_2)],
+    ['India — Tier 3', 'All other Indian cities'],
+    ['US — Tier 1', cities(P.US_TIER_1)],
+    ['US — Tier 2', cities(P.US_TIER_2)],
+    ['US — Tier 3', cities(P.US_TIER_3)],
+    ['US — Tier 4', 'Every other US business location'],
   ]);
-  h+=tbl('Hotel cap — per night', [['India — Tier A',inr(P.HOTEL.india.A)],['India — Tier B',inr(P.HOTEL.india.B)],['US — Tier A','USD '+P.HOTEL.us.A],['US — Tier B','USD '+P.HOTEL.us.B]]);
-  h+=tbl('Meal per-diem — per day', [['India / domestic',inr(P.MEALS.domestic)+' (bills required)'],['US / international — Tier A','USD '+P.MEALS.us_A],['US / international — Tier B','USD '+P.MEALS.us_B]]);
+  h+=tbl('Hotel cap — per night (+ taxes)', [['India — Tier 1',inr(P.HOTEL.india[1])],['India — Tier 2',inr(P.HOTEL.india[2])],['India — Tier 3',inr(P.HOTEL.india[3])],['US — Tier 1','USD '+P.HOTEL.us[1]],['US — Tier 2','USD '+P.HOTEL.us[2]],['US — Tier 3','USD '+P.HOTEL.us[3]],['US — Tier 4','USD '+P.HOTEL.us[4]]]);
+  h+=tbl('Meal per-diem — per day', [['India / domestic',inr(P.MEALS.domestic)+' (bills required)'],['Overseas — breakfast not included','USD '+P.MEALS.overseas],['Overseas — breakfast included','USD '+P.MEALS.overseas_breakfast]]);
   h+=tbl('Transport estimate (round-trip, when no live price)', [['Flight — domestic (India)',inr(P.ESTIMATES.FLIGHT.domestic)],['Flight — US domestic','USD '+(P.ESTIMATES.FLIGHT.us_domestic!=null?P.ESTIMATES.FLIGHT.us_domestic:'-')],['Flight — international','USD '+P.ESTIMATES.FLIGHT.international],['Train',inr(P.ESTIMATES.TRANSPORT.train)],['Bus',inr(P.ESTIMATES.TRANSPORT.bus)],['Cab',inr(P.ESTIMATES.TRANSPORT.cab)]]);
   h+=tbl('Local conveyance', [['Airport transfers (home↔airport, per leg)',inr(P.ESTIMATES.LOCAL_LEG.domestic.homeAirport+P.ESTIMATES.LOCAL_LEG.domestic.airportDest)+' / USD '+(P.ESTIMATES.LOCAL_LEG.international.homeAirport+P.ESTIMATES.LOCAL_LEG.international.airportDest)+' · ×2 for round trip'],['Daily cab at destination',''+P.ESTIMATES.LOCAL_CONVEYANCE.kmPerDay+' km/day × INR '+P.ESTIMATES.LOCAL_CONVEYANCE.ratePerKm.domestic+'/km (domestic) · USD '+P.ESTIMATES.LOCAL_CONVEYANCE.ratePerKm.international+'/km (intl)']]);
   h+=tbl('Additional allowances — added to trip expenses', [

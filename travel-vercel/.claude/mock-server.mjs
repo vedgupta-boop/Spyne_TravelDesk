@@ -84,14 +84,17 @@ const MINE = { rows: [
 const FINANCE = {
   reconciliation: { available: true, fx: 92, linked: 1, estimateINR: 219880, actualINR: 195000, paidINR: 120000 },
   policyValues: [
-    { path: 'POLICY.HOTEL.india.A', label: 'Hotel cap — India Tier A (₹/night)', group: 'Hotel caps', value: 6000 },
-    { path: 'POLICY.HOTEL.india.B', label: 'Hotel cap — India Tier B (₹/night)', group: 'Hotel caps', value: 3500 },
-    { path: 'POLICY.MEALS.domestic', label: 'Meals — domestic (₹/day)', group: 'Meal per-diem', value: 800 },
+    { path: 'POLICY.HOTEL.india.1', label: 'Hotel cap — India Tier 1 (₹/night)', group: 'Hotel caps', value: 6000 },
+    { path: 'POLICY.HOTEL.india.2', label: 'Hotel cap — India Tier 2 (₹/night)', group: 'Hotel caps', value: 3000 },
+    { path: 'POLICY.HOTEL.india.3', label: 'Hotel cap — India Tier 3 (₹/night)', group: 'Hotel caps', value: 2500 },
+    { path: 'POLICY.HOTEL.us.1', label: 'Hotel cap — US Tier 1 ($/night)', group: 'Hotel caps', value: 175 },
+    { path: 'POLICY.MEALS.domestic', label: 'Meals — India domestic (₹/day)', group: 'Meal per-diem', value: 800 },
+    { path: 'POLICY.MEALS.overseas', label: 'Meals — overseas, no breakfast ($/day)', group: 'Meal per-diem', value: 70 },
     { path: 'POLICY.CAPS.TOTAL.international', label: 'Total cap — international ($)', group: 'Policy-break caps', value: 3000 },
     { path: 'CONFIG.FX.USD_INR', label: 'USD → INR rate', group: 'FX', value: 92 },
   ],
   policyChanges: [
-    { ts: '2026-06-24T10:05:00Z', by: 'finance', path: 'POLICY.HOTEL.india.B', label: 'Hotel cap — India Tier B (₹/night)', old: 3000, new: 3500 },
+    { ts: '2026-06-24T10:05:00Z', by: 'finance', path: 'POLICY.HOTEL.us.1', label: 'Hotel cap — US Tier 1 ($/night)', old: 150, new: 175 },
   ],
   currencySummaries: {
     INR: { count: 2, pending: 1, approved: 1, rejected: 0, totalPipeline: 58400, totalApproved: 29200 },

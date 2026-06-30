@@ -16,13 +16,16 @@ const PHEADERS = [PH.TS, PH.BY, PH.PATH, PH.LABEL, PH.OLD, PH.NEW];
 
 // Whitelist of editable numeric fields → where they live (dotted path) + a label.
 export const EDITABLE = [
-  { path: 'POLICY.HOTEL.india.A', label: 'Hotel cap — India Tier A (₹/night)', group: 'Hotel caps' },
-  { path: 'POLICY.HOTEL.india.B', label: 'Hotel cap — India Tier B (₹/night)', group: 'Hotel caps' },
-  { path: 'POLICY.HOTEL.us.A', label: 'Hotel cap — US Tier A ($/night)', group: 'Hotel caps' },
-  { path: 'POLICY.HOTEL.us.B', label: 'Hotel cap — US Tier B ($/night)', group: 'Hotel caps' },
-  { path: 'POLICY.MEALS.domestic', label: 'Meals — domestic (₹/day)', group: 'Meal per-diem' },
-  { path: 'POLICY.MEALS.us_A', label: 'Meals — US Tier A ($/day)', group: 'Meal per-diem' },
-  { path: 'POLICY.MEALS.us_B', label: 'Meals — US Tier B ($/day)', group: 'Meal per-diem' },
+  { path: 'POLICY.HOTEL.india.1', label: 'Hotel cap — India Tier 1 (₹/night)', group: 'Hotel caps' },
+  { path: 'POLICY.HOTEL.india.2', label: 'Hotel cap — India Tier 2 (₹/night)', group: 'Hotel caps' },
+  { path: 'POLICY.HOTEL.india.3', label: 'Hotel cap — India Tier 3 (₹/night)', group: 'Hotel caps' },
+  { path: 'POLICY.HOTEL.us.1', label: 'Hotel cap — US Tier 1 ($/night)', group: 'Hotel caps' },
+  { path: 'POLICY.HOTEL.us.2', label: 'Hotel cap — US Tier 2 ($/night)', group: 'Hotel caps' },
+  { path: 'POLICY.HOTEL.us.3', label: 'Hotel cap — US Tier 3 ($/night)', group: 'Hotel caps' },
+  { path: 'POLICY.HOTEL.us.4', label: 'Hotel cap — US Tier 4 ($/night)', group: 'Hotel caps' },
+  { path: 'POLICY.MEALS.domestic', label: 'Meals — India domestic (₹/day)', group: 'Meal per-diem' },
+  { path: 'POLICY.MEALS.overseas', label: 'Meals — overseas, no breakfast ($/day)', group: 'Meal per-diem' },
+  { path: 'POLICY.MEALS.overseas_breakfast', label: 'Meals — overseas, breakfast incl. ($/day)', group: 'Meal per-diem' },
   { path: 'POLICY.LOCAL_DAILY_CAP.international', label: 'Intl local transport cap ($/day)', group: 'Local & forex' },
   { path: 'POLICY.FOREX_PER_DAY.international', label: 'Forex advance ($/day)', group: 'Local & forex' },
   { path: 'POLICY.CAPS.FLIGHT.domestic', label: 'Flight cap — domestic (₹)', group: 'Policy-break caps' },

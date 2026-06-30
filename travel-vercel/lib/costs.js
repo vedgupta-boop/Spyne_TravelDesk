@@ -26,18 +26,35 @@ export function hotelNights(checkIn, checkOut) {
 }
 
 // `usd` = use USD currency + US policy tables (international trips, or US-based domestic/local trips).
+// Returns a NUMERIC tier per policy v2.0: India 1–3, US 1–4 (Tier 4 = every unlisted US location).
+const hit = (list, c) => list.some((x) => c.indexOf(x) > -1);
 export function cityTier(city, usd) {
   const c = String(city || '').toLowerCase();
-  const list = usd ? POLICY.US_TIER_A : POLICY.INDIA_TIER_A;
-  return list.some((x) => c.indexOf(x) > -1) ? 'A' : 'B';
+  if (usd) {
+    if (hit(POLICY.US_TIER_1, c)) return 1;
+    if (hit(POLICY.US_TIER_2, c)) return 2;
+    if (hit(POLICY.US_TIER_3, c)) return 3;
+    return 4; // catch-all
+  }
+  if (hit(POLICY.INDIA_TIER_1, c)) return 1;
+  if (hit(POLICY.INDIA_TIER_2, c)) return 2;
+  return 3;
+}
+
+// Is this a US location named in any tier list? Used to infer USD region when country is absent.
+export function isListedUsCity(city) {
+  const c = String(city || '').toLowerCase();
+  return hit(POLICY.US_TIER_1, c) || hit(POLICY.US_TIER_2, c) || hit(POLICY.US_TIER_3, c);
 }
 
 export function hotelCapFor(usd, tier) {
-  return usd ? POLICY.HOTEL.us[tier] : POLICY.HOTEL.india[tier];
+  return usd ? (POLICY.HOTEL.us[tier] || POLICY.HOTEL.us[4]) : (POLICY.HOTEL.india[tier] || POLICY.HOTEL.india[3]);
 }
 
-export function mealPerDiem(usd, type, tier) {
-  if (usd) return tier === 'A' ? POLICY.MEALS.us_A : POLICY.MEALS.us_B;
+// Per-diem (§6.4 overseas, §7.4 India). Overseas is breakfast-based, not tier-based; budget uses
+// the no-breakfast rate (the higher allowance). Actuals are claimed on bills post-trip.
+export function mealPerDiem(usd, type) {
+  if (usd) return POLICY.MEALS.overseas;
   if (type === 'domestic') return POLICY.MEALS.domestic;
   return POLICY.MEALS.local;
 }
@@ -48,8 +65,8 @@ export function isUsRegion(p) {
   if (p.travelType === 'international') return true;
   const dest = String(p.destCountry || '').toLowerCase();
   if (dest) return dest.includes('united states') || dest === 'usa' || dest === 'us';
-  // fallback: infer from destination city name against the US tier list
-  return cityTier(p.to, true) === 'A' && cityTier(p.to, false) === 'B';
+  // fallback: infer from destination city name against the US tier lists
+  return isListedUsCity(p.to);
 }
 
 // Authoritative, server-side cost computation. Mirrors the client preview.
@@ -121,7 +138,7 @@ export function computeCosts(p, dur, opts = {}) {
     extraHotelCost += hotelCapFor(usd, cityTier(h.city, usd)) * nn;
   }
   const hotel         = baseHotel + extraHotelCost;
-  const mealsPerDay   = mealPerDiem(usd, p.travelType, tier);
+  const mealsPerDay   = mealPerDiem(usd, p.travelType);
   const meals         = mealsPerDay * days;
 
   // Foreign currency (forex) — international + traveller opts in. Auto USD 125/day; included in total.
