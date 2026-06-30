@@ -12,7 +12,7 @@ export const CONFIG = {
     'Product':               { head: 'Amit Walia',       email: 'amit@spyne.ai' },
     'Technology':            { head: 'Jatin Jain',       email: 'jatin@spyne.ai' },
     'HR, IT & Admin':        { head: 'Sangeetha Swamy',  email: 'sangeetha@spyne.ai' },
-    "CEO's Office":          { head: 'Madhav Prakash',   email: 'madhav.prakash@spyne.ai' },
+    "CEO's Office":          { head: 'Sanjay Varnwal',   email: 'sanjay@spyne.ai' },
     'Customer Success':      { head: 'Madhav Uppal',     email: 'madhav.uppal@spyne.ai' },
     'Onboarding':            { head: 'Jagrit Sawhney',   email: 'jagrit@spyne.ai' },
   },
