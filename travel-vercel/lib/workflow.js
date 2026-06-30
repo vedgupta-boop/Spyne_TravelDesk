@@ -8,6 +8,7 @@ import { sendEmail, approvalEmailHtml, adminEmailHtml, forexOfficerEmailHtml, re
 import { tripICS } from './ics.js';
 import { expenseActualsByTrf } from './expenseActuals.js';
 import { applyPolicyOverrides, readChanges, editableSnapshot } from './policystore.js';
+import { mergedVersions } from './policyversionsstore.js';
 import { remindersEnabled, reminderHour, getSetting, setSetting } from './settingsstore.js';
 import { flightTimeLabel } from './tz.js';
 
@@ -983,7 +984,7 @@ export async function financeData() {
   rows.reverse();
   const policyChanges = (await readChanges()).reverse(); // newest first
   return { currencySummaries: summaries, rows, reconciliation: { available: reconAvailable, fx, ...reconTotals },
-    paymentMethods: pm, policyValues: editableSnapshot(), policyChanges };
+    paymentMethods: pm, policyValues: editableSnapshot(), policyChanges, policyVersions: await mergedVersions() };
 }
 
 function parseJSON(s, fallback) { try { const v = JSON.parse(s); return v == null ? fallback : v; } catch { return fallback; } }

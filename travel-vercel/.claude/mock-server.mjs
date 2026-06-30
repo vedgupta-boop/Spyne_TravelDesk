@@ -8,6 +8,15 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Signed-in finance superuser + HOD (sees every dashboard, incl. the HOD/My views)
 const ME = { authenticated: true, email: 'finance.demo@spyne.ai', name: 'Finance Demo', roles: ['requester', 'hod', 'ceo', 'finance', 'admin', 'forex'] };
+// In-memory self-service policy versions (mock of the "Policy Versions" sheet tab).
+let MOCK_PV = [];
+function mockVersions() {
+  const seen = new Set(MOCK_PV.map((s) => String(s.version)));
+  const code = (POLICY_VERSIONS || []).filter((c) => !seen.has(String(c.version))).map((c) => ({ ...c, stored: false }));
+  const all = MOCK_PV.concat(code);
+  all.sort((a, b) => String(b.effective || '').localeCompare(String(a.effective || '')));
+  return all.map((e, i) => ({ version: e.version, effective: e.effective, file: e.file || '', summary: e.summary || '', stored: !!e.stored, current: i === 0 }));
+}
 const CONFIG_RES = { company: CONFIG.COMPANY_NAME, domain: CONFIG.COMPANY_DOMAIN, departments: CONFIG.DEPARTMENTS, policy: POLICY, policyVersions: POLICY_VERSIONS, userEmail: ME.email,
   fx: CONFIG.FX, reportingCurrency: CONFIG.REPORTING_CURRENCY, deptBudgets: CONFIG.DEPT_BUDGETS, flightSearch: false };
 
@@ -236,6 +245,8 @@ http.createServer((req, res) => {
         if (b.action === 'user-status') return json(res, { ok: true, email: e, status: b.active ? 'Active' : 'Disabled' });
         if (b.action === 'reminders') return json(res, { ok: true, remindersOn: typeof b.on !== 'undefined' ? !!b.on : true, reminderHour: typeof b.hour !== 'undefined' ? parseInt(b.hour, 10) : 9 });
         if (b.action === 'scrap') return json(res, { ok: true, scrapped: (b.ids || []).length, notFound: [] });
+        if (b.action === 'policyVersion') { const v = String(b.version || '').trim(); MOCK_PV = MOCK_PV.filter((x) => x.version !== v); MOCK_PV.push({ version: v, effective: b.effective, file: b.file || '', summary: b.summary || '', stored: true }); return json(res, { ok: true, versions: mockVersions() }); }
+        if (b.action === 'policyVersion-delete') { MOCK_PV = MOCK_PV.filter((x) => x.version !== String(b.version || '').trim()); return json(res, { ok: true, versions: mockVersions() }); }
         if (b.action === 'role') { const v = String(b.value || '').split(',').map((s) => s.trim()).filter(Boolean); const a = ROLES_VIEW.assignments; if (b.key === 'ceo') a.ceo = v[0] || ''; else if (b.key === 'finance') a.finance = v; else if (b.key === 'admin') a.admin = v; else if (b.key === 'forex') a.forex = v; else if (String(b.key).indexOf('dept:') === 0) a.depts[String(b.key).slice(5)] = v[0] || ''; return json(res, { ok: true, key: b.key, assignments: a, departments: ROLES_VIEW.departments }); }
         return json(res, { ok: true, msg: 'mock ok', title: 'Done' });
       });
@@ -270,7 +281,7 @@ http.createServer((req, res) => {
   }
   if (url === '/api/me') return json(res, /mine/.test(qs) ? MINE : ME);
   if (url === '/api/config') return json(res, CONFIG_RES);
-  if (url === '/api/finance') return json(res, FINANCE);
+  if (url === '/api/finance') { FINANCE.policyVersions = mockVersions(); return json(res, FINANCE); }
   if (url === '/api/admin') return json(res, ADMIN);
   if (url === '/api/forex') return json(res, FOREX);
   if (url === '/api/decision' && /view=(hod|approvals)/.test(qs)) return json(res, APPROVALS);

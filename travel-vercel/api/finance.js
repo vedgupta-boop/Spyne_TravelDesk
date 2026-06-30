@@ -1,5 +1,6 @@
 import { financeData, closeTrip, scrapRequests } from '../lib/workflow.js';
 import { recordPolicyChange } from '../lib/policystore.js';
+import { addPolicyVersion, deletePolicyVersion } from '../lib/policyversionsstore.js';
 import { requireRole, baseUrl } from '../lib/auth.js';
 import { listUsers, setUserStatus, inviteUser, createReset } from '../lib/userstore.js';
 import { remindersEnabled, setRemindersEnabled, reminderHour, setReminderHour } from '../lib/settingsstore.js';
@@ -25,6 +26,15 @@ export default async function handler(req, res) {
       }
       if (b.action === 'close') {
         res.status(200).json(await closeTrip(b.id, b.reimburse, session.email));
+        return;
+      }
+      // Finance publishes a new policy document version (version + effective date + note + PDF link).
+      if (b.action === 'policyVersion') {
+        res.status(200).json(await addPolicyVersion({ version: b.version, effective: b.effective, file: b.file, summary: b.summary, by: session.email }));
+        return;
+      }
+      if (b.action === 'policyVersion-delete') {
+        res.status(200).json(await deletePolicyVersion(b.version, session.email));
         return;
       }
       // Finance bulk-scrap test/junk requests by ID (soft-delete; hidden from all dashboards).

@@ -797,6 +797,38 @@ function savePolicy(path){
       } else setMsg('✗ '+((d&&d.error)||'error'),'#DC2626'); })
     .catch(function(e){ setMsg('✗ '+(e&&e.message||'failed'),'#DC2626'); });
 }
+// ---- Self-service policy document versions (upload PDF → publish version) ----
+var PV_FILE='';
+function uploadPolicyPdf(inp){
+  var f=inp.files[0]; var st=document.getElementById('pvfile'); if(!f) return;
+  if(f.type!=='application/pdf' && !/\.pdf$/i.test(f.name)){ st.textContent='PDF only'; st.style.color='#DC2626'; return; }
+  if(f.size>8*1024*1024){ st.textContent='Max 8 MB'; st.style.color='#DC2626'; return; }
+  st.textContent='Uploading…'; st.style.color='var(--gray-6)';
+  var rd=new FileReader();
+  rd.onload=function(){ var b64=String(rd.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:'application/pdf',base64:b64})})
+      .then(function(r){return r.json();})
+      .then(function(d){ if(d&&d.ok){ PV_FILE=d.link; st.innerHTML='<a class="lnk" href="'+esc(d.link)+'" target="_blank">📎 uploaded ✓</a>'; } else { st.textContent='✗ '+((d&&d.error)||'upload failed'); st.style.color='#DC2626'; } })
+      .catch(function(){ st.textContent='✗ upload failed'; st.style.color='#DC2626'; }); };
+  rd.readAsDataURL(f);
+}
+function savePolicyVersion(){
+  var v=(document.getElementById('pvv')||{}).value, d=(document.getElementById('pvd')||{}).value, s=(document.getElementById('pvs')||{}).value;
+  var msg=document.getElementById('pvmsg'); var set=function(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'var(--gray-5)'; } };
+  if(!v||!String(v).trim()){ set('✗ enter a version','#DC2626'); return; }
+  if(!d){ set('✗ pick an effective date','#DC2626'); return; }
+  set('saving…','var(--gray-5)');
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'policyVersion',version:v,effective:d,summary:s,file:PV_FILE})})
+    .then(function(r){return r.json();})
+    .then(function(o){ if(o&&o.ok){ set('✓ published','var(--green)'); PV_FILE=''; load(); } else set('✗ '+((o&&o.error)||'error'),'#DC2626'); })
+    .catch(function(e){ set('✗ '+(e&&e.message||'failed'),'#DC2626'); });
+}
+function delPolicyVersion(v){
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'policyVersion-delete',version:v})})
+    .then(function(r){return r.json();})
+    .then(function(o){ if(o&&o.ok){ load(); } else alert((o&&o.error)||'Could not remove this version'); })
+    .catch(function(){});
+}
 function renderPolicy(P){
   var pb=document.getElementById('policy-body'); if(!pb) return;
   var editor=buildPolicyEditor();
@@ -814,20 +846,34 @@ function renderPolicy(P){
   h+='<div class="info" style="background:#EBF5FF;border:1px solid #B3D7F5;border-radius:8px;padding:10px 13px;font-size:12px;color:#1e3a5f;line-height:1.5;margin-top:4px;">'
     +'All trip costs are <b>computed in the backend from this policy</b> (the traveller enters no amounts) and shown only to approvers. <b>Domestic</b> = same country, <b>International</b> = different countries. Currency follows the destination: India → INR, United States → USD, international → USD.</div>';
   // Policy document version history (newest first), each linking to its PDF.
-  var pv=(CFG&&CFG.policyVersions)||[];
-  if(pv.length){
-    h+='<div style="margin-top:14px;"><div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Policy document — version history</div>'
-      +'<table style="border-collapse:collapse;width:100%;font-size:12.5px;"><thead><tr>'
-      +['Version','Effective date','What changed',''].map(function(th){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);">'+th+'</th>';}).join('')
-      +'</tr></thead><tbody>'+pv.map(function(v){
-        var eff=v.effective?new Date(v.effective).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
-        return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);font-weight:700;white-space:nowrap;">v'+esc(v.version)
-            +(v.current?' <span style="background:var(--grn-l,#E6F4EA);color:var(--green);border:1px solid #9ED6B3;border-radius:6px;padding:0 6px;font-size:10px;font-weight:800;margin-left:4px;">CURRENT</span>':'')+'</td>'
-          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+esc(eff)+'</td>'
-          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:var(--gray-7);">'+esc(v.summary||'')+'</td>'
-          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+(v.file?'<a class="lnk" href="'+esc(v.file)+'" target="_blank" style="color:var(--sky);font-weight:700;">📄 View PDF</a>':'')+'</td></tr>';
-      }).join('')+'</tbody></table></div>';
-  }
+  // Source: Finance data (includes self-service additions) → falls back to the code registry.
+  var pv=(DATA&&DATA.policyVersions)||(CFG&&CFG.policyVersions)||[];
+  h+='<div style="margin-top:14px;"><div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Policy document — version history</div>'
+    +'<table style="border-collapse:collapse;width:100%;font-size:12.5px;"><thead><tr>'
+    +['Version','Effective date','What changed','',''].map(function(th){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);">'+th+'</th>';}).join('')
+    +'</tr></thead><tbody>'+(pv.length?pv.map(function(v){
+      var eff=v.effective?new Date(v.effective).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);font-weight:700;white-space:nowrap;">v'+esc(v.version)
+          +(v.current?' <span style="background:#E6F4EA;color:var(--green);border:1px solid #9ED6B3;border-radius:6px;padding:0 6px;font-size:10px;font-weight:800;margin-left:4px;">CURRENT</span>':'')+'</td>'
+        +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+esc(eff)+'</td>'
+        +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:var(--gray-7);">'+esc(v.summary||'')+'</td>'
+        +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+(v.file?'<a class="lnk" href="'+esc(v.file)+'" target="_blank" style="color:var(--sky);font-weight:700;">📄 View PDF</a>':'<span style="color:var(--gray-5);">—</span>')+'</td>'
+        +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+(v.stored?'<button class="pol-edit" style="background:#fff;border:1px solid #E2E8F0;color:#b00;border-radius:6px;padding:2px 8px;cursor:pointer;" onclick="delPolicyVersion(\''+esc(v.version)+'\')">✕ Remove</button>':'<span style="color:var(--gray-4);font-size:11px;">built-in</span>')+'</td></tr>';
+    }).join(''):'<tr><td colspan="5" style="padding:8px 10px;border:1px solid var(--gray-2);color:var(--gray-5);">No versions yet.</td></tr>')+'</tbody></table>'
+    // ---- Self-service: publish a new version (uploads the PDF, then records it) ----
+    +'<div style="margin-top:10px;border:1px dashed var(--gray-3);border-radius:8px;padding:10px 12px;background:var(--gray-1);">'
+      +'<div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:8px;">➕ Publish a new policy version</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'
+        +'<input id="pvv" placeholder="Version (e.g. 2.1)" style="width:120px;padding:6px 8px;border:1.5px solid var(--gray-3);border-radius:6px;font-size:13px;font-family:inherit;">'
+        +'<input id="pvd" type="date" style="padding:6px 8px;border:1.5px solid var(--gray-3);border-radius:6px;font-size:13px;font-family:inherit;" title="Effective date">'
+        +'<input id="pvs" placeholder="What changed (short note)" style="flex:1;min-width:200px;padding:6px 8px;border:1.5px solid var(--gray-3);border-radius:6px;font-size:13px;font-family:inherit;">'
+        +'<label class="pol-edit" style="cursor:pointer;background:#fff;border:1px solid var(--gray-3);border-radius:6px;padding:6px 10px;">📎 PDF<input id="pvf" type="file" accept=".pdf,application/pdf" style="display:none;" onchange="uploadPolicyPdf(this)"></label>'
+        +'<span id="pvfile" style="font-size:11px;font-weight:700;color:var(--gray-6);"></span>'
+        +'<button class="pol-edit" onclick="savePolicyVersion()" style="background:var(--navy);color:#fff;border:none;border-radius:6px;padding:7px 14px;font-weight:800;cursor:pointer;">Publish</button>'
+        +'<span id="pvmsg" style="font-size:11px;font-weight:700;"></span>'
+      +'</div>'
+      +'<div class="bd-note" style="color:var(--gray-5);margin-top:6px;">The newest effective date becomes the current version automatically. The top-bar “📄 Policy” link keeps pointing to whatever you set as the built-in latest.</div>'
+    +'</div></div>';
   h+=tbl('Approval workflow (per policy v2.0)', [
     ['Local / within-city','HOD approves → Admin arranges'],
     ['Domestic (same country)','HOD approves → Admin arranges  (+ Finance review only on a policy breach)'],
