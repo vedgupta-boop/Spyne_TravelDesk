@@ -1,4 +1,4 @@
-import { CONFIG, POLICY } from '../lib/config.js';
+import { CONFIG, POLICY, POLICY_VERSIONS } from '../lib/config.js';
 import { applyPolicyOverrides } from '../lib/policystore.js';
 import { flightsAvailable } from '../lib/flights.js';
 import { amadeusAvailable } from '../lib/amadeus.js';
@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     domain: CONFIG.COMPANY_DOMAIN,
     departments,
     policy: POLICY,
+    policyVersions: POLICY_VERSIONS,
     // Reporting config for the Finance analytics tab.
     fx: CONFIG.FX,
     reportingCurrency: CONFIG.REPORTING_CURRENCY,

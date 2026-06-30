@@ -110,6 +110,17 @@ export const POLICY = {
   NOTICE_DAYS: { domestic: 15, international: 30 }, // required advance notice
 };
 
+// Policy document version history (NEWEST FIRST) — shown in the Finance "Policy Summary" panel
+// so every update is tracked by version + effective date with a durable link to that PDF.
+// To publish a NEW version:
+//   1. Add the new PDF to this folder as  spyne-travel-policy-vX.Y.pdf
+//      AND overwrite  spyne-travel-policy.pdf  (the top-bar "📄 Policy" link = always latest).
+//   2. Prepend an entry below with current:true, and set current:false on the previous entry.
+export const POLICY_VERSIONS = [
+  { version: '2.0', effective: '2026-04-01', current: true, file: '/spyne-travel-policy-v2.0.pdf',
+    summary: 'Multi-tier hotel caps (US 4-tier 175/150/125/100, India 3-tier 6000/3000/2500); overseas per-diem breakfast-based USD 70/50; claim windows 7/10/15 business days; 30-day advance settlement.' },
+];
+
 // Sheet column headers (order matters — this is the row layout in Google Sheets).
 export const COL = {
   ID:'Request ID', TS:'Timestamp', EMAIL:'Requester Email', NAME:'Name', EMPID:'Employee ID',

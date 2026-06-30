@@ -2,13 +2,13 @@ import http from 'http';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { POLICY, CONFIG } from '../lib/config.js';
+import { POLICY, CONFIG, POLICY_VERSIONS } from '../lib/config.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // Signed-in finance superuser + HOD (sees every dashboard, incl. the HOD/My views)
 const ME = { authenticated: true, email: 'finance.demo@spyne.ai', name: 'Finance Demo', roles: ['requester', 'hod', 'ceo', 'finance', 'admin', 'forex'] };
-const CONFIG_RES = { company: CONFIG.COMPANY_NAME, domain: CONFIG.COMPANY_DOMAIN, departments: CONFIG.DEPARTMENTS, policy: POLICY, userEmail: ME.email,
+const CONFIG_RES = { company: CONFIG.COMPANY_NAME, domain: CONFIG.COMPANY_DOMAIN, departments: CONFIG.DEPARTMENTS, policy: POLICY, policyVersions: POLICY_VERSIONS, userEmail: ME.email,
   fx: CONFIG.FX, reportingCurrency: CONFIG.REPORTING_CURRENCY, deptBudgets: CONFIG.DEPT_BUDGETS, flightSearch: false };
 
 // ---- Approvals dashboard (scoped to the signed-in approver) ----

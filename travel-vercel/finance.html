@@ -813,6 +813,21 @@ function renderPolicy(P){
   var h='';
   h+='<div class="info" style="background:#EBF5FF;border:1px solid #B3D7F5;border-radius:8px;padding:10px 13px;font-size:12px;color:#1e3a5f;line-height:1.5;margin-top:4px;">'
     +'All trip costs are <b>computed in the backend from this policy</b> (the traveller enters no amounts) and shown only to approvers. <b>Domestic</b> = same country, <b>International</b> = different countries. Currency follows the destination: India → INR, United States → USD, international → USD.</div>';
+  // Policy document version history (newest first), each linking to its PDF.
+  var pv=(CFG&&CFG.policyVersions)||[];
+  if(pv.length){
+    h+='<div style="margin-top:14px;"><div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Policy document — version history</div>'
+      +'<table style="border-collapse:collapse;width:100%;font-size:12.5px;"><thead><tr>'
+      +['Version','Effective date','What changed',''].map(function(th){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);">'+th+'</th>';}).join('')
+      +'</tr></thead><tbody>'+pv.map(function(v){
+        var eff=v.effective?new Date(v.effective).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+        return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);font-weight:700;white-space:nowrap;">v'+esc(v.version)
+            +(v.current?' <span style="background:var(--grn-l,#E6F4EA);color:var(--green);border:1px solid #9ED6B3;border-radius:6px;padding:0 6px;font-size:10px;font-weight:800;margin-left:4px;">CURRENT</span>':'')+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+esc(eff)+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:var(--gray-7);">'+esc(v.summary||'')+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+(v.file?'<a class="lnk" href="'+esc(v.file)+'" target="_blank" style="color:var(--sky);font-weight:700;">📄 View PDF</a>':'')+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
+  }
   h+=tbl('Approval workflow (per policy v2.0)', [
     ['Local / within-city','HOD approves → Admin arranges'],
     ['Domestic (same country)','HOD approves → Admin arranges  (+ Finance review only on a policy breach)'],
