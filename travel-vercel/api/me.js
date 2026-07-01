@@ -1,5 +1,5 @@
 import { getSession, baseUrl } from '../lib/auth.js';
-import { myData, editRequest, withdrawRequest, saveActuals, saveFlightDoc, saveForexCardDoc, notifications } from '../lib/workflow.js';
+import { myData, editRequest, withdrawRequest, saveActuals, saveFlightDoc, saveForexCardDoc, notifications, travellerProfile } from '../lib/workflow.js';
 import { kekaEmployeeByEmail } from '../lib/keka.js';
 import { searchFlights, pickOptions, flightsAvailable } from '../lib/flights.js';
 import { applyRoleOverrides } from '../lib/rolesstore.js';
@@ -55,6 +55,13 @@ export default async function handler(req, res) {
       const more = [...(its || [])].sort((a, b) => a.price - b.price).slice(0, 8);
       res.status(200).json({ ok: true, configured: true, currency, count: (its || []).length, options, more });
     } catch (err) { console.error('flight search error:', err); res.status(200).json({ ok: false, configured: true, error: String(err.message || err) }); }
+    return;
+  }
+
+  // ?profile=1 → the caller's saved passport/personal details (from their last trip) to prefill the form.
+  if (req.query && req.query.profile) {
+    try { res.status(200).json({ ok: true, profile: await travellerProfile(s.email) }); }
+    catch (err) { console.error('profile error:', err); res.status(200).json({ ok: false, profile: null }); }
     return;
   }
 

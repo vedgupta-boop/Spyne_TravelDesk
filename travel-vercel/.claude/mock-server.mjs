@@ -268,6 +268,10 @@ http.createServer((req, res) => {
     const hit = dir[em];
     return json(res, hit ? { available: true, ok: true, name: hit.name, employeeId: hit.employeeId, email: em } : { available: true, ok: false, error: 'No employee found for that email.' });
   }
+  if (url === '/api/me' && /profile=/.test(qs)) return json(res, { ok: true, profile: {
+    nationality: 'India', passportNo: 'Z1234567', passportIssue: '12 Mar 2022, Delhi', passportExpiry: '2030-03-11',
+    panNo: 'ABCDE1234F', designation: 'Finance Manager', mobile: '+91 98765 43210', address: '221B Residency Rd, Bengaluru',
+    docPassport: '', docVisa: '', idDocType: '', docAadhaar: '', docPan: '', docNationalId: '', fromTrip: 'TRF-20260801-MINE3' } });
   if (url === '/api/me' && /flights=/.test(qs)) {
     const cur = /cur=USD/.test(qs) ? 'USD' : 'INR';
     const intl = /intl=1/.test(qs);

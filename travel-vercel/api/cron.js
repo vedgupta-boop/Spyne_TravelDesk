@@ -1,4 +1,4 @@
-import { sendReminders } from '../lib/workflow.js';
+import { sendReminders, sendWeeklyDigest } from '../lib/workflow.js';
 import { baseUrl } from '../lib/auth.js';
 import { applyRoleOverrides } from '../lib/rolesstore.js';
 
@@ -15,8 +15,14 @@ export default async function handler(req, res) {
   }
   try {
     await applyRoleOverrides(); // remind the currently-assigned approvers
-    const result = await sendReminders(process.env.APP_BASE_URL || baseUrl(req));
-    res.status(200).json(result);
+    const base = process.env.APP_BASE_URL || baseUrl(req);
+    const result = await sendReminders(base);
+    // Weekly leadership digest — once a week (Mondays), or on-demand via ?digest=1.
+    let digest = null;
+    if (new Date().getUTCDay() === 1 || (req.query && req.query.digest)) {
+      try { digest = await sendWeeklyDigest(base); } catch (e) { console.error('weekly digest error:', e); digest = { ok: false, error: String(e.message || e) }; }
+    }
+    res.status(200).json({ ...result, digest });
   } catch (err) {
     console.error('cron reminders error:', err);
     res.status(500).json({ ok: false, error: String(err.message || err) });

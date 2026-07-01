@@ -233,6 +233,23 @@ export async function submitRequest(p, baseUrl) {
       total: Number(dup[COL.C_TOTAL] || 0), chain: chainLabels(dup[COL.TYPE], /^POLICY BREAK/.test(String(dup[COL.FLAG] || '')), ceoIsRequester(dup)) };
   }
 
+  // Overlapping-trip warning — the same traveller already has an active trip on overlapping dates.
+  // Soft check: the client can re-submit with confirmOverlap:true to proceed anyway.
+  if (!p.confirmOverlap) {
+    const ns = Date.parse(p.startDate), ne = Date.parse(p.returnDate || p.startDate);
+    if (!isNaN(ns)) {
+      const clash = recent.find((x) => {
+        if (['rejected', 'withdrawn', 'scrapped'].includes(String(x[COL.STAGE]))) return false;
+        if (String(x[COL.EMAIL] || '').toLowerCase() !== String(p.email || '').toLowerCase()) return false;
+        const xs = Date.parse(x[COL.START]); if (isNaN(xs)) return false;
+        const xe = Date.parse(x[COL.RET] || x[COL.START]); const xEnd = isNaN(xe) ? xs : xe;
+        const nEnd = isNaN(ne) ? ns : ne;
+        return ns <= xEnd && xs <= nEnd; // date ranges overlap
+      });
+      if (clash) return { ok: false, overlap: { id: clash[COL.ID], route: `${clash[COL.FROM]} → ${clash[COL.TO]}`, start: fmtDate(clash[COL.START]), end: fmtDate(clash[COL.RET]) || '' } };
+    }
+  }
+
   const { trip, personal, costs } = await computeTripFields(p);
   const id = 'TRF-' + stamp() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
   const rec0 = {
@@ -290,6 +307,87 @@ function ownerForStage(rec, stage) {
   if (stage === 'arrange' || stage === 'admin') return CONFIG.ADMIN_TEAM;
   if (stage === 'forex') return CONFIG.FOREX_OFFICER;
   return '';
+}
+
+// Most-recent saved personal/passport details for a traveller, so the international request
+// form can prefill them instead of re-typing every time. Returns null if nothing on file.
+export async function travellerProfile(email) {
+  const e = String(email || '').toLowerCase(); if (!e) return null;
+  const all = await readAll();
+  const mine = all.filter((r) => String(r[COL.EMAIL] || '').toLowerCase() === e && String(r[COL.PASSPORT_NO] || '').trim());
+  if (!mine.length) return null;
+  mine.sort((a, b) => (Date.parse(b[COL.TS]) || 0) - (Date.parse(a[COL.TS]) || 0));
+  const r = mine[0];
+  return {
+    nationality: r[COL.NATIONALITY] || '', passportNo: r[COL.PASSPORT_NO] || '',
+    passportIssue: r[COL.PASSPORT_ISSUE] || '', passportExpiry: r[COL.PASSPORT_EXPIRY] || '',
+    panNo: r[COL.PAN_NO] || '', designation: r[COL.DESIGNATION] || '',
+    mobile: r[COL.MOBILE] || '', address: r[COL.ADDRESS] || '',
+    docPassport: r[COL.DOC_PASSPORT] || '', docVisa: r[COL.DOC_VISA] || '',
+    idDocType: r[COL.ID_DOC_TYPE] || '', docAadhaar: r[COL.DOC_AADHAAR] || '',
+    docPan: r[COL.DOC_PAN] || '', docNationalId: r[COL.DOC_NATIONAL_ID] || '',
+    fromTrip: r[COL.ID] || '',
+  };
+}
+
+// Weekly leadership digest — a single branded summary email to the CEO + Finance.
+// Called by the daily cron on Mondays. Set WEEKLY_DIGEST=false to disable.
+export async function sendWeeklyDigest(baseUrl) {
+  if (String(process.env.WEEKLY_DIGEST || '').toLowerCase() === 'false') return { ok: true, skipped: 'disabled' };
+  const data = await financeData();
+  const rows = data.rows || [];
+  const now = Date.now();
+  const fx = (CONFIG.FX && CONFIG.FX.USD_INR) || 92;
+  const toINR = (amt, cur) => (String(cur).toUpperCase() === 'USD' ? Number(amt || 0) * fx : Number(amt || 0));
+  let pendingApproval = 0, breaches = 0, advPending = 0, oldestDays = 0;
+  const deptSpend = {};
+  for (const r of rows) {
+    const st = String(r.status || ''); const rejected = /reject|withdraw/i.test(st);
+    const pend = r.hodStatus === 'Pending' || r.ceoStatus === 'Pending' || r.financeStatus === 'Pending';
+    if (pend) { pendingApproval++; const sub = Date.parse(r.submission); if (sub) { const d = Math.floor((now - sub) / 86400000); if (d > oldestDays) oldestDays = d; } }
+    if (/^POLICY BREAK/i.test(String(r.flag || ''))) breaches++;
+    if (r.advance > 0 && /completed|forex card issued|done|confirmed/i.test(st) && (r.actuals && r.actuals.status) !== 'Closed') advPending++;
+    if (!rejected) { const dep = r.dept || '—'; deptSpend[dep] = (deptSpend[dep] || 0) + toINR(r.total, r.currency); }
+  }
+  const topDept = Object.keys(deptSpend).map((k) => ({ k, v: deptSpend[k] })).sort((a, b) => b.v - a.v).slice(0, 5);
+  const inr = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
+  const pm = data.paymentMethods || { own: 0, company: 0, brex: 0 };
+  const summaries = data.currencySummaries || {};
+
+  const stat = (n, label, color) => `<td style="padding:0 6px;" width="33%" valign="top"><div style="border:1px solid #e6ebf2;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:26px;font-weight:800;color:${color};line-height:1;">${n}</div><div style="font-size:12px;color:#64748B;margin-top:6px;">${label}</div></div></td>`;
+  const row = (a, b) => `<tr><td style="padding:7px 12px;border:1px solid #eef1f5;color:#3D506A;">${a}</td><td style="padding:7px 12px;border:1px solid #eef1f5;text-align:right;font-weight:700;">${b}</td></tr>`;
+  let body = `<p style="margin:0 0 16px;color:#3D506A;">Here's this week's travel &amp; expense snapshot across Spyne.</p>`;
+  body += `<table width="100%" style="border-collapse:separate;"><tr>${stat(pendingApproval, 'Pending approvals' + (oldestDays ? ` · oldest ${oldestDays}d` : ''), '#D97706')}${stat(breaches, 'Policy breaches', breaches ? '#E8232A' : '#0F9D58')}${stat(advPending, 'Advances to settle', advPending ? '#D97706' : '#0F9D58')}</tr></table>`;
+  const curKeys = Object.keys(summaries);
+  if (curKeys.length) {
+    body += `<h3 style="font-size:14px;color:#0D1B2A;margin:22px 0 6px;">Pipeline by currency</h3><table style="border-collapse:collapse;width:100%;font-size:13px;">` +
+      `<tr style="background:#0D1B2A;color:#fff;"><th style="padding:7px 12px;text-align:left;">Currency</th><th style="padding:7px 12px;text-align:right;">Pipeline</th><th style="padding:7px 12px;text-align:right;">Approved</th></tr>`;
+    curKeys.forEach((c) => { const s = summaries[c]; const f = (n) => c + ' ' + Math.round(n).toLocaleString(c === 'USD' ? 'en-US' : 'en-IN'); body += `<tr><td style="padding:7px 12px;border:1px solid #eef1f5;">${c}</td><td style="padding:7px 12px;border:1px solid #eef1f5;text-align:right;">${f(s.totalPipeline)}</td><td style="padding:7px 12px;border:1px solid #eef1f5;text-align:right;color:#0F9D58;">${f(s.totalApproved)}</td></tr>`; });
+    body += `</table>`;
+  }
+  if (topDept.length) {
+    body += `<h3 style="font-size:14px;color:#0D1B2A;margin:22px 0 6px;">Top departments by spend (₹)</h3><table style="border-collapse:collapse;width:100%;font-size:13px;">`;
+    topDept.forEach((d) => { body += row(String(d.k), inr(d.v)); });
+    body += `</table>`;
+  }
+  const pmTot = (pm.own || 0) + (pm.company || 0) + (pm.brex || 0);
+  if (pmTot > 0) {
+    body += `<h3 style="font-size:14px;color:#0D1B2A;margin:22px 0 6px;">Actual spend by payment method (₹)</h3><table style="border-collapse:collapse;width:100%;font-size:13px;">` +
+      row('Own money (reimbursed)', inr(pm.own || 0)) + row('Company card / forex', inr(pm.company || 0)) + row('Brex Card', inr(pm.brex || 0)) + `</table>`;
+  }
+  body += `<div style="margin:22px 0 4px;">${btn((baseUrl || '') + '/finance', 'Open Finance dashboard →', '#0D1B2A')}</div>`;
+
+  const html = emailShell({
+    title: 'Weekly travel & expense summary',
+    subtitle: 'Spyne TravelDesk · leadership digest',
+    statusText: `${rows.length} live requests · ${pendingApproval} pending · ${breaches} breach${breaches === 1 ? '' : 'es'}`,
+    statusColor: '#2563EB',
+    body,
+  });
+  const to = [CONFIG.CEO_EMAIL, CONFIG.FINANCE_SPOC].map((x) => String(x || '').trim()).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i);
+  if (!to.length) return { ok: true, skipped: 'no recipients' };
+  await sendEmail({ to, subject: `Spyne TravelDesk — weekly summary (${rows.length} live · ${pendingApproval} pending)`, html });
+  return { ok: true, sent: to.length, pendingApproval, breaches, advPending };
 }
 
 export async function editRequest(id, p, email, baseUrl) {

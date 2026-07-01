@@ -330,6 +330,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
             <label class="toggle"><input type="checkbox" id="f-forex" onchange="recalc()"><div class="track"><div class="thumb"></div></div></label>
           </div>
           <div id="forex-docs" class="hidden" style="margin-top:16px;">
+            <div id="profile-prefill-hint" class="info hidden" style="margin-bottom:12px;background:#EAF7EE;border:1px solid #9ED6B3;color:#0b6e3b;">✓ <b>Prefilled from your last trip</b> — please verify your passport details are still current before submitting.</div>
             <div class="info amber" style="margin-bottom:14px;">📋 <b>International travel</b> — the details and documents below are required. Upload your <b>visa copy</b> only if you already hold a visa; if not, an estimated visa fee is added to the trip cost. Your <b>air ticket</b> is attached automatically once Admin books the flight.<br><b>Forex Card KYC:</b> for a new card, KYC is mandatory — please carry your <b>original passport</b> when you collect it.</div>
             <div class="grid">
               <div class="field"><label>Nationality <span class="req">*</span></label><select id="f-nationality" onchange="updateIdDocs()"><option value="">Select country</option></select></div>
@@ -736,8 +737,23 @@ function recalc(){
   if(!fi && $('f-forex').checked) $('f-forex').checked=false;
   // Mandatory documents show as soon as International is selected (passport/visa/ID), not gated behind the forex toggle.
   var fdocs=$('forex-docs');
-  if(fdocs) fdocs.classList.toggle('hidden', !fi);
+  if(fdocs){ fdocs.classList.toggle('hidden', !fi); if(fi) maybePrefillProfile(); }
   onFlightTime();
+}
+// Prefill passport/personal details from the traveller's last trip (self-service profile).
+// Only fills EMPTY fields, never overrides what the user typed, and is skipped while editing.
+var PROFILE_TRIED=false;
+function maybePrefillProfile(){
+  if(PROFILE_TRIED || EDIT_ID) return;
+  PROFILE_TRIED=true;
+  fetch('/api/me?profile=1',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    var p=d&&d.profile; if(!p) return;
+    var setIf=function(id,v){ var el=$(id); if(el && !el.value && v){ el.value=v; } };
+    if(p.nationality && $('f-nationality') && !$('f-nationality').value){ $('f-nationality').value=p.nationality; if(typeof updateIdDocs==='function') updateIdDocs(); }
+    setIf('f-passportno',p.passportNo); setIf('f-passportissue',p.passportIssue); setIf('f-passportexpiry',p.passportExpiry);
+    setIf('f-panno',p.panNo); setIf('f-designation',p.designation); setIf('f-mobile',p.mobile); setIf('f-address',p.address);
+    var hint=$('profile-prefill-hint'); if(hint) hint.classList.remove('hidden');
+  }).catch(function(){});
 }
 
 // Upload a document to Google Drive (via /api/upload); store the returned link in state.docs.
@@ -956,6 +972,19 @@ function submitLabel(){ return EDIT_ID ? 'Update Request ✓' : 'Submit Request 
 
 function onSubmitOk(res){
   var btn=$('submit-btn'); btn.disabled=false; btn.textContent=submitLabel();
+  // Overlapping-trip warning (new requests only): confirm, then resubmit with confirmOverlap.
+  if(res && res.overlap){
+    var o=res.overlap;
+    if(confirm('⚠ You already have an active trip '+o.id+' ('+o.route+', '+o.start+(o.end?(' → '+o.end):'')+') on overlapping dates.\n\nSubmit this new request anyway?')){
+      btn.disabled=true; btn.textContent='Submitting…';
+      var body2=buildPayload(); body2.confirmOverlap=true;
+      fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(body2)})
+        .then(function(r){ return r.json().catch(function(){ return {ok:false,error:'Server error ('+r.status+')'}; }); })
+        .then(onSubmitOk)
+        .catch(function(err){ btn.disabled=false; btn.textContent=submitLabel(); showErr(err&&err.message||String(err)); });
+    }
+    return;
+  }
   if(!res || !res.ok){ showErr((res && res.error) || 'Submission failed.'); return; }
   clearDraft();
   $('success-id').textContent=res.id;
