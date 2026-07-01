@@ -4,7 +4,7 @@ import { computeCosts, duration, hotelNights, isUsRegion } from './costs.js';
 import { searchFlights, flightsAvailable } from './flights.js';
 import { flightPrice, hotelNightlyRate, amadeusAvailable } from './amadeus.js';
 import { ensureHeaders, appendRecord, findById, updateCells, readAll } from './sheets.js';
-import { sendEmail, approvalEmailHtml, adminEmailHtml, forexOfficerEmailHtml, reminderEmailHtml, taskReminderEmailHtml, itineraryEmailHtml, cap } from './email.js';
+import { sendEmail, approvalEmailHtml, adminEmailHtml, forexOfficerEmailHtml, reminderEmailHtml, taskReminderEmailHtml, itineraryEmailHtml, emailShell, btn, cap } from './email.js';
 import { tripICS } from './ics.js';
 import { expenseActualsByTrf } from './expenseActuals.js';
 import { applyPolicyOverrides, readChanges, editableSnapshot } from './policystore.js';
@@ -387,7 +387,9 @@ async function applyDecision(rec, stage, decision, baseUrl) {
     await updateCells(row, upd);
     const rejTo = requesterEmail(rec);
     if (rejTo) await sendEmail({ to: rejTo, subject: `Travel Request ${id} — REJECTED`,
-      html: `<p>Travel request <b>${id}</b>${rec[COL.NAME] ? ` for <b>${rec[COL.NAME]}</b>` : ''} was rejected at the ${stageLabel(stage)} stage.</p>` });
+      html: emailShell({ title: 'Travel request rejected', subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: `Rejected at the ${stageLabel(stage)} stage`, statusColor: '#E8232A',
+        body: `<p style="color:#3D506A;margin:0 0 12px;">Travel request <b>${id}</b>${rec[COL.NAME] ? ` for <b>${rec[COL.NAME]}</b>` : ''} was <b>rejected</b> at the ${stageLabel(stage)} stage.</p><p style="color:#3D506A;margin:0;">If you have questions, please reach out to the approver or the Finance team. You can raise a revised request any time.</p>` }) });
     return { title: 'Rejected', msg: `You have rejected ${id}. The requester has been notified.`, color: '#b00' };
   }
   if (decision !== 'approve') return { title: 'Unknown Action', msg: 'Unrecognized decision.', color: '#b00' };
@@ -884,7 +886,9 @@ export async function approveReimbursement(id, email, roles) {
   const to = requesterEmail(rec); const fin = (CONFIG.FINANCE_SPOC || '');
   const cc = fin ? [fin] : [];
   if (to) await sendEmail({ to, cc, subject: `Travel ${id} — reimbursement claim approved by your HOD`,
-    html: `<p>Your reimbursement claim for trip <b>${id}</b> has been approved by your department head.</p><p>Reimbursement due: <b>${rec[COL.CURRENCY] || 'INR'} ${Number(ad.reimbursable).toLocaleString('en-IN')}</b>. It now goes to Finance for settlement.</p>` });
+    html: emailShell({ title: 'Reimbursement claim approved ✅', subtitle: `Spyne TravelDesk · ${id}`,
+      statusText: `Reimbursement due: ${rec[COL.CURRENCY] || 'INR'} ${Number(ad.reimbursable).toLocaleString('en-IN')}`, statusColor: '#0F9D58',
+      body: `<p style="color:#3D506A;margin:0 0 12px;">Your reimbursement claim for trip <b>${id}</b> has been <b>approved by your department head</b>.</p><p style="color:#3D506A;margin:0;">It now goes to <b>Finance</b> for settlement — you'll be notified once it's processed.</p>` }) });
   return { ok: true, id, reimbursable: ad.reimbursable };
 }
 
@@ -1270,23 +1274,29 @@ function addBusinessDays(date, n) {
 // Claim-submission window per the policy timelines table (business days unless noted).
 function claimDueDays(type) { return type === 'local' ? 7 : (type === 'international' ? 15 : 10); }
 function claimReminderEmailHtml(rec, link, overdue, dueLabel) {
-  const id = rec[COL.ID], cur = rec[COL.CURRENCY] || 'INR';
-  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:auto;">
-    <h2 style="color:#0D1B2A;">${overdue ? 'Overdue: ' : ''}Submit your trip bills — ${id}</h2>
-    <p style="color:#3D506A;line-height:1.5;">Your trip <b>${id}</b> (${rec[COL.FROM]} → ${rec[COL.TO]}) is complete, but we haven't received your <b>bills / reimbursement claim</b> yet.</p>
-    <p style="color:#3D506A;line-height:1.5;">Per policy, claims are due by <b>${dueLabel}</b>. Please upload your invoices (PDF) and submit your claim.</p>
-    <p style="margin:22px 0;"><a href="${link}" style="background:#E8232A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:800;">Upload bills for ${id}</a></p>
-    <p style="color:#8A97AA;font-size:12px;word-break:break-all;">Or open: ${link}</p></div>`;
+  const id = rec[COL.ID];
+  return emailShell({
+    title: `${overdue ? 'Overdue: ' : ''}Submit your trip bills`,
+    subtitle: `Spyne TravelDesk · ${id}`,
+    statusText: `${overdue ? '⚠ Overdue' : '⏰ Due'} by ${dueLabel}`,
+    statusColor: overdue ? '#E8232A' : '#D97706',
+    body: `<p style="color:#3D506A;margin:0 0 12px;">Your trip <b>${id}</b> (${rec[COL.FROM]} → ${rec[COL.TO]}) is complete, but we haven't received your <b>bills / reimbursement claim</b> yet.</p>
+      <p style="color:#3D506A;margin:0 0 16px;">Per policy, claims are due by <b>${dueLabel}</b>. Please upload your invoices (PDF) and submit your claim.</p>
+      <div style="margin:20px 0 4px;">${btn(link, 'Upload bills →', '#E8232A')}</div>`,
+  });
 }
 function advanceReminderEmailHtml(rec, link, overdue, dueLabel, advLabel) {
   const id = rec[COL.ID];
-  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:520px;margin:auto;">
-    <h2 style="color:#0D1B2A;">${overdue ? 'Overdue: ' : ''}Settle your travel advance — ${id}</h2>
-    <p style="color:#3D506A;line-height:1.5;">Your trip <b>${id}</b> (${rec[COL.FROM]} → ${rec[COL.TO]}) took a travel advance of <b>${advLabel}</b>, which has not yet been settled.</p>
-    <p style="color:#3D506A;line-height:1.5;">Per policy, any <b>unused tour advance must be returned within 30 calendar days of returning</b> — by <b>${dueLabel}</b>. Please submit your final bills so Finance can reconcile and settle the balance.</p>
-    ${overdue ? '<p style="color:#B01820;line-height:1.5;font-weight:700;">This advance is now overdue. Failure to return unused advances within 30 days may result in forfeiture and/or recovery from salary.</p>' : ''}
-    <p style="margin:22px 0;"><a href="${link}" style="background:#E8232A;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:800;">Settle advance for ${id}</a></p>
-    <p style="color:#8A97AA;font-size:12px;word-break:break-all;">Or open: ${link}</p></div>`;
+  return emailShell({
+    title: `${overdue ? 'Overdue: ' : ''}Settle your travel advance`,
+    subtitle: `Spyne TravelDesk · ${id}`,
+    statusText: `${overdue ? '⚠ Overdue' : '⏰ Due'} by ${dueLabel} · advance ${advLabel}`,
+    statusColor: overdue ? '#E8232A' : '#D97706',
+    body: `<p style="color:#3D506A;margin:0 0 12px;">Your trip <b>${id}</b> (${rec[COL.FROM]} → ${rec[COL.TO]}) took a travel advance of <b>${advLabel}</b>, which has not yet been settled.</p>
+      <p style="color:#3D506A;margin:0 0 12px;">Per policy, any <b>unused tour advance must be returned within 30 calendar days of returning</b> — by <b>${dueLabel}</b>. Please submit your final bills so Finance can reconcile and settle the balance.</p>
+      ${overdue ? '<p style="color:#B01820;font-weight:700;margin:0 0 12px;">This advance is now overdue. Failure to return unused advances within 30 days may result in forfeiture and/or recovery from salary.</p>' : ''}
+      <div style="margin:20px 0 4px;">${btn(link, 'Settle advance →', '#E8232A')}</div>`,
+  });
 }
 // Every pending reminder is CC'd to the requestor + Shankul (admin) for visibility — but the
 // primary recipient (the stage approver) is never duplicated into the CC.

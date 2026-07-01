@@ -61,8 +61,27 @@ export async function sendEmail({ to, subject, html, cc, attachments }) {
   }
 }
 
-function btn(url, label, color) {
-  return `<a href="${url}" style="display:inline-block;padding:12px 26px;background:${color};color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;font-size:15px;">${label}</a>`;
+export function btn(url, label, color) {
+  return `<a href="${url}" style="display:inline-block;padding:12px 28px;background:${color};color:#fff;text-decoration:none;border-radius:8px;font-weight:800;font-size:14px;letter-spacing:.2px;">${label}</a>`;
+}
+
+// Branded, mobile-friendly email shell used by every TravelDesk email:
+// navy gradient header + a colored status bar (varies by type) + white body + footer.
+export function emailShell({ title, subtitle, statusText, statusColor, body, footerNote }) {
+  const sc = statusColor || '#2563EB';
+  return `<div style="margin:0;padding:24px 12px;background:#eef1f5;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(13,27,42,.12);">
+    <div style="background:#0D1B2A;background:linear-gradient(135deg,#0D1B2A 0%,#1E3253 100%);padding:24px 30px;">
+      <div style="color:#ffffff;font-size:20px;font-weight:800;line-height:1.25;">${title}</div>
+      ${subtitle ? `<div style="color:#9fb2cc;font-size:13px;margin-top:5px;">${subtitle}</div>` : ''}
+    </div>
+    ${statusText ? `<div style="background:${sc};padding:11px 30px;color:#ffffff;font-size:13px;font-weight:700;">${statusText}</div>` : ''}
+    <div style="padding:24px 30px;color:#1a2332;font-size:14px;line-height:1.55;">${body}</div>
+    <div style="border-top:1px solid #eef1f5;padding:15px 30px;color:#8A97AA;font-size:11px;line-height:1.5;">
+      ${footerNote ? esc(footerNote) + '<br>' : ''}Spyne TravelDesk · automated message — please don't reply to this address.
+    </div>
+  </div>
+</div>`;
 }
 
 function kvTable(rows) {
@@ -127,26 +146,37 @@ export function breakdownTable(rec) {
   return html;
 }
 
-export function approvalEmailHtml(rec, stageLabel, approveUrl, rejectUrl) {
+// Inner content for approval / reminder emails (no shell): breach banner + trip + breakdown + buttons.
+function approvalInner(rec, approveUrl, rejectUrl) {
   const banner = /^(OVER BUDGET|POLICY BREAK)/.test(String(rec[COL.FLAG]))
-    ? `<div style="background:#ffe5e5;border:1px solid #b00;color:#900;padding:10px;border-radius:6px;margin:0 0 14px;font-family:Arial,sans-serif;"><b>⚠ ${esc(rec[COL.FLAG])}</b></div>`
+    ? `<div style="background:#FDECEC;border:1px solid #E8232A;color:#a01722;padding:10px 12px;border-radius:8px;margin:0 0 14px;"><b>⚠ ${esc(rec[COL.FLAG])}</b></div>`
     : '';
-  return `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a2332;">` +
-    `<h2 style="margin:0 0 4px;">Travel Request ${esc(rec[COL.ID])} — ${esc(stageLabel)} Approval</h2>` +
-    `<p style="color:#555;margin:0 0 16px;">Requested by <b>${esc(rec[COL.NAME])}</b> (${esc(rec[COL.EMAIL])})</p>` +
-    banner + tripSummary(rec) + breakdownTable(rec) +
-    `<div style="margin:22px 0;">${btn(approveUrl, 'APPROVE', '#0a8a0a')}&nbsp;&nbsp;${btn(rejectUrl, 'REJECT', '#c0392b')}</div>` +
-    `<p style="color:#888;font-size:12px;">If the buttons don't work, paste these:<br>Approve: ${esc(approveUrl)}<br>Reject: ${esc(rejectUrl)}</p></div>`;
+  return banner + tripSummary(rec) + breakdownTable(rec) +
+    `<div style="margin:22px 0 6px;">${btn(approveUrl, '✓ APPROVE', '#0F9D58')}&nbsp;&nbsp;${btn(rejectUrl, '✕ REJECT', '#E8232A')}</div>` +
+    `<p style="color:#8A97AA;font-size:11px;margin-top:10px;word-break:break-all;">Buttons not working? Approve: ${esc(approveUrl)} — Reject: ${esc(rejectUrl)}</p>`;
+}
+
+export function approvalEmailHtml(rec, stageLabel, approveUrl, rejectUrl) {
+  const breach = /^(OVER BUDGET|POLICY BREAK)/.test(String(rec[COL.FLAG]));
+  return emailShell({
+    title: `${esc(stageLabel)} approval needed`,
+    subtitle: `Spyne TravelDesk · ${esc(rec[COL.ID])}`,
+    statusText: `${esc(rec[COL.NAME] || 'Traveller')} · ${esc(rec[COL.FROM])} → ${esc(rec[COL.TO])}` + (breach ? ' · ⚠ needs review' : ''),
+    statusColor: breach ? '#D97706' : '#2563EB',
+    body: `<p style="margin:0 0 16px;color:#3D506A;">Requested by <b>${esc(rec[COL.NAME])}</b> (${esc(rec[COL.EMAIL])}). Please review and action this request:</p>` + approvalInner(rec, approveUrl, rejectUrl),
+  });
 }
 
 export function adminEmailHtml(rec, base) {
-  const portal = base ? `<p style="margin:18px 0;"><a href="${esc(base)}/admin" style="display:inline-block;padding:12px 24px;background:#0D1B2A;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Open in Admin portal →</a></p>` : '';
-  return `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a2332;">` +
-    `<h2 style="margin:0 0 4px;">Travel Request ${esc(rec[COL.ID])} — APPROVED ✅</h2>` +
-    `<p style="color:#555;margin:0 0 16px;">Fully approved. Please make arrangements per policy.</p>` +
-    `<p style="margin:0 0 16px;">Traveller: <b>${esc(rec[COL.NAME])}</b> (${esc(rec[COL.EMAIL])})</p>` +
-    tripSummary(rec) + breakdownTable(rec) + portal +
-    `<p style="color:#888;font-size:12px;margin-top:8px;">Sign in to make the booking and update the status.</p></div>`;
+  const cta = base ? `<div style="margin:22px 0 4px;">${btn(base + '/admin', 'Open Admin portal →', '#0D1B2A')}</div>` : '';
+  return emailShell({
+    title: 'Approved — ready to book ✈️',
+    subtitle: `Spyne TravelDesk · ${esc(rec[COL.ID])}`,
+    statusText: `${esc(rec[COL.NAME] || '')} · ${esc(rec[COL.FROM])} → ${esc(rec[COL.TO])}`,
+    statusColor: '#0F9D58',
+    body: `<p style="margin:0 0 16px;color:#3D506A;">Fully approved — please make the arrangements per policy, then update the status.</p>` +
+      tripSummary(rec) + breakdownTable(rec) + cta,
+  });
 }
 
 // Sent to the requester once Admin completes booking. Lists each flight/hotel leg with the
@@ -157,10 +187,8 @@ export function itineraryEmailHtml(rec, itinerary, bookings) {
   const bf = (bookings && bookings.flights) || [];
   const bh = (bookings && bookings.hotels) || [];
   const cell = (s) => `<td style="padding:7px 10px;border:1px solid #eee;font-size:13px;">${esc(s == null ? '' : s)}</td>`;
-  const docLink = (d) => d ? `<a href="${esc(d)}" style="color:#0077CC;">View</a>` : '—';
-  let html = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a2332;">` +
-    `<h2 style="margin:0 0 4px;">Your trip is booked ✈️ · ${esc(rec[COL.ID])}</h2>` +
-    `<p style="color:#555;margin:0 0 16px;">Traveller: <b>${esc(rec[COL.NAME])}</b>. A calendar invite is attached. Booking details below — safe travels!</p>`;
+  const docLink = (d) => d ? `<a href="${esc(d)}" style="color:#2563EB;">View</a>` : '—';
+  let html = `<p style="color:#3D506A;margin:0 0 16px;">Hi <b>${esc(rec[COL.NAME])}</b>, your trip is confirmed. A calendar invite is attached — booking details below. Safe travels! 🌍</p>`;
   if (flights.length) {
     html += `<h3 style="margin:16px 0 6px;font-size:15px;">Flights</h3><table style="border-collapse:collapse;width:100%;">` +
       `<tr style="background:#0D1B2A;color:#fff;"><th style="padding:7px 10px;text-align:left;font-size:12px;">Leg</th><th style="padding:7px 10px;text-align:left;font-size:12px;">Route</th><th style="padding:7px 10px;text-align:left;font-size:12px;">Date &amp; time</th><th style="padding:7px 10px;text-align:left;font-size:12px;">Booking</th><th style="padding:7px 10px;text-align:left;font-size:12px;">Ticket</th></tr>`;
@@ -178,38 +206,51 @@ export function itineraryEmailHtml(rec, itinerary, bookings) {
     });
     html += `</table>`;
   }
-  html += tripSummary(rec) + `</div>`;
-  return html;
+  html += tripSummary(rec);
+  return emailShell({
+    title: 'Your trip is booked ✈️',
+    subtitle: `Spyne TravelDesk · ${esc(rec[COL.ID])}`,
+    statusText: `${esc(rec[COL.FROM])} → ${esc(rec[COL.TO])} · ${esc(rec[COL.START])}`,
+    statusColor: '#0F766E',
+    body: html,
+  });
 }
 
 export function forexOfficerEmailHtml(rec, link) {
-  return `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a2332;">` +
-    `<h2 style="margin:0 0 4px;">Forex Card — Issuance Required · ${esc(rec[COL.ID])}</h2>` +
-    `<p style="color:#555;margin:0 0 14px;">Flight booking is complete. Please verify the details, issue the forex card, upload the confirmation, and mark Completed.<br><b>KYC:</b> collect the traveller's original passport at handover.</p>` +
-    `<p style="margin:0 0 14px;">Traveller: <b>${esc(rec[COL.NAME])}</b> (${esc(rec[COL.EMAIL])})</p>` +
-    tripSummary(rec) + breakdownTable(rec) +
-    `<p style="margin:18px 0;"><a href="${esc(link)}" style="display:inline-block;padding:12px 24px;background:#0D1B2A;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Open Forex View →</a></p></div>`;
-}
-
-function reminderBanner(stageLabel, hours) {
-  return `<div style="background:#FFF7E6;border:1px solid #F59E0B;color:#92400E;padding:11px 14px;border-radius:6px;margin:0 0 14px;font-family:Arial,sans-serif;">` +
-    `<b>⏰ Reminder:</b> this request has been awaiting your <b>${esc(stageLabel)}</b> action for about <b>${hours} hours</b>. Please action it at the earliest.</div>`;
+  return emailShell({
+    title: 'Forex card — issuance required 💳',
+    subtitle: `Spyne TravelDesk · ${esc(rec[COL.ID])}`,
+    statusText: `${esc(rec[COL.NAME] || '')} · ${esc(rec[COL.FROM])} → ${esc(rec[COL.TO])}`,
+    statusColor: '#6D28D9',
+    body: `<p style="color:#3D506A;margin:0 0 14px;">Flight booking is complete. Please verify the details, issue the forex card, upload the confirmation and mark <b>Completed</b>.<br><b>KYC:</b> collect the traveller's original passport at handover.</p>` +
+      tripSummary(rec) + breakdownTable(rec) +
+      `<div style="margin:20px 0 4px;">${btn(link, 'Open Forex view →', '#6D28D9')}</div>`,
+  });
 }
 
 // Reminder for an APPROVAL stage (HOD / CEO / Finance / Admin) — reuses the live approve/reject links.
 export function reminderEmailHtml(rec, stageLabel, approveUrl, rejectUrl, hours) {
-  return `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;">` +
-    reminderBanner(stageLabel, hours) + approvalEmailHtml(rec, stageLabel, approveUrl, rejectUrl) + `</div>`;
+  return emailShell({
+    title: `Reminder — ${esc(stageLabel)} approval pending`,
+    subtitle: `Spyne TravelDesk · ${esc(rec[COL.ID])}`,
+    statusText: `⏰ Awaiting your action for about ${hours} hours`,
+    statusColor: '#D97706',
+    body: `<p style="margin:0 0 16px;color:#3D506A;">This request from <b>${esc(rec[COL.NAME])}</b> is still waiting on your <b>${esc(stageLabel)}</b> decision. Please action it at your earliest:</p>` +
+      approvalInner(rec, approveUrl, rejectUrl),
+  });
 }
 
 // Reminder for a TASK stage (Admin arrangements / Forex card issuance) — links to the dashboard.
 export function taskReminderEmailHtml(rec, title, link, hours) {
-  return `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a2332;">` +
-    reminderBanner(title, hours) +
-    `<h2 style="margin:0 0 4px;">Travel Request ${esc(rec[COL.ID])} — ${esc(title)}</h2>` +
-    `<p style="color:#555;margin:0 0 14px;">Traveller: <b>${esc(rec[COL.NAME])}</b> (${esc(rec[COL.EMAIL])})</p>` +
-    tripSummary(rec) +
-    `<p style="margin:18px 0;"><a href="${esc(link)}" style="display:inline-block;padding:12px 24px;background:#0D1B2A;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Open Dashboard →</a></p></div>`;
+  return emailShell({
+    title: `Reminder — ${esc(title)}`,
+    subtitle: `Spyne TravelDesk · ${esc(rec[COL.ID])}`,
+    statusText: `⏰ Pending for about ${hours} hours`,
+    statusColor: '#D97706',
+    body: `<p style="color:#3D506A;margin:0 0 14px;">Trip for <b>${esc(rec[COL.NAME])}</b> (${esc(rec[COL.EMAIL])}) is waiting on this task:</p>` +
+      tripSummary(rec) +
+      `<div style="margin:20px 0 4px;">${btn(link, 'Open dashboard →', '#0D1B2A')}</div>`,
+  });
 }
 
 export function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
