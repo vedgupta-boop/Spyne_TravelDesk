@@ -920,6 +920,10 @@ function submitForm(){
     if(!val('f-passportno')) mark('Passport No.','f-passportno');
     if(!val('f-passportissue')) mark('Passport issue','f-passportissue');
     if(!val('f-passportexpiry')) mark('Passport expiry','f-passportexpiry');
+    else { // Policy §5: passport must stay valid ≥6 months beyond the return (or going) date.
+      var _tripEnd=val('f-return')||val('f-start');
+      if(_tripEnd){ var _need=new Date(_tripEnd); _need.setMonth(_need.getMonth()+6);
+        if(new Date(val('f-passportexpiry'))<_need) mark('Passport must stay valid ≥6 months after your return date (policy)','f-passportexpiry'); } }
     if(!val('f-designation')) mark('Designation','f-designation');
     if(!val('f-mobile')) mark('Mobile','f-mobile');
     if(!val('f-address')) mark('Residential Address','f-address');
