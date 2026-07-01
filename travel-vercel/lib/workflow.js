@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { CONFIG, COL, deptsForHod } from './config.js';
+import { CONFIG, COL, deptsForHod, AUTH } from './config.js';
 import { computeCosts, duration, hotelNights, isUsRegion } from './costs.js';
 import { searchFlights, flightsAvailable } from './flights.js';
 import { flightPrice, hotelNightlyRate, amadeusAvailable } from './amadeus.js';
@@ -384,7 +384,8 @@ export async function sendWeeklyDigest(baseUrl) {
     statusColor: '#2563EB',
     body,
   });
-  const to = [CONFIG.CEO_EMAIL, CONFIG.FINANCE_SPOC].map((x) => String(x || '').trim()).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i);
+  // Finance team only (all finance role holders) — the CEO is intentionally excluded.
+  const to = ((AUTH && AUTH.FINANCE_EMAILS) || [CONFIG.FINANCE_SPOC]).map((x) => String(x || '').trim().toLowerCase()).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i);
   if (!to.length) return { ok: true, skipped: 'no recipients' };
   await sendEmail({ to, subject: `Spyne TravelDesk — weekly summary (${rows.length} live · ${pendingApproval} pending)`, html });
   return { ok: true, sent: to.length, pendingApproval, breaches, advPending };
