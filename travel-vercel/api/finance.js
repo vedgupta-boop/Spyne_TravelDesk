@@ -1,6 +1,7 @@
 import { financeData, closeTrip, scrapRequests } from '../lib/workflow.js';
 import { recordPolicyChange } from '../lib/policystore.js';
 import { addPolicyVersion, deletePolicyVersion } from '../lib/policyversionsstore.js';
+import { readEmailLog } from '../lib/emaillogstore.js';
 import { requireRole, baseUrl } from '../lib/auth.js';
 import { listUsers, setUserStatus, inviteUser, createReset } from '../lib/userstore.js';
 import { remindersEnabled, setRemindersEnabled, reminderHour, setReminderHour } from '../lib/settingsstore.js';
@@ -96,6 +97,10 @@ export default async function handler(req, res) {
     }
     if (req.query && req.query.view === 'roles') {
       res.status(200).json({ ok: true, ...(await rolesView()) });
+      return;
+    }
+    if (req.query && req.query.view === 'emaillog') {
+      res.status(200).json({ ok: true, log: await readEmailLog(150) });
       return;
     }
     const data = await financeData();

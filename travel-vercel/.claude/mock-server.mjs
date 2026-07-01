@@ -255,6 +255,12 @@ http.createServer((req, res) => {
   }
   if (url === '/api/finance' && /view=users/.test(qs)) return json(res, USERS);
   if (url === '/api/finance' && /view=roles/.test(qs)) return json(res, { ok: true, ...ROLES_VIEW });
+  if (url === '/api/finance' && /view=emaillog/.test(qs)) return json(res, { ok: true, log: [
+    { ts: '2026-06-30T09:32:00Z', id: 'TRF-20260901-AB12', to: 'sanjay@spyne.ai', cc: 'ved@spyne.ai, shankul.rastogi@spyne.ai', subject: '[Escalated] TRF-20260901-AB12 — CEO approval pending 74h' },
+    { ts: '2026-06-30T09:30:00Z', id: 'TRF-20260905-GH78', to: 'shankul.rastogi@spyne.ai', cc: 'rahul@spyne.ai', subject: '[Reminder] TRF-20260905-GH78 — Admin — Booking & Arrangements pending 26h' },
+    { ts: '2026-06-29T14:05:00Z', id: 'TRF-20260801-MINE3', to: 'finance.demo@spyne.ai', cc: 'finance@spyne.ai', subject: 'Travel TRF-20260801-MINE3 — reimbursement claim approved by your HOD' },
+    { ts: '2026-06-28T10:00:00Z', id: 'TRF-20260801-MINE3', to: 'jasvinder@spyne.ai', cc: '', subject: '[Forex Card] Issue card — TRF-20260801-MINE3 (Finance Demo)' },
+  ] });
   if (url === '/api/me' && /counts/.test(qs)) return json(res, { approvals: 2, department: 1, finance: 1, admin: 1, forex: 0, items: [
     { key: 'TRF-20260918-PEN1:approval', id: 'TRF-20260918-PEN1', kind: 'approval', title: 'Approval needed — Department Head', href: '/hod', sub: 'Arjun Nair · Bengaluru → New York' },
     { key: 'TRF-20260915-PEN2:approval', id: 'TRF-20260915-PEN2', kind: 'approval', title: 'Approval needed — Department Head', href: '/hod', sub: 'Neha Singh · Delhi → Mumbai' },

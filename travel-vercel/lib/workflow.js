@@ -4,7 +4,22 @@ import { computeCosts, duration, hotelNights, isUsRegion } from './costs.js';
 import { searchFlights, flightsAvailable } from './flights.js';
 import { flightPrice, hotelNightlyRate, amadeusAvailable } from './amadeus.js';
 import { ensureHeaders, appendRecord, findById, updateCells, readAll } from './sheets.js';
-import { sendEmail, approvalEmailHtml, adminEmailHtml, forexOfficerEmailHtml, reminderEmailHtml, taskReminderEmailHtml, itineraryEmailHtml, emailShell, btn, cap } from './email.js';
+import { sendEmail as _sendEmail, approvalEmailHtml, adminEmailHtml, forexOfficerEmailHtml, reminderEmailHtml, taskReminderEmailHtml, itineraryEmailHtml, emailShell, btn, cap } from './email.js';
+import { logEmail } from './emaillogstore.js';
+
+// Wrapper around sendEmail that records an audit-log row for every email (who/when/which request).
+// The request id is derived from the subject (every subject includes the TRF id). Logging is
+// fire-and-forget so it never slows or breaks a send.
+async function sendEmail(opts) {
+  const r = await _sendEmail(opts);
+  try {
+    const subj = String((opts && opts.subject) || '');
+    const idm = subj.match(/TRF-[0-9A-Za-z-]+/);
+    const flat = (x) => Array.isArray(x) ? x.join(', ') : String(x || '');
+    logEmail({ id: idm ? idm[0] : '', to: flat(opts && opts.to), cc: flat(opts && opts.cc), subject: subj });
+  } catch (e) { /* never break a send over logging */ }
+  return r;
+}
 import { tripICS } from './ics.js';
 import { expenseActualsByTrf } from './expenseActuals.js';
 import { applyPolicyOverrides, readChanges, editableSnapshot } from './policystore.js';
@@ -1399,8 +1414,8 @@ function advanceReminderEmailHtml(rec, link, overdue, dueLabel, advLabel) {
 }
 // Every pending reminder is CC'd to the requestor + Shankul (admin) for visibility — but the
 // primary recipient (the stage approver) is never duplicated into the CC.
-function reminderCc(rec, to) {
-  const list = [requesterEmail(rec), CONFIG.ADMIN_TEAM]
+function reminderCc(rec, to, extra) {
+  const list = [requesterEmail(rec), CONFIG.ADMIN_TEAM].concat(extra || [])
     .map((x) => String(x || '').trim().toLowerCase())
     .filter(Boolean);
   const t = String(to || '').trim().toLowerCase();
@@ -1466,14 +1481,18 @@ export async function sendReminders(baseUrl) {
     // reaches just the one person who needs to act, nobody else.
     const prefix = '[Reminder]';
 
+    // Escalation: after N unanswered reminders, also loop in the CEO + Finance (admin is already CC'd).
+    const escalated = count >= (CONFIG.ESCALATE_AFTER_REMINDERS || 3);
+    const escCc = escalated ? [CONFIG.CEO_EMAIL, CONFIG.FINANCE_SPOC] : [];
+    const sub = (escalated ? '[Escalated] ' : prefix + ' ');
     if (kind === 'approval') {
       const token = rec[COL.TOKEN];
       const html = reminderEmailHtml(rec, label,
         actionUrl(base, rec[COL.ID], stage, 'approve', token),
         actionUrl(base, rec[COL.ID], stage, 'reject', token), hours);
-      await sendEmail({ to, subject: `${prefix} ${rec[COL.ID]} — ${label} approval pending ${hours}h`, html, cc: reminderCc(rec, to) });
+      await sendEmail({ to, subject: `${sub}${rec[COL.ID]} — ${label} approval pending ${hours}h`, html, cc: reminderCc(rec, to, escCc) });
     } else {
-      await sendEmail({ to, subject: `${prefix} ${rec[COL.ID]} — ${label} pending ${hours}h`, html: taskReminderEmailHtml(rec, label, link, hours), cc: reminderCc(rec, to) });
+      await sendEmail({ to, subject: `${sub}${rec[COL.ID]} — ${label} pending ${hours}h`, html: taskReminderEmailHtml(rec, label, link, hours), cc: reminderCc(rec, to, escCc) });
     }
     await updateCells(rec.__row, [[COL.LAST_REMINDER, new Date(now).toISOString()], [COL.REMINDER_COUNT, count]]);
     sent.push({ id: rec[COL.ID], stage, label, to, hours, reminderCount: count });
@@ -1532,7 +1551,7 @@ export async function sendReminders(baseUrl) {
     const advLabel = (rec[COL.CURRENCY] || 'INR') + ' ' + Math.round(advAmt).toLocaleString('en-IN');
     const link = base + '/my?trip=' + encodeURIComponent(rec[COL.ID]);
     await sendEmail({ to, subject: `${overdue ? '[Overdue]' : '[Reminder]'} ${rec[COL.ID]} — settle your travel advance`,
-      html: advanceReminderEmailHtml(rec, link, overdue, fmtDate(new Date(dueTime).toISOString()), advLabel), cc: reminderCc(rec, to) });
+      html: advanceReminderEmailHtml(rec, link, overdue, fmtDate(new Date(dueTime).toISOString()), advLabel), cc: reminderCc(rec, to, [CONFIG.FINANCE_SPOC]) });
     await updateCells(rec.__row, [[COL.ADVANCE_REMINDER, new Date(now).toISOString()]]);
     advances.push({ id: rec[COL.ID], to, due: fmtDate(new Date(dueTime).toISOString()), overdue, advance: advAmt });
   }

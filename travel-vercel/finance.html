@@ -54,7 +54,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .tbl-scroll{overflow-x:auto;}
 table{border-collapse:collapse;width:100%;font-size:12px;min-width:2160px;}
 /* Policy panel tables must fit the panel (the 2160px floor is only for the wide requests table). */
-#policy-body table{min-width:0;}
+#policy-body table,#elog-body table{min-width:0;}
 #policy-body td,#policy-body th{word-break:break-word;}
 .wrap{max-width:1400px;}
 td,th{white-space:nowrap;}
@@ -166,6 +166,14 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
       <span id="pol-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
     </div>
     <div id="policy-body" class="hidden" style="padding:0 18px 16px;overflow-x:auto;"></div>
+  </div>
+  <!-- EMAIL LOG (audit trail: who was emailed, when) -->
+  <div class="panel" style="margin-bottom:18px;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleEmailLog()">
+      <div style="font-weight:800;color:var(--navy);">📧 Email log <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— who was emailed, when</span></div>
+      <span id="elog-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
+    </div>
+    <div id="elog-body" class="hidden" style="padding:0 18px 16px;overflow-x:auto;"></div>
   </div>
 
   <div class="panel" style="margin-bottom:16px;">
@@ -782,6 +790,32 @@ function buildPolicyEditor(){
   return '<div style="margin-bottom:8px;">'+sect+hist+'</div><hr style="border:none;border-top:1px solid var(--gray-2);margin:18px 0;">';
 }
 function fmtTs(s){ try{ var d=new Date(s); if(isNaN(d)) return s; return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric'}); }catch(e){ return s; } }
+function fmtTsTime(s){ try{ var d=new Date(s); if(isNaN(d)) return s; return d.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'}).replace(',',''); }catch(e){ return s; } }
+// 📧 Email log — lazy-loaded audit trail of every email the app sent.
+var ELOG_LOADED=false;
+function toggleEmailLog(){
+  var b=document.getElementById('elog-body'), t=document.getElementById('elog-toggle'); if(!b) return;
+  var open=(b.classList.toggle('hidden')===false);
+  if(t) t.textContent=open?'Hide ▴':'Show ▾';
+  if(open && !ELOG_LOADED){ ELOG_LOADED=true; loadEmailLog(); }
+}
+function loadEmailLog(){
+  var b=document.getElementById('elog-body'); b.innerHTML='<div class="bd-note" style="color:var(--gray-5);">Loading…</div>';
+  fetch('/api/finance?view=emaillog',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    var log=(d&&d.log)||[];
+    if(!log.length){ b.innerHTML='<div class="bd-note" style="color:var(--gray-5);">No emails logged yet.</div>'; return; }
+    b.innerHTML='<div class="bd-note" style="color:var(--gray-5);margin:2px 0 8px;">Most recent '+log.length+' emails (newest first).</div>'
+      +'<table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12.5px;"><thead><tr>'
+      +[['When','15%'],['Request','15%'],['To','23%'],['CC','20%'],['Subject','27%']].map(function(h){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);width:'+h[1]+';">'+h[0]+'</th>';}).join('')
+      +'</tr></thead><tbody>'+log.map(function(e){
+        return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+esc(fmtTsTime(e.ts))+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.id||'—')+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.to)+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;color:var(--gray-6);">'+esc(e.cc||'—')+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.subject)+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }).catch(function(){ b.innerHTML='<div class="bd-note" style="color:#DC2626;">Could not load the email log.</div>'; });
+}
 function polId(path){ return 'pv_'+String(path).replace(/[^A-Za-z0-9]/g,'_'); }
 // Inline save (no prompt/alert — those get blocked in embedded webviews).
 function savePolicy(path){
