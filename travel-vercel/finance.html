@@ -157,8 +157,14 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
 <script src="/auth-guard.js"></script>
 
 <div class="wrap">
-  <!-- EXECUTIVE SUMMARY (Today's Action + KPIs + Alerts) -->
-  <div id="exec"></div>
+  <!-- EXECUTIVE SUMMARY (Today's Action + KPIs + Alerts) — collapsible, hidden by default -->
+  <div class="panel" style="margin-bottom:18px;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:12px;flex-wrap:wrap;" onclick="toggleExec()">
+      <div style="font-weight:800;color:var(--navy);">⚡ Today’s Action &amp; Overview <span id="exec-summary" style="font-weight:600;font-size:11px;color:var(--gray-5);margin-left:6px;"></span></div>
+      <span id="exec-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
+    </div>
+    <div id="exec" class="hidden" style="padding:0 18px 16px;"></div>
+  </div>
   <!-- POLICY SUMMARY -->
   <div class="panel" style="margin-bottom:18px;">
     <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="togglePolicy()">
@@ -396,6 +402,14 @@ function renderExec(){
     +'<div class="ex-chart" style="grid-column:1/-1;"><div class="ex-ct">Monthly spend (last 6 months, ₹)</div>'+svgLine(months)+'</div>'
     +'</div>';
   box.innerHTML=actions+kpis+alerts+charts+sum+pmBox;
+  // Header summary (visible even while the panel is collapsed).
+  var es=document.getElementById('exec-summary');
+  if(es){ es.textContent='· '+needApproval+' need approval · '+cr(pipelineINR)+' pipeline'+(violations?(' · '+violations+' breach'+(violations>1?'es':'')):''); }
+}
+function toggleExec(){
+  var b=document.getElementById('exec'), t=document.getElementById('exec-toggle'); if(!b) return;
+  var open=(b.classList.toggle('hidden')===false);
+  if(t) t.textContent=open?'Hide ▴':'Show ▾';
 }
 // ---- Email-reminder master switch (Finance self-service) ----
 var REM_ON=false;
