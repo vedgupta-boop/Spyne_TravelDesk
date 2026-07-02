@@ -740,6 +740,9 @@ function shortStatus(s){
 function num(x){ return Number(x||0).toLocaleString('en-IN',{maximumFractionDigits:0}); }
 function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Version labels: don't double-prefix "v" (a stored "v2" must read "v2", not "vv2").
+function vlabel(x){ x=String(x||''); return /^v/i.test(x)?x:'v'+x; }
+function vnum(x){ return String(x||'').replace(/^v/i,''); }
 
 // ---- CSV export of the currently filtered rows ----
 function downloadCSV(){
@@ -905,7 +908,7 @@ function renderPolicy(P){
     var _eff=_cur.effective?new Date(_cur.effective).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
     h+='<div style="margin-top:14px;border:1px solid #9ED6B3;background:#EAF7EE;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">'
       +'<div style="min-width:200px;"><div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--green);">📄 Current policy — in force</div>'
-      +'<div style="font-size:16px;font-weight:800;color:var(--navy);margin-top:3px;">Version '+esc(_cur.version)+' <span style="font-size:12px;font-weight:600;color:var(--gray-6);">· effective '+esc(_eff)+'</span></div>'
+      +'<div style="font-size:16px;font-weight:800;color:var(--navy);margin-top:3px;">Version '+esc(vnum(_cur.version))+' <span style="font-size:12px;font-weight:600;color:var(--gray-6);">· effective '+esc(_eff)+'</span></div>'
       +(_cur.summary?'<div style="font-size:12px;color:var(--gray-6);margin-top:3px;">'+esc(_cur.summary)+'</div>':'')+'</div>'
       +(_cur.file?'<a href="'+esc(_cur.file)+'" target="_blank" style="background:var(--navy);color:#fff;border-radius:8px;padding:9px 16px;font-weight:800;text-decoration:none;white-space:nowrap;">📄 View / Download</a>':'')
     +'</div>';
@@ -915,7 +918,7 @@ function renderPolicy(P){
     +[['Version','12%'],['Effective date','16%'],['What changed','46%'],['','13%'],['','13%']].map(function(th){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);width:'+th[1]+';">'+th[0]+'</th>';}).join('')
     +'</tr></thead><tbody>'+(pv.length?pv.map(function(v){
       var eff=v.effective?new Date(v.effective).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
-      return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);font-weight:700;white-space:nowrap;">v'+esc(v.version)
+      return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);font-weight:700;white-space:nowrap;">'+esc(vlabel(v.version))
           +(v.current?' <span style="background:#E6F4EA;color:var(--green);border:1px solid #9ED6B3;border-radius:6px;padding:0 6px;font-size:10px;font-weight:800;margin-left:4px;">CURRENT</span>':'')+'</td>'
         +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;">'+esc(eff)+'</td>'
         +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:var(--gray-7);">'+esc(v.summary||'')+'</td>'
