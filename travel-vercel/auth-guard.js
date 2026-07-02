@@ -43,19 +43,17 @@
           + '<span id="trf-bell-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;line-height:16px;text-align:center;background:#E8232A;color:#fff;border-radius:8px;font-size:10px;font-weight:800;padding:0 3px;"></span></button>'
         + '<div id="trf-notif" style="display:none;position:absolute;right:0;top:36px;width:330px;max-height:430px;overflow:auto;background:#fff;border:1px solid #D6DCE8;border-radius:10px;box-shadow:0 14px 34px rgba(13,27,42,.28);z-index:60;text-align:left;"></div>'
       + '</div>'
-      + '<div style="position:relative;">'
-        + '<button id="trf-pol" type="button" title="Spyne Travel Policy — all versions" style="background:rgba(255,255,255,.08);border:none;color:#cdd5e0;border-radius:14px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;line-height:1;">📄 Policy ▾</button>'
-        + '<div id="trf-pol-menu" style="display:none;position:absolute;right:0;top:36px;width:300px;max-height:380px;overflow:auto;background:#fff;border:1px solid #D6DCE8;border-radius:10px;box-shadow:0 14px 34px rgba(13,27,42,.28);z-index:60;text-align:left;padding:6px;"></div>'
-      + '</div>'
+      + '<button id="trf-pol" type="button" title="Open the current Travel Policy" style="background:rgba(255,255,255,.08);border:none;color:#cdd5e0;border-radius:14px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;line-height:1;">📄 Policy</button>'
       + '<span style="font-size:11px;color:#8A97AA;margin-left:4px;">'+esc(me.email)+'</span>'
       + '<a href="/api/auth/logout" style="text-decoration:none;font-size:11px;font-weight:700;color:#E8232A;">Sign out</a></div>';
     NOTIF.email = me.email || '';
     var bell = document.getElementById('trf-bell'); if (bell) bell.onclick = toggleNotif;
-    var pol = document.getElementById('trf-pol'); if (pol) pol.onclick = togglePolicy;
+    var pol = document.getElementById('trf-pol'); if (pol) pol.onclick = openCurrentPolicy;
     fetchNotifications();
   };
 
-  // ---- 📄 Policy: top-bar dropdown listing every policy version (effective date + PDF) ----
+  // ---- 📄 Policy: top-bar link opens the CURRENT (latest) policy document only.
+  // The full version history / archive lives in the Finance policy tab.
   var POL = { versions: null, loaded: false };
   function loadPolicyVersions(cb) {
     if (POL.loaded) { cb(); return; }
@@ -63,29 +61,14 @@
       POL.versions = (c && c.policyVersions) || []; POL.loaded = true; cb();
     }).catch(function () { POL.versions = []; POL.loaded = true; cb(); });
   }
-  function renderPolicyMenu() {
-    var m = document.getElementById('trf-pol-menu'); if (!m) return;
-    var vs = POL.versions || [];
-    var hd = '<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#8A97AA;padding:8px 10px 4px;">Travel Policy — versions</div>';
-    if (!vs.length) { m.innerHTML = hd + '<div style="padding:8px 10px;color:#8A97AA;font-size:12px;">No versions published yet.</div>'; return; }
-    m.innerHTML = hd + vs.map(function (v) {
-      var eff = v.effective ? new Date(v.effective).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
-      var href = v.file || '/spyne-travel-policy.pdf';
-      return '<a href="' + esc(href) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:8px;text-decoration:none;padding:8px 10px;border-radius:7px;color:#0D1B2A;">'
-        + '<span style="font-weight:700;font-size:13px;">📄 v' + esc(v.version) + (v.current ? ' <span style="background:#E6F4EA;color:#0F9D58;border-radius:6px;padding:0 5px;font-size:9px;font-weight:800;">CURRENT</span>' : '') + '</span>'
-        + '<span style="font-size:11px;color:#8A97AA;white-space:nowrap;">' + esc(eff) + '</span></a>';
-    }).join('');
+  function openCurrentPolicy() {
+    loadPolicyVersions(function () {
+      var vs = POL.versions || [];
+      var cur = vs.filter(function (v) { return v.current; })[0] || vs[0];
+      var href = (cur && cur.file) || '/spyne-travel-policy.pdf';
+      window.open(href, '_blank', 'noopener');
+    });
   }
-  function togglePolicy() {
-    var m = document.getElementById('trf-pol-menu'); if (!m) return;
-    if (m.style.display === 'block') { m.style.display = 'none'; return; }
-    loadPolicyVersions(function () { renderPolicyMenu(); m.style.display = 'block'; });
-  }
-  // Close the policy dropdown when clicking outside it.
-  document.addEventListener('click', function (ev) {
-    var m = document.getElementById('trf-pol-menu'), b = document.getElementById('trf-pol');
-    if (m && m.style.display === 'block' && !m.contains(ev.target) && ev.target !== b && (!b || !b.contains(ev.target))) m.style.display = 'none';
-  });
 
   // ---- 🔔 notifications: tab badges (live counts) + bell dropdown with read/unread ----
   var NOTIF = { email:'', items:[], data:null };
