@@ -5,19 +5,22 @@
       "name": "static",
       "runtimeExecutable": "node",
       "runtimeArgs": [".claude/static-server.js"],
-      "port": 8731
+      "port": 8731,
+      "autoPort": true
     },
     {
       "name": "mock",
       "runtimeExecutable": "node",
       "runtimeArgs": ["travel-vercel/.claude/mock-server.mjs"],
-      "port": 8731
+      "port": 8731,
+      "autoPort": true
     },
     {
       "name": "mock-finance",
       "runtimeExecutable": "node",
       "runtimeArgs": ["travel-vercel/.claude/mock-server.mjs"],
       "port": 8731,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/finance.html" }
     },
     {
@@ -25,6 +28,7 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["travel-vercel/.claude/mock-server.mjs"],
       "port": 8731,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/admin.html" }
     },
     {
@@ -32,19 +36,22 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["travel-vercel/.claude/mock-server.mjs"],
       "port": 8731,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/forex.html" }
     },
     {
       "name": "expense",
       "runtimeExecutable": "node",
       "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],
-      "port": 8732
+      "port": 8732,
+      "autoPort": true
     },
     {
       "name": "expense-my",
       "runtimeExecutable": "node",
       "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],
       "port": 8732,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/my.html" }
     },
     {
@@ -52,6 +59,7 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],
       "port": 8732,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/approvals.html" }
     },
     {
@@ -59,6 +67,7 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],
       "port": 8732,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/finance.html" }
     },
     {
@@ -66,6 +75,7 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],
       "port": 8732,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/exec.html" }
     },
     {
@@ -73,6 +83,7 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],
       "port": 8732,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/department.html" }
     },
     {
@@ -80,19 +91,22 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],
       "port": 8732,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/budget.html" }
     },
     {
       "name": "reimburse",
       "runtimeExecutable": "node",
       "runtimeArgs": ["reimburse-vercel/.claude/mock-server.mjs"],
-      "port": 8733
+      "port": 8733,
+      "autoPort": true
     },
     {
       "name": "reimburse-my",
       "runtimeExecutable": "node",
       "runtimeArgs": ["reimburse-vercel/.claude/mock-server.mjs"],
       "port": 8733,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/my.html" }
     },
     {
@@ -100,6 +114,7 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["reimburse-vercel/.claude/mock-server.mjs"],
       "port": 8733,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/approvals.html" }
     },
     {
@@ -107,6 +122,7 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["reimburse-vercel/.claude/mock-server.mjs"],
       "port": 8733,
+      "autoPort": true,
       "env": { "PREVIEW_PAGE": "/finance.html" }
     }
   ]

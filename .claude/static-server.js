@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const root = path.join(__dirname, '..');
 const types = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.gs':'text/plain', '.md':'text/plain' };
+const PORT = process.env.PORT || 8731;
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split('?')[0]);
   if (p === '/') p = '/Form.html';
@@ -12,4 +13,4 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
     res.end(data);
   });
-}).listen(8731, () => console.log('static server on 8731'));
+}).listen(PORT, () => console.log('static server on ' + PORT));

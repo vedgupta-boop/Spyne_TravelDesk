@@ -5,7 +5,7 @@ import path from 'path';
 import { POLICY, CONFIG } from '../lib/config.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = 8733;
+const PORT = process.env.PORT || 8733;
 function money(a, c) { c = c || 'INR'; return c + ' ' + Number(a || 0).toLocaleString(c === 'USD' ? 'en-US' : 'en-IN', { maximumFractionDigits: 0 }); }
 function toINR(a, c) { return c === 'USD' ? Math.round(a * POLICY.FX_USD_INR) : a; }
 function mgmtReq(o) { return toINR(o.amount, o.currency) > POLICY.CEO_THRESHOLD_INR; }

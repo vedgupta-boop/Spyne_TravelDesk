@@ -5,6 +5,7 @@ import path from 'path';
 import { POLICY, CONFIG } from '../lib/config.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PORT = process.env.PORT || 8732;
 function money(a, c) { c = c || 'INR'; return c + ' ' + Number(a || 0).toLocaleString(c === 'USD' ? 'en-US' : 'en-IN', { maximumFractionDigits: 0 }); }
 function toINR(a, c) { return c === 'USD' ? Math.round(a * POLICY.FX_USD_INR) : a; }
 const FREQ_MULT = { Monthly: 12, Quarterly: 4, 'Half-yearly': 2, Yearly: 1, 'One-time': 1 };
@@ -146,4 +147,4 @@ http.createServer((req, res) => {
   if (!path.extname(f)) f += '.html';
   try { const data = readFileSync(path.join(root, f)); const ext = path.extname(f); res.writeHead(200, { 'Content-Type': ext === '.html' ? 'text/html' : ext === '.js' ? 'text/javascript' : 'text/plain' }); res.end(data); }
   catch { res.writeHead(404); res.end('not found'); }
-}).listen(8732, () => console.log('mock on 8732'));
+}).listen(PORT, () => console.log('mock on ' + PORT));

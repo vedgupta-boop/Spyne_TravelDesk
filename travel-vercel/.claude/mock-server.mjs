@@ -5,6 +5,7 @@ import path from 'path';
 import { POLICY, CONFIG, POLICY_VERSIONS } from '../lib/config.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PORT = process.env.PORT || 8731;
 
 // Signed-in finance superuser + HOD (sees every dashboard, incl. the HOD/My views)
 const ME = { authenticated: true, email: 'finance.demo@spyne.ai', name: 'Finance Demo', roles: ['requester', 'hod', 'ceo', 'finance', 'admin', 'forex'] };
@@ -308,4 +309,4 @@ http.createServer((req, res) => {
     const ct = ext === '.html' ? 'text/html' : ext === '.js' ? 'text/javascript' : ext === '.css' ? 'text/css' : ext === '.svg' ? 'image/svg+xml' : 'text/plain';
     res.writeHead(200, { 'Content-Type': ct }); res.end(data);
   } catch { res.writeHead(404); res.end('not found'); }
-}).listen(8731, () => console.log('mock server on 8731'));
+}).listen(PORT, () => console.log('mock server on ' + PORT));
