@@ -65,7 +65,15 @@ export async function kekaEmployeeByEmail(email) {
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ workEmail: e }),
     });
-    if (!r.ok) return { available: true, ok: false, error: 'Keka lookup failed (' + r.status + ')' };
+    if (!r.ok) {
+      let detail = '';
+      try { const j = await r.json(); detail = j.message || j.error || ''; } catch { try { detail = (await r.text()).slice(0, 120); } catch {} }
+      console.warn('Keka lookup', r.status, e, '->', detail);
+      // Auth is working (token succeeded), so a 4xx here means this email has no employee record
+      // (e.g. a shared/service account). Present that as "not found" rather than a raw error.
+      if (r.status === 400 || r.status === 404) return { available: true, ok: false, notFound: true, error: 'No employee found for this email in Keka.' };
+      return { available: true, ok: false, error: 'Keka lookup failed (' + r.status + (detail ? ': ' + detail : '') + ')' };
+    }
     const j = await r.json();
     // EmployeeProfileResponse: { succeeded, message, data: EmployeeProfile }
     const d = (j && j.data) || (j && j.succeeded === undefined ? j : null);

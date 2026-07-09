@@ -502,7 +502,7 @@ function kekaFill(email, opts){
       } else {
         // Friendly fallback for travellers — the raw technical error stays in the server logs.
         if(st){ st.style.color='var(--amber,#B45309)';
-          var notFound=/not found|404/i.test(String(d.error||''));
+          var notFound=d.notFound || /not found|404|no employee/i.test(String(d.error||''));
           st.textContent=(notFound?'Couldn’t find this email in Keka':'Couldn’t auto-fill from Keka')+' — please enter your name & employee ID.';
         }
       }
