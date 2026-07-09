@@ -500,7 +500,11 @@ function kekaFill(email, opts){
         if(fn && d.name && (opts.fillName || !fn.value)) fn.value=d.name;
         if(st){ st.style.color='var(--green,#0F766E)'; st.textContent='✓ '+(d.name||'')+(d.employeeId?(' · '+d.employeeId):'')+' — from Keka'; }
       } else {
-        if(st){ st.style.color='var(--amber,#B45309)'; st.textContent=(d.error||'Not found in Keka')+' — enter details manually.'; }
+        // Friendly fallback for travellers — the raw technical error stays in the server logs.
+        if(st){ st.style.color='var(--amber,#B45309)';
+          var notFound=/not found|404/i.test(String(d.error||''));
+          st.textContent=(notFound?'Couldn’t find this email in Keka':'Couldn’t auto-fill from Keka')+' — please enter your name & employee ID.';
+        }
       }
     }).catch(function(){ if(st) st.textContent=''; });
 }
