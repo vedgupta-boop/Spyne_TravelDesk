@@ -245,6 +245,10 @@ http.createServer((req, res) => {
         if (b.action === 'user-status') return json(res, { ok: true, email: e, status: b.active ? 'Active' : 'Disabled' });
         if (b.action === 'reminders') return json(res, { ok: true, remindersOn: typeof b.on !== 'undefined' ? !!b.on : true, reminderHour: typeof b.hour !== 'undefined' ? parseInt(b.hour, 10) : 9 });
         if (b.action === 'scrap') return json(res, { ok: true, scrapped: (b.ids || []).length, notFound: [] });
+        if (b.action === 'recompute-currency') return json(res, { ok: true, count: 2, fixed: [
+          { id: 'TRF-20260708-3T46', from: 'INR', to: 'USD', oldTotal: 331800, newTotal: 600, action: 'corrected (kept as completed — not re-opened)' },
+          { id: 'TRF-20260715-KM90', from: 'INR', to: 'USD', oldTotal: 84000, newTotal: 300, action: 're-pushed for approval' },
+        ] });
         if (b.action === 'policyVersion') { const v = String(b.version || '').trim(); MOCK_PV = MOCK_PV.filter((x) => x.version !== v); MOCK_PV.push({ version: v, effective: b.effective, file: b.file || '', summary: b.summary || '', stored: true }); return json(res, { ok: true, versions: mockVersions() }); }
         if (b.action === 'policyVersion-delete') { MOCK_PV = MOCK_PV.filter((x) => x.version !== String(b.version || '').trim()); return json(res, { ok: true, versions: mockVersions() }); }
         if (b.action === 'role') { const v = String(b.value || '').split(',').map((s) => s.trim()).filter(Boolean); const a = ROLES_VIEW.assignments; if (b.key === 'ceo') a.ceo = v[0] || ''; else if (b.key === 'finance') a.finance = v; else if (b.key === 'admin') a.admin = v; else if (b.key === 'forex') a.forex = v; else if (String(b.key).indexOf('dept:') === 0) a.depts[String(b.key).slice(5)] = v[0] || ''; return json(res, { ok: true, key: b.key, assignments: a, departments: ROLES_VIEW.departments }); }

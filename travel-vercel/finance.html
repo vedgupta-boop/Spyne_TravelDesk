@@ -908,8 +908,27 @@ function loadCurAudit(){
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:#b00;font-weight:700;">'+esc(e.stored)+'</td>'
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:var(--green);font-weight:700;">'+esc(e.correct)+'</td>'
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;color:var(--gray-6);">'+esc(e.status||e.stage)+'</td></tr>';
-      }).join('')+'</tbody></table>';
+      }).join('')+'</tbody></table>'
+      +'<div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+        +'<button class="pol-edit" id="cur-fix-btn" onclick="runCurFix('+a.length+')" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:800;cursor:pointer;">🔧 Recompute &amp; re-push these '+a.length+' trip(s)</button>'
+        +'<span id="cur-fix-msg" style="font-size:12px;font-weight:700;"></span></div>'
+      +'<div class="bd-note" style="color:var(--gray-5);margin-top:8px;">Recomputes each trip in the corrected currency and re-sends it for approval (completed/forex-issued trips are corrected but not re-opened). This emails approvers.</div>';
   }).catch(function(){ b.innerHTML='<div class="bd-note" style="color:#DC2626;">Could not run the audit.</div>'; });
+}
+function runCurFix(n){
+  if(!confirm('Recompute '+n+' mis-priced trip(s) in the correct currency and re-push the pending ones for approval?\n\nThis will email approvers. Completed/forex-issued trips are corrected but not re-opened.')) return;
+  var btn=document.getElementById('cur-fix-btn'), msg=document.getElementById('cur-fix-msg');
+  if(btn){ btn.disabled=true; btn.textContent='Working…'; }
+  var set=function(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'var(--gray-5)'; } };
+  set('recomputing…');
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'recompute-currency'})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d&&d.ok){ set('✓ Fixed '+d.count+' trip(s). Reloading…','var(--green)'); CUR_LOADED=false; setTimeout(function(){ load(); loadCurAudit(); },900); }
+      else set('✗ '+((d&&d.error)||'failed'),'#DC2626');
+      if(btn){ btn.disabled=false; btn.textContent='🔧 Recompute & re-push'; }
+    })
+    .catch(function(e){ set('✗ '+(e&&e.message||'failed'),'#DC2626'); if(btn){ btn.disabled=false; btn.textContent='🔧 Recompute & re-push'; } });
 }
 function delPolicyVersion(v){
   fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'policyVersion-delete',version:v})})

@@ -1052,6 +1052,72 @@ export async function currencyAudit() {
   return rows;
 }
 
+// Fix the trips flagged by currencyAudit: recompute each with the corrected region logic,
+// overwrite its stored cost columns, and (unless it's already completed) reset it to the first
+// approval stage and re-notify the approver. Finance-only. Returns a per-trip summary.
+export async function recomputeCurrencyFixes(baseUrl, roles) {
+  if (!(roles || []).includes('finance')) return { ok: false, error: 'Finance only.' };
+  await applyPolicyOverrides();
+  const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+  const all = await readAll();
+  const fixed = [];
+  for (const rec of all) {
+    const status = String(rec[COL.STATUS] || '');
+    if (/reject|withdraw/i.test(status) || String(rec[COL.STAGE]) === 'rejected') continue;
+    const correct = isUsRegion({ travelType: rec[COL.TYPE], from: rec[COL.FROM], to: rec[COL.TO] }) ? 'USD' : 'INR';
+    const stored = String(rec[COL.CURRENCY] || 'INR').toUpperCase();
+    if (correct === stored) continue; // only mis-priced trips
+
+    // Reconstruct the compute inputs from the stored record (extras live in ITINERARY).
+    const it = parseJSON(rec[COL.ITINERARY], {}) || {};
+    const pax = (parseJSON(rec[COL.PASSENGERS], []) || []).length || 1;
+    const p = {
+      name: rec[COL.NAME], dept: rec[COL.DEPT], email: rec[COL.EMAIL], travelType: rec[COL.TYPE],
+      tripType: /one-way/i.test(String(rec[COL.TRIP])) ? 'one-way' : 'round',
+      from: rec[COL.FROM], to: rec[COL.TO], returnFrom: rec[COL.RETFROM], returnTo: rec[COL.RETTO],
+      transportMode: rec[COL.MODE], hotelNeeded: String(rec[COL.HOTEL_REQ]) === 'Yes',
+      forexNeeded: Number(rec[COL.FOREX] || 0) > 0 || String(rec[COL.TYPE]) === 'international',
+      visaNeeded: String(rec[COL.VISA_NEEDED]) === 'Yes',
+    };
+    const dur = duration(rec[COL.START], rec[COL.RET] || rec[COL.START]);
+    const advanceDays = Math.ceil((new Date(rec[COL.START]) - new Date(rec[COL.TS] || Date.now())) / 86400000);
+    const costs = computeCosts(p, dur, {
+      advanceDays, passengers: pax,
+      extraFlights: Array.isArray(it.flights) ? it.flights : [],
+      extraHotels: Array.isArray(it.hotels) ? it.hotels : [],
+    });
+
+    const updates = [
+      [COL.CURRENCY, costs.currency], [COL.C_TRANSPORT, costs.transport],
+      [COL.HOTEL_RATE, costs.hotelPerNight], [COL.HOTEL_NIGHTS, costs.hotelNights], [COL.C_HOTEL, costs.hotel],
+      [COL.MEAL_RATE, costs.mealsPerDay], [COL.C_MEALS, costs.meals], [COL.C_LOCAL, costs.local],
+      [COL.C_OTHER, costs.other], [COL.C_TOTAL, costs.total], [COL.FOREX, costs.forex],
+      [COL.FLAG, costs.flag], [COL.C_EXTRAS, JSON.stringify(costs.extras || {})], [COL.C_DEPOSIT, costs.deposit],
+    ];
+    const completed = /completed|forex card issued|trip closed/i.test(status) || !!rec[COL.FOREX_ISSUE_DATE];
+    let action;
+    if (completed) {
+      // Don't re-open a completed / forex-issued trip — just correct its figures.
+      await updateCells(rec.__row, updates);
+      action = 'corrected (kept as completed — not re-opened)';
+    } else {
+      const ceoReq = ceoIsRequester(rec);
+      const firstStage = ceoReq ? 'finance' : 'dept';
+      const newToken = randomUUID();
+      updates.push([COL.STAGE, firstStage],
+        [COL.STATUS, ceoReq ? ('Pending ' + stageLabel('finance') + ' Approval') : 'Pending HOD Approval'],
+        [COL.TOKEN, newToken], [COL.DEPT_DEC, ''], [COL.DEPT_TIME, ''], [COL.CEO_DEC, ''], [COL.CEO_TIME, ''],
+        [COL.FIN_DEC, ''], [COL.FIN_TIME, ''], [COL.HOLD, ''], [COL.ADMIN, ''], [COL.LAST_REMINDER, ''], [COL.REMINDER_COUNT, 0]);
+      await updateCells(rec.__row, updates);
+      const freshRec = { ...rec }; updates.forEach(([k, v]) => { freshRec[k] = v; });
+      await emailApprover(firstStage, freshRec, base, { edited: true });
+      action = 're-pushed for approval';
+    }
+    fixed.push({ id: rec[COL.ID], from: stored, to: costs.currency, oldTotal: Number(rec[COL.C_TOTAL] || 0), newTotal: costs.total, action });
+  }
+  return { ok: true, count: fixed.length, fixed };
+}
+
 export async function financeData() {
   const all = await readAll();
   await applyPolicyOverrides(); // so the editable-policy snapshot reflects current effective values
