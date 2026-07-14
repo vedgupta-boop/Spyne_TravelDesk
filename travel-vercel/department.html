@@ -73,9 +73,18 @@ tr:hover td{background:var(--gray-1);}
   </div>
 </div>
 <script src="/auth-guard.js"></script>
+<script src="/analytics.js"></script>
 
 <div class="wrap">
   <div id="kpis" class="cards"></div>
+  <!-- ANALYTICS (same as Finance, scoped to this approver) — collapsible, hidden by default -->
+  <div class="panel" style="margin-bottom:16px;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:12px;flex-wrap:wrap;" onclick="toggleDeptAnalytics()">
+      <div style="font-weight:800;color:var(--navy,#0D1B2A);">📊 Analytics &amp; Budgets <span style="font-weight:600;font-size:11px;color:#8A97AA;">— your department's travel at a glance</span></div>
+      <span id="an-toggle" style="color:#2563EB;font-size:12px;font-weight:700;">Show ▾</span>
+    </div>
+    <div id="an-body" class="hidden" style="padding:0 18px 16px;overflow-x:auto;"></div>
+  </div>
   <div class="bar">
     <div class="title">Department Travel <span class="scopechip" id="scopechip">—</span></div>
     <div class="filters" id="filters">
@@ -122,7 +131,21 @@ function onData(d){
   DATA=d||{rows:[]};
   document.getElementById('scopechip').textContent=DATA.scope||'Department';
   document.getElementById('loading').classList.add('hidden');
-  renderKpis(); render();
+  renderKpis(); render(); if(AN_OPEN) renderDeptAnalytics();
+}
+// ---- Analytics (shared renderer; scoped to this approver's rows) ----
+var CFG=null, AN_OPEN=false;
+fetch('/api/config',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(c){ CFG=c; if(AN_OPEN) renderDeptAnalytics(); }).catch(function(){});
+function toggleDeptAnalytics(){
+  var b=document.getElementById('an-body'), t=document.getElementById('an-toggle'); if(!b) return;
+  AN_OPEN=(b.classList.toggle('hidden')===false);
+  if(t) t.textContent=AN_OPEN?'Hide ▴':'Show ▾';
+  if(AN_OPEN) renderDeptAnalytics();
+}
+function renderDeptAnalytics(){
+  var b=document.getElementById('an-body'); if(!b) return;
+  if(typeof window.buildTripAnalytics!=='function'){ b.innerHTML='<div style="color:#8A97AA;font-size:13px;">Analytics unavailable.</div>'; return; }
+  b.innerHTML=window.buildTripAnalytics((DATA&&DATA.rows)||[], CFG||{});
 }
 function renderKpis(){
   var rows=DATA.rows||[];
