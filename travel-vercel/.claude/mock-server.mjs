@@ -261,8 +261,9 @@ http.createServer((req, res) => {
   if (url === '/api/finance' && /view=users/.test(qs)) return json(res, USERS);
   if (url === '/api/finance' && /view=roles/.test(qs)) return json(res, { ok: true, ...ROLES_VIEW });
   if (url === '/api/finance' && /view=currency-audit/.test(qs)) return json(res, { ok: true, audit: [
-    { id: 'TRF-20260708-3T46', name: 'Neelima Tiwari', dept: 'GTM Sales & Marketing', route: 'New York (JFK) → Ohio', type: 'domestic', stored: 'INR', correct: 'USD', stage: 'arrange', status: 'Approved — With Admin for Arrangements', total: 331800, booked: true },
-    { id: 'TRF-20260715-KM90', name: 'Rohit Sharma', dept: 'Product', route: 'Los Angeles (LAX) → Seattle', type: 'domestic', stored: 'INR', correct: 'USD', stage: 'dept', status: 'Pending HOD Approval', total: 84000, booked: false },
+    { id: 'TRF-20260708-3T46', name: 'Neelima Tiwari', dept: 'GTM Sales & Marketing', route: 'New York (JFK) → Ohio', type: 'domestic', stored: 'INR', correct: 'USD', oldTotal: 331800, newTotal: 600, curChanged: true, amtChanged: true, stage: 'dept', status: 'Pending HOD Approval', booked: false },
+    { id: 'TRF-20260715-DP21', name: 'David Purgason', dept: 'Technology', route: 'New York (JFK) → Ohio', type: 'international', stored: 'USD', correct: 'USD', oldTotal: 1200, newTotal: 600, curChanged: false, amtChanged: true, stage: 'ceo', status: 'Pending CEO Approval', booked: false },
+    { id: 'TRF-20260715-KM90', name: 'Rohit Sharma', dept: 'Product', route: 'Los Angeles (LAX) → Seattle', type: 'domestic', stored: 'INR', correct: 'USD', oldTotal: 84000, newTotal: 300, curChanged: true, amtChanged: true, stage: 'dept', status: 'Pending HOD Approval', booked: false },
   ] });
   if (url === '/api/finance' && /view=emaillog/.test(qs)) return json(res, { ok: true, log: [
     { ts: '2026-06-30T09:32:00Z', id: 'TRF-20260901-AB12', to: 'sanjay@spyne.ai', cc: 'ved@spyne.ai, shankul.rastogi@spyne.ai', subject: '[Escalated] TRF-20260901-AB12 — CEO approval pending 74h' },

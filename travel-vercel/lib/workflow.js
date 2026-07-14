@@ -1028,26 +1028,53 @@ export async function closeTrip(id, reimburseAmt, email) {
   return { ok: true, id, reimburse: amt };
 }
 
-// Read-only audit: trips whose STORED currency doesn't match what the (fixed) engine would
-// now compute from the route — i.e. US trips that were priced in INR (and vice-versa) before
-// the region-detection fix. Used to review which requests need recompute + re-push.
+// Rebuild the compute inputs from a stored record (extras from ITINERARY, pax from PASSENGERS)
+// and recompute with the CURRENT (fixed) engine + policy. Shared by the audit and the fixer so
+// the "new total" previewed is exactly what the fix will write.
+function recomputeRec(rec) {
+  const it = parseJSON(rec[COL.ITINERARY], {}) || {};
+  const pax = (parseJSON(rec[COL.PASSENGERS], []) || []).length || 1;
+  const p = {
+    name: rec[COL.NAME], dept: rec[COL.DEPT], email: rec[COL.EMAIL], travelType: rec[COL.TYPE],
+    tripType: /one-way/i.test(String(rec[COL.TRIP])) ? 'one-way' : 'round',
+    from: rec[COL.FROM], to: rec[COL.TO], returnFrom: rec[COL.RETFROM], returnTo: rec[COL.RETTO],
+    transportMode: rec[COL.MODE], hotelNeeded: String(rec[COL.HOTEL_REQ]) === 'Yes',
+    forexNeeded: Number(rec[COL.FOREX] || 0) > 0 || String(rec[COL.TYPE]) === 'international',
+    visaNeeded: String(rec[COL.VISA_NEEDED]) === 'Yes',
+  };
+  const dur = duration(rec[COL.START], rec[COL.RET] || rec[COL.START]);
+  const advanceDays = Math.ceil((new Date(rec[COL.START]) - new Date(rec[COL.TS] || Date.now())) / 86400000);
+  const costs = computeCosts(p, dur, {
+    advanceDays, passengers: pax,
+    extraFlights: Array.isArray(it.flights) ? it.flights : [],
+    extraHotels: Array.isArray(it.hotels) ? it.hotels : [],
+  });
+  return costs;
+}
+
+// Read-only audit: trips whose STORED cost/currency differs from what the current (fixed) engine
+// would compute — catches wrong currency (US priced in INR) AND stale amounts (e.g. flight priced
+// with an old estimate/live fare or before the one-way fix). Used to review before recompute+re-push.
 export async function currencyAudit() {
+  await applyPolicyOverrides();
   const all = await readAll();
   const rows = [];
   for (const r of all) {
     const status = String(r[COL.STATUS] || '');
     if (/reject|withdraw/i.test(status) || String(r[COL.STAGE]) === 'rejected') continue;
-    const correct = isUsRegion({ travelType: r[COL.TYPE], from: r[COL.FROM], to: r[COL.TO] }) ? 'USD' : 'INR';
+    let costs; try { costs = recomputeRec(r); } catch { continue; }
     const stored = String(r[COL.CURRENCY] || 'INR').toUpperCase();
-    if (correct !== stored) {
-      rows.push({
-        id: r[COL.ID], name: r[COL.NAME] || '', dept: r[COL.DEPT] || '',
-        route: `${r[COL.FROM]} → ${r[COL.TO]}`, type: r[COL.TYPE] || '',
-        stored, correct, stage: String(r[COL.STAGE] || ''), status,
-        total: Number(r[COL.C_TOTAL] || 0),
-        booked: /completed|forex card issued|trip closed|with admin|arrangement/i.test(status) || !!r[COL.BOOKING_DATE],
-      });
-    }
+    const storedTotal = Number(r[COL.C_TOTAL] || 0);
+    const curChanged = costs.currency !== stored;
+    const amtChanged = Math.abs(Math.round(costs.total) - Math.round(storedTotal)) > 1;
+    if (!curChanged && !amtChanged) continue;
+    rows.push({
+      id: r[COL.ID], name: r[COL.NAME] || '', dept: r[COL.DEPT] || '',
+      route: `${r[COL.FROM]} → ${r[COL.TO]}`, type: r[COL.TYPE] || '',
+      stored, correct: costs.currency, oldTotal: storedTotal, newTotal: costs.total,
+      curChanged, amtChanged, stage: String(r[COL.STAGE] || ''), status,
+      booked: /completed|forex card issued|trip closed|with admin|arrangement/i.test(status) || !!r[COL.BOOKING_DATE],
+    });
   }
   return rows;
 }
@@ -1064,28 +1091,12 @@ export async function recomputeCurrencyFixes(baseUrl, roles) {
   for (const rec of all) {
     const status = String(rec[COL.STATUS] || '');
     if (/reject|withdraw/i.test(status) || String(rec[COL.STAGE]) === 'rejected') continue;
-    const correct = isUsRegion({ travelType: rec[COL.TYPE], from: rec[COL.FROM], to: rec[COL.TO] }) ? 'USD' : 'INR';
+    let costs; try { costs = recomputeRec(rec); } catch { continue; }
     const stored = String(rec[COL.CURRENCY] || 'INR').toUpperCase();
-    if (correct === stored) continue; // only mis-priced trips
-
-    // Reconstruct the compute inputs from the stored record (extras live in ITINERARY).
-    const it = parseJSON(rec[COL.ITINERARY], {}) || {};
-    const pax = (parseJSON(rec[COL.PASSENGERS], []) || []).length || 1;
-    const p = {
-      name: rec[COL.NAME], dept: rec[COL.DEPT], email: rec[COL.EMAIL], travelType: rec[COL.TYPE],
-      tripType: /one-way/i.test(String(rec[COL.TRIP])) ? 'one-way' : 'round',
-      from: rec[COL.FROM], to: rec[COL.TO], returnFrom: rec[COL.RETFROM], returnTo: rec[COL.RETTO],
-      transportMode: rec[COL.MODE], hotelNeeded: String(rec[COL.HOTEL_REQ]) === 'Yes',
-      forexNeeded: Number(rec[COL.FOREX] || 0) > 0 || String(rec[COL.TYPE]) === 'international',
-      visaNeeded: String(rec[COL.VISA_NEEDED]) === 'Yes',
-    };
-    const dur = duration(rec[COL.START], rec[COL.RET] || rec[COL.START]);
-    const advanceDays = Math.ceil((new Date(rec[COL.START]) - new Date(rec[COL.TS] || Date.now())) / 86400000);
-    const costs = computeCosts(p, dur, {
-      advanceDays, passengers: pax,
-      extraFlights: Array.isArray(it.flights) ? it.flights : [],
-      extraHotels: Array.isArray(it.hotels) ? it.hotels : [],
-    });
+    const storedTotal = Number(rec[COL.C_TOTAL] || 0);
+    const curChanged = costs.currency !== stored;
+    const amtChanged = Math.abs(Math.round(costs.total) - Math.round(storedTotal)) > 1;
+    if (!curChanged && !amtChanged) continue; // only trips whose cost/currency actually changed
 
     const updates = [
       [COL.CURRENCY, costs.currency], [COL.C_TRANSPORT, costs.transport],

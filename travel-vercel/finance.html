@@ -184,7 +184,7 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
   <!-- CURRENCY MISMATCH AUDIT (US trips priced in INR, etc.) — review + re-push -->
   <div class="panel" style="margin-bottom:18px;">
     <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleCurAudit()">
-      <div style="font-weight:800;color:var(--navy);">⚠ Currency mismatch <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— trips priced in the wrong currency (INR vs USD)</span></div>
+      <div style="font-weight:800;color:var(--navy);">⚠ Cost &amp; currency mismatch <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— trips whose stored price differs from the corrected estimate</span></div>
       <span id="cur-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
     </div>
     <div id="cur-body" class="hidden" style="padding:0 18px 16px;overflow-x:auto;"></div>
@@ -897,16 +897,17 @@ function loadCurAudit(){
   var b=document.getElementById('cur-body'); b.innerHTML='<div class="bd-note" style="color:var(--gray-5);">Checking…</div>';
   fetch('/api/finance?view=currency-audit',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
     var a=(d&&d.audit)||[];
-    if(!a.length){ b.innerHTML='<div class="bd-note" style="color:var(--green);">✓ No currency mismatches — every trip is priced correctly for its route.</div>'; return; }
-    b.innerHTML='<div class="info amber" style="margin:2px 0 10px;">Found <b>'+a.length+'</b> trip(s) whose stored currency doesn’t match the route. Review below — then we can recompute &amp; re-push them for approval.</div>'
+    if(!a.length){ b.innerHTML='<div class="bd-note" style="color:var(--green);">✓ No mismatches — every trip is priced correctly (currency + amount).</div>'; return; }
+    var money=function(c,n){ return (c==='USD'?'$':'₹')+Math.round(Number(n||0)).toLocaleString(c==='USD'?'en-US':'en-IN'); };
+    b.innerHTML='<div class="info amber" style="margin:2px 0 10px;">Found <b>'+a.length+'</b> trip(s) whose stored cost/currency differs from the corrected estimate. Review the old → new below — then recompute &amp; re-push them for approval.</div>'
       +'<table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12.5px;"><thead><tr>'
-      +[['Request','16%'],['Traveller','16%'],['Route','26%'],['Now','10%'],['Should be','12%'],['Stage','20%']].map(function(h){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);width:'+h[1]+';">'+h[0]+'</th>';}).join('')
+      +[['Request','16%'],['Traveller','14%'],['Route','24%'],['Now (stored)','15%'],['Corrected','15%'],['Stage','16%']].map(function(h){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);width:'+h[1]+';">'+h[0]+'</th>';}).join('')
       +'</tr></thead><tbody>'+a.map(function(e){
         return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;font-weight:700;">'+esc(e.id)+(e.booked?' <span style="background:#FDECEC;color:#b00;border-radius:5px;padding:0 5px;font-size:9px;font-weight:800;">BOOKED</span>':'')+'</td>'
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.name)+'</td>'
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.route)+'</td>'
-          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:#b00;font-weight:700;">'+esc(e.stored)+'</td>'
-          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:var(--green);font-weight:700;">'+esc(e.correct)+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:#b00;font-weight:700;text-decoration:line-through;">'+esc(money(e.stored,e.oldTotal))+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:var(--green);font-weight:700;">'+esc(money(e.correct,e.newTotal))+'</td>'
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;color:var(--gray-6);">'+esc(e.status||e.stage)+'</td></tr>';
       }).join('')+'</tbody></table>'
       +'<div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
