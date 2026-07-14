@@ -129,6 +129,10 @@ function withTimeout(promise, ms) {
 // round-trip fare in the trip currency, or null to fall back to the policy estimate. Never throws.
 async function liveFlightCost(p) {
   try {
+    // Live pricing is part of the flight-search feature. When it's OFF (FLIGHT_SEARCH_UI not
+    // 'true'), the flight budget uses the POLICY ESTIMATE (Finance-editable) instead of a live
+    // fare — so what Finance sets under "Transport estimates" is what drives the cost.
+    if (String(process.env.FLIGHT_SEARCH_UI || '').toLowerCase() !== 'true') return null;
     if (!/flight/i.test(String(p.transportMode || ''))) return null;   // only when flying
     if (!p.from || !p.to || !p.startDate) return null;
     const currency = isUsRegion(p) ? 'USD' : 'INR';
