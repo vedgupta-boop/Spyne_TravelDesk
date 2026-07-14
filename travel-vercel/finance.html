@@ -896,10 +896,12 @@ function toggleCurAudit(){
 function loadCurAudit(){
   var b=document.getElementById('cur-body'); b.innerHTML='<div class="bd-note" style="color:var(--gray-5);">Checking…</div>';
   fetch('/api/finance?view=currency-audit',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
-    var a=(d&&d.audit)||[];
-    if(!a.length){ b.innerHTML='<div class="bd-note" style="color:var(--green);">✓ No mismatches — every trip is priced correctly (currency + amount).</div>'; return; }
+    var a=(d&&d.audit)||[], dis=(d&&d.dismissed)||[];
     var money=function(c,n){ return (c==='USD'?'$':'₹')+Math.round(Number(n||0)).toLocaleString(c==='USD'?'en-US':'en-IN'); };
-    b.innerHTML='<div class="info amber" style="margin:2px 0 10px;">Found <b>'+a.length+'</b> trip(s) whose stored price differs from the corrected estimate. <b>Tick the ones you want to fix</b> (currency‑wrong ones are pre‑ticked; amount‑only ones are left unticked since they may already be fine), then re‑push.</div>'
+    var html='';
+    if(!a.length){ html+='<div class="bd-note" style="color:var(--green);">✓ No active mismatches — every trip is priced correctly (currency + amount).</div>'; }
+    else {
+      html+='<div class="info amber" style="margin:2px 0 10px;">Found <b>'+a.length+'</b> trip(s) whose stored price differs from the corrected estimate. <b>Tick the ones you want to fix</b> (currency‑wrong ones are pre‑ticked; amount‑only ones are left unticked since they may already be fine), then re‑push.</div>'
       +'<table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12.5px;"><thead><tr>'
       +[['✓','5%'],['Request','16%'],['Traveller','13%'],['Route','21%'],['Now (stored)','14%'],['Corrected','14%'],['Stage','17%']].map(function(h){return '<th style="text-align:left;padding:6px 8px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);width:'+h[1]+';">'+h[0]+'</th>';}).join('')
       +'</tr></thead><tbody>'+a.map(function(e){
@@ -917,9 +919,29 @@ function loadCurAudit(){
         +'<button class="pol-edit" id="cur-dismiss-btn" onclick="dismissCurTicked()" style="background:#fff;color:var(--gray-7);border:1px solid var(--gray-3);border-radius:8px;padding:9px 14px;font-weight:800;cursor:pointer;">🙈 Dismiss ticked (leave as-is)</button>'
         +'<span id="cur-fix-msg" style="font-size:12px;font-weight:700;"></span></div>'
       +'<div class="bd-note" style="color:var(--gray-5);margin-top:8px;">Tick trips, then <b>Recompute &amp; re-push</b> (fixes the price + re-sends for approval; emails approvers) <b>or Dismiss</b> (hides them from this list, unchanged — no email). Completed/forex-issued trips are corrected but not re-opened.</div>';
+    }
+    // Dismissed trips — hidden from the audit; restore to bring back so they can be re-pushed.
+    if(dis.length){
+      html+='<div style="margin-top:16px;border-top:1px solid var(--gray-2);padding-top:12px;">'
+        +'<div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:6px;">🙈 Dismissed ('+dis.length+') — hidden from the audit</div>'
+        +'<table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12.5px;"><tbody>'+dis.map(function(e){
+          return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);font-weight:700;word-break:break-word;width:26%;">'+esc(e.id)+'</td>'
+            +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;width:22%;">'+esc(e.name)+'</td>'
+            +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.route)+'</td>'
+            +'<td style="padding:6px 10px;border:1px solid var(--gray-2);white-space:nowrap;width:16%;"><button class="pol-edit" onclick="restoreCur(\''+esc(e.id)+'\')" style="background:#fff;border:1px solid var(--gray-3);color:var(--sky);border-radius:6px;padding:3px 10px;font-weight:800;cursor:pointer;">↩ Restore</button></td></tr>';
+        }).join('')+'</tbody></table>'
+        +'<div class="bd-note" style="color:var(--gray-5);margin-top:6px;">Restore brings a trip back into the audit above so you can recompute &amp; re-push it.</div></div>';
+    }
+    b.innerHTML=html;
   }).catch(function(){ b.innerHTML='<div class="bd-note" style="color:#DC2626;">Could not run the audit.</div>'; });
 }
 function curPickAll(on){ Array.prototype.forEach.call(document.querySelectorAll('.cur-pick'), function(c){ c.checked=on; }); }
+function restoreCur(id){
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'audit-restore',ids:[id]})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d&&d.ok){ CUR_LOADED=false; loadCurAudit(); } else alert((d&&d.error)||'Could not restore'); })
+    .catch(function(){});
+}
 function dismissCurTicked(){
   var ids=Array.prototype.map.call(document.querySelectorAll('.cur-pick:checked'), function(c){ return c.value; });
   var msg=document.getElementById('cur-fix-msg'); var set=function(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'var(--gray-5)'; } };

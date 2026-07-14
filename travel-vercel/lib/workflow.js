@@ -1077,10 +1077,14 @@ export async function currencyAudit() {
   const dismissed = await dismissedAuditIds();
   const all = await readAll();
   const rows = [];
+  const dismissedRows = [];
   for (const r of all) {
     const status = String(r[COL.STATUS] || '');
     if (/reject|withdraw/i.test(status) || String(r[COL.STAGE]) === 'rejected') continue;
-    if (dismissed.has(String(r[COL.ID]))) continue; // Finance dismissed this one
+    if (dismissed.has(String(r[COL.ID]))) { // Finance dismissed this one — list it so it can be restored
+      dismissedRows.push({ id: r[COL.ID], name: r[COL.NAME] || '', route: `${r[COL.FROM]} → ${r[COL.TO]}`, status });
+      continue;
+    }
     let costs; try { costs = recomputeRec(r); } catch { continue; }
     const stored = String(r[COL.CURRENCY] || 'INR').toUpperCase();
     const storedTotal = Number(r[COL.C_TOTAL] || 0);
@@ -1095,7 +1099,18 @@ export async function currencyAudit() {
       booked: /completed|forex card issued|trip closed|with admin|arrangement/i.test(status) || !!r[COL.BOOKING_DATE],
     });
   }
-  return rows;
+  return { rows, dismissed: dismissedRows };
+}
+
+// Restore (un-dismiss) trips so they re-appear in the audit and can be re-pushed later.
+export async function undismissCurrencyMismatch(ids, roles) {
+  if (!(roles || []).includes('finance')) return { ok: false, error: 'Finance only.' };
+  const rm = new Set((Array.isArray(ids) ? ids : []).map((x) => String(x).trim()).filter(Boolean));
+  if (!rm.size) return { ok: false, error: 'No trips selected.' };
+  const cur = await dismissedAuditIds();
+  const kept = Array.from(cur).filter((x) => !rm.has(x));
+  await setSetting('audit_dismissed', kept.join(','), 'finance');
+  return { ok: true, restored: cur.size - kept.length };
 }
 
 // Fix the trips flagged by currencyAudit: recompute each with the corrected region logic,

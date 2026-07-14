@@ -1,4 +1,4 @@
-import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch } from '../lib/workflow.js';
+import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch, undismissCurrencyMismatch } from '../lib/workflow.js';
 import { recordPolicyChange } from '../lib/policystore.js';
 import { addPolicyVersion, deletePolicyVersion } from '../lib/policyversionsstore.js';
 import { readEmailLog } from '../lib/emaillogstore.js';
@@ -45,6 +45,10 @@ export default async function handler(req, res) {
       }
       if (b.action === 'audit-dismiss') {
         res.status(200).json(await dismissCurrencyMismatch(b.ids, session.roles));
+        return;
+      }
+      if (b.action === 'audit-restore') {
+        res.status(200).json(await undismissCurrencyMismatch(b.ids, session.roles));
         return;
       }
       // Finance bulk-scrap test/junk requests by ID (soft-delete; hidden from all dashboards).
@@ -113,7 +117,8 @@ export default async function handler(req, res) {
       return;
     }
     if (req.query && req.query.view === 'currency-audit') {
-      res.status(200).json({ ok: true, audit: await currencyAudit() });
+      const a = await currencyAudit();
+      res.status(200).json({ ok: true, audit: a.rows, dismissed: a.dismissed });
       return;
     }
     const data = await financeData();
