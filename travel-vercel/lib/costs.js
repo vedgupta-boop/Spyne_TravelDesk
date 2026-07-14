@@ -70,10 +70,11 @@ export function mealPerDiem(usd, type) {
 // (US cities → USD). Lets a domestic/local trip be India (INR) OR United States (USD).
 export function isUsRegion(p) {
   if (p.travelType === 'international') return true;
-  const dest = String(p.destCountry || '').toLowerCase();
-  if (dest) return dest.includes('united states') || dest === 'usa' || dest === 'us';
-  // fallback: infer from destination city name against the US tier lists
-  return isListedUsCity(p.to);
+  const anyUs = (s) => { s = String(s || '').toLowerCase(); return s.includes('united states') || s === 'usa' || s === 'us'; };
+  // Explicit country from the form (origin OR destination), else infer from EITHER city name —
+  // a US→US domestic trip (e.g. New York → Ohio) is USD even if the destination isn't a listed city.
+  if (anyUs(p.destCountry) || anyUs(p.originCountry)) return true;
+  return isListedUsCity(p.to) || isListedUsCity(p.from);
 }
 
 // Authoritative, server-side cost computation. Mirrors the client preview.
@@ -106,15 +107,19 @@ export function computeCosts(p, dur, opts = {}) {
   const { days, nights } = dur;
   const legs = p.tripType === 'round' ? 2 : 1;
 
-  // Transport — live flight price if available, else estimate by mode.
+  // Transport. Flight estimates are stored as ROUND-TRIP fares → a one-way leg is HALF.
+  // The base flight = full estimate for a round trip, half for one-way. Every extra multi-city
+  // leg is a one-way hop = half. (A live override, if ever passed, is used as-is.)
+  const isFlight = /flight/i.test(String(p.transportMode || ''));
+  const flightEst = usDomestic ? POLICY.ESTIMATES.FLIGHT.us_domestic
+    : (usd ? POLICY.ESTIMATES.FLIGHT.international : POLICY.ESTIMATES.FLIGHT.domestic);
+  const oneWayFare = flightEst / 2;
+  const extraFlights = Array.isArray(opts.extraFlights) ? opts.extraFlights : [];
   const baseTransport = (opts.flightCost != null && opts.flightCost !== '')
     ? num(opts.flightCost)
-    : transportEstimate(p.transportMode, usd, usDomestic);
-  // Extra flight legs (multi-city) — each estimated at the policy flight fare.
-  const extraFlights = Array.isArray(opts.extraFlights) ? opts.extraFlights : [];
-  const perExtraFlight = usDomestic ? POLICY.ESTIMATES.FLIGHT.us_domestic
-    : (usd ? POLICY.ESTIMATES.FLIGHT.international : POLICY.ESTIMATES.FLIGHT.domestic);
-  const extraFlightCost = extraFlights.length * perExtraFlight;
+    : (isFlight ? (p.tripType === 'round' ? flightEst : oneWayFare)     // flight: round=full, one-way=half
+                : transportEstimate(p.transportMode, usd, usDomestic));  // train/bus/cab = flat estimate
+  const extraFlightCost = extraFlights.length * oneWayFare;              // each extra leg is a one-way hop
   const transport = baseTransport + extraFlightCost;
 
   // Local transport = airport transfers (home→airport + airport→dest) × legs

@@ -1110,6 +1110,7 @@ function prefillForm(ed){
 function snapshotDraft(){
   return { name:val('f-name'), dept:val('f-dept'), travelType:state.travelType, tripType:state.tripType,
     from:cityVal('f-from'), to:cityVal('f-to'), returnFrom:cityVal('f-returnfrom'), returnTo:cityVal('f-returnto'),
+    originCountry:countryOf(cityVal('f-from')), destCountry:countryOf(cityVal('f-to')),
     startDate:val('f-start'), returnDate:val('f-return'),
     flightTimes:{ out:val('f-start-time'), ret:val('f-return-time') }, prefFlightNotes:val('f-prefflight-notes'),
     hotelNeeded:(state.hotel!=='no'), hotelCountry:val('f-hotel-country'), hotelCity:cityVal('f-hotel-city'),
