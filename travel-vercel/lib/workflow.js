@@ -292,6 +292,18 @@ export async function submitRequest(p, baseUrl) {
   await ensureHeaders();
   await appendRecord(rec);
   await emailApprover(firstStage, rec, baseUrl);
+  // Cost-free confirmation to the requester (travellers never see the estimate).
+  const confTo = requesterEmail(rec);
+  if (confTo) await sendEmail({ to: confTo, subject: `Travel Request ${id} — received`,
+    html: emailShell({ title: 'We’ve received your travel request', subtitle: `Spyne TravelDesk · ${id}`,
+      statusText: `Pending ${stageLabel(firstStage)} approval`, statusColor: '#2563EB',
+      body: `<p style="color:#3D506A;margin:0 0 14px;">Hi ${rec[COL.NAME] || 'there'}, your request is in — we’ll email you as it moves through approval.</p>`
+        + `<table style="border-collapse:collapse;width:100%;font-size:13px;">`
+        + `<tr><td style="padding:6px 10px;border:1px solid #eef1f5;color:#64748B;width:32%;">Trip</td><td style="padding:6px 10px;border:1px solid #eef1f5;">${cap(rec[COL.TYPE])} · ${rec[COL.TRIP]}</td></tr>`
+        + `<tr><td style="padding:6px 10px;border:1px solid #eef1f5;color:#64748B;">Route</td><td style="padding:6px 10px;border:1px solid #eef1f5;"><b>${rec[COL.FROM]} → ${rec[COL.TO]}</b></td></tr>`
+        + `<tr><td style="padding:6px 10px;border:1px solid #eef1f5;color:#64748B;">Dates</td><td style="padding:6px 10px;border:1px solid #eef1f5;">${fmtDate(rec[COL.START])}${rec[COL.RET] ? (' → ' + fmtDate(rec[COL.RET])) : ''}</td></tr>`
+        + `<tr><td style="padding:6px 10px;border:1px solid #eef1f5;color:#64748B;">Purpose</td><td style="padding:6px 10px;border:1px solid #eef1f5;">${rec[COL.PURPOSE] || '—'}</td></tr></table>`
+        + `<p style="color:#8A97AA;font-size:12px;margin:12px 0 0;">Track it any time on your My Requests page.</p>` }) });
 
   return { ok: true, id, currency: costs.currency, total: costs.total, chain: chainLabels(p.travelType, costs.broken, ceoReq) };
 }
@@ -524,6 +536,12 @@ async function applyDecision(rec, stage, decision, baseUrl) {
     await updateCells(row, updates);
     const fresh = { ...rec, [COL.TOKEN]: newToken, [COL.STAGE]: next };
     await emailApprover(next, fresh, baseUrl);
+    // Cost-free progress note to the requester.
+    const progTo = requesterEmail(rec);
+    if (progTo) await sendEmail({ to: progTo, subject: `Travel Request ${id} — ${stageLabel(stage)} approved`,
+      html: emailShell({ title: `Cleared ${stageLabel(stage)} approval`, subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: `Now awaiting ${stageLabel(next)}`, statusColor: '#2563EB',
+        body: `<p style="color:#3D506A;margin:0;">Good progress — your request <b>${id}</b> (${rec[COL.FROM]} → ${rec[COL.TO]}) cleared <b>${stageLabel(stage)}</b> approval and is now with <b>${stageLabel(next)}</b>. No action needed from you.</p>` }) });
     return { title: 'Approved → ' + stageLabel(next), msg: `${id} approved. Forwarded to ${stageLabel(next)}.`, color: '#0a0' };
   }
 
@@ -538,7 +556,9 @@ async function applyDecision(rec, stage, decision, baseUrl) {
   if (CONFIG.CC_REQUESTER_ON_UPDATES && reqTo) {
     const forName = rec[COL.NAME] ? ` for <b>${rec[COL.NAME]}</b>` : '';
     await sendEmail({ to: reqTo, subject: `Travel Request ${id} — APPROVED`,
-      html: `<p>Good news! Travel request <b>${id}</b>${forName} is fully approved (final approval: ${stageLabel(stage)}). Admin has been notified to make the bookings &amp; arrangements.</p>` });
+      html: emailShell({ title: 'Travel request approved ✅', subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: 'Fully approved · now with Admin for booking', statusColor: '#0F9D58',
+        body: `<p style="color:#3D506A;margin:0;">Good news! Travel request <b>${id}</b>${forName} is <b>fully approved</b> (final approval: ${stageLabel(stage)}). Admin has been notified to make the bookings &amp; arrangements — you’ll get the itinerary once it’s booked.</p>` }) });
   }
   return { title: 'Approved → Sent to Admin', msg: `${id} fully approved (${stageLabel(stage)}). Admin notified for arrangements.`, color: '#0a0' };
 }
