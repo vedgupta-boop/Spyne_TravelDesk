@@ -54,7 +54,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .tbl-scroll{overflow-x:auto;}
 table{border-collapse:collapse;width:100%;font-size:12px;min-width:2160px;}
 /* Policy panel tables must fit the panel (the 2160px floor is only for the wide requests table). */
-#policy-body table,#elog-body table{min-width:0;}
+#policy-body table,#elog-body table,#cur-body table{min-width:0;}
 #policy-body td,#policy-body th{word-break:break-word;}
 .wrap{max-width:1400px;}
 td,th{white-space:nowrap;}
@@ -180,6 +180,14 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
       <span id="elog-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
     </div>
     <div id="elog-body" class="hidden" style="padding:0 18px 16px;overflow-x:auto;"></div>
+  </div>
+  <!-- CURRENCY MISMATCH AUDIT (US trips priced in INR, etc.) — review + re-push -->
+  <div class="panel" style="margin-bottom:18px;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleCurAudit()">
+      <div style="font-weight:800;color:var(--navy);">⚠ Currency mismatch <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— trips priced in the wrong currency (INR vs USD)</span></div>
+      <span id="cur-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
+    </div>
+    <div id="cur-body" class="hidden" style="padding:0 18px 16px;overflow-x:auto;"></div>
   </div>
 
   <div class="panel" style="margin-bottom:16px;">
@@ -876,6 +884,32 @@ function savePolicyVersion(){
     .then(function(r){return r.json();})
     .then(function(o){ if(o&&o.ok){ set('✓ published','var(--green)'); PV_FILE=''; load(); } else set('✗ '+((o&&o.error)||'error'),'#DC2626'); })
     .catch(function(e){ set('✗ '+(e&&e.message||'failed'),'#DC2626'); });
+}
+// ⚠ Currency mismatch audit — read-only list of trips priced in the wrong currency.
+var CUR_LOADED=false;
+function toggleCurAudit(){
+  var b=document.getElementById('cur-body'), t=document.getElementById('cur-toggle'); if(!b) return;
+  var open=(b.classList.toggle('hidden')===false);
+  if(t) t.textContent=open?'Hide ▴':'Show ▾';
+  if(open && !CUR_LOADED){ CUR_LOADED=true; loadCurAudit(); }
+}
+function loadCurAudit(){
+  var b=document.getElementById('cur-body'); b.innerHTML='<div class="bd-note" style="color:var(--gray-5);">Checking…</div>';
+  fetch('/api/finance?view=currency-audit',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    var a=(d&&d.audit)||[];
+    if(!a.length){ b.innerHTML='<div class="bd-note" style="color:var(--green);">✓ No currency mismatches — every trip is priced correctly for its route.</div>'; return; }
+    b.innerHTML='<div class="info amber" style="margin:2px 0 10px;">Found <b>'+a.length+'</b> trip(s) whose stored currency doesn’t match the route. Review below — then we can recompute &amp; re-push them for approval.</div>'
+      +'<table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12.5px;"><thead><tr>'
+      +[['Request','16%'],['Traveller','16%'],['Route','26%'],['Now','10%'],['Should be','12%'],['Stage','20%']].map(function(h){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);width:'+h[1]+';">'+h[0]+'</th>';}).join('')
+      +'</tr></thead><tbody>'+a.map(function(e){
+        return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;font-weight:700;">'+esc(e.id)+(e.booked?' <span style="background:#FDECEC;color:#b00;border-radius:5px;padding:0 5px;font-size:9px;font-weight:800;">BOOKED</span>':'')+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.name)+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.route)+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:#b00;font-weight:700;">'+esc(e.stored)+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:var(--green);font-weight:700;">'+esc(e.correct)+'</td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;color:var(--gray-6);">'+esc(e.status||e.stage)+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }).catch(function(){ b.innerHTML='<div class="bd-note" style="color:#DC2626;">Could not run the audit.</div>'; });
 }
 function delPolicyVersion(v){
   fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'policyVersion-delete',version:v})})

@@ -256,6 +256,10 @@ http.createServer((req, res) => {
   }
   if (url === '/api/finance' && /view=users/.test(qs)) return json(res, USERS);
   if (url === '/api/finance' && /view=roles/.test(qs)) return json(res, { ok: true, ...ROLES_VIEW });
+  if (url === '/api/finance' && /view=currency-audit/.test(qs)) return json(res, { ok: true, audit: [
+    { id: 'TRF-20260708-3T46', name: 'Neelima Tiwari', dept: 'GTM Sales & Marketing', route: 'New York (JFK) → Ohio', type: 'domestic', stored: 'INR', correct: 'USD', stage: 'arrange', status: 'Approved — With Admin for Arrangements', total: 331800, booked: true },
+    { id: 'TRF-20260715-KM90', name: 'Rohit Sharma', dept: 'Product', route: 'Los Angeles (LAX) → Seattle', type: 'domestic', stored: 'INR', correct: 'USD', stage: 'dept', status: 'Pending HOD Approval', total: 84000, booked: false },
+  ] });
   if (url === '/api/finance' && /view=emaillog/.test(qs)) return json(res, { ok: true, log: [
     { ts: '2026-06-30T09:32:00Z', id: 'TRF-20260901-AB12', to: 'sanjay@spyne.ai', cc: 'ved@spyne.ai, shankul.rastogi@spyne.ai', subject: '[Escalated] TRF-20260901-AB12 — CEO approval pending 74h' },
     { ts: '2026-06-30T09:30:00Z', id: 'TRF-20260905-GH78', to: 'shankul.rastogi@spyne.ai', cc: 'rahul@spyne.ai', subject: '[Reminder] TRF-20260905-GH78 — Admin — Booking & Arrangements pending 26h' },

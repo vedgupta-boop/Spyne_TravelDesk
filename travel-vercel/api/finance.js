@@ -1,4 +1,4 @@
-import { financeData, closeTrip, scrapRequests } from '../lib/workflow.js';
+import { financeData, closeTrip, scrapRequests, currencyAudit } from '../lib/workflow.js';
 import { recordPolicyChange } from '../lib/policystore.js';
 import { addPolicyVersion, deletePolicyVersion } from '../lib/policyversionsstore.js';
 import { readEmailLog } from '../lib/emaillogstore.js';
@@ -101,6 +101,10 @@ export default async function handler(req, res) {
     }
     if (req.query && req.query.view === 'emaillog') {
       res.status(200).json({ ok: true, log: await readEmailLog(150) });
+      return;
+    }
+    if (req.query && req.query.view === 'currency-audit') {
+      res.status(200).json({ ok: true, audit: await currencyAudit() });
       return;
     }
     const data = await financeData();

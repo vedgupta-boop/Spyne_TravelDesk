@@ -1028,6 +1028,30 @@ export async function closeTrip(id, reimburseAmt, email) {
   return { ok: true, id, reimburse: amt };
 }
 
+// Read-only audit: trips whose STORED currency doesn't match what the (fixed) engine would
+// now compute from the route — i.e. US trips that were priced in INR (and vice-versa) before
+// the region-detection fix. Used to review which requests need recompute + re-push.
+export async function currencyAudit() {
+  const all = await readAll();
+  const rows = [];
+  for (const r of all) {
+    const status = String(r[COL.STATUS] || '');
+    if (/reject|withdraw/i.test(status) || String(r[COL.STAGE]) === 'rejected') continue;
+    const correct = isUsRegion({ travelType: r[COL.TYPE], from: r[COL.FROM], to: r[COL.TO] }) ? 'USD' : 'INR';
+    const stored = String(r[COL.CURRENCY] || 'INR').toUpperCase();
+    if (correct !== stored) {
+      rows.push({
+        id: r[COL.ID], name: r[COL.NAME] || '', dept: r[COL.DEPT] || '',
+        route: `${r[COL.FROM]} → ${r[COL.TO]}`, type: r[COL.TYPE] || '',
+        stored, correct, stage: String(r[COL.STAGE] || ''), status,
+        total: Number(r[COL.C_TOTAL] || 0),
+        booked: /completed|forex card issued|trip closed|with admin|arrangement/i.test(status) || !!r[COL.BOOKING_DATE],
+      });
+    }
+  }
+  return rows;
+}
+
 export async function financeData() {
   const all = await readAll();
   await applyPolicyOverrides(); // so the editable-policy snapshot reflects current effective values
