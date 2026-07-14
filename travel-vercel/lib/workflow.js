@@ -531,8 +531,10 @@ async function applyDecision(rec, stage, decision, baseUrl) {
   updates.push([COL.STAGE, 'arrange'], [COL.STATUS, 'Approved — With Admin for Arrangements'], [COL.ADMIN, 'Pending']);
   await updateCells(row, updates);
   const reqTo = requesterEmail(rec);
+  // Admin gets the full cost breakdown; the requester is NOT CC'd here (travellers must not see the
+  // estimated cost) — they get the separate cost-free "APPROVED" note below instead.
   await sendEmail({ to: CONFIG.ADMIN_TEAM, subject: `[Approved — for arrangements] ${id} (${rec[COL.NAME]})`,
-    html: adminEmailHtml(rec, baseUrl), cc: CONFIG.CC_REQUESTER_ON_UPDATES && reqTo ? reqTo : undefined });
+    html: adminEmailHtml(rec, baseUrl) });
   if (CONFIG.CC_REQUESTER_ON_UPDATES && reqTo) {
     const forName = rec[COL.NAME] ? ` for <b>${rec[COL.NAME]}</b>` : '';
     await sendEmail({ to: reqTo, subject: `Travel Request ${id} — APPROVED`,
@@ -1520,10 +1522,11 @@ function advanceReminderEmailHtml(rec, link, overdue, dueLabel, advLabel) {
       <div style="margin:20px 0 4px;">${btn(link, 'Settle advance →', '#E8232A')}</div>`,
   });
 }
-// Every pending reminder is CC'd to the requestor + Shankul (admin) for visibility — but the
-// primary recipient (the stage approver) is never duplicated into the CC.
+// Reminders are CC'd to Shankul (admin) — and, on escalation, the CEO/Finance. The REQUESTER is
+// deliberately NOT CC'd, because reminder emails carry the cost breakdown and travellers must not
+// see the estimated cost. The requester tracks status on their My Requests page instead.
 function reminderCc(rec, to, extra) {
-  const list = [requesterEmail(rec), CONFIG.ADMIN_TEAM].concat(extra || [])
+  const list = [CONFIG.ADMIN_TEAM].concat(extra || [])
     .map((x) => String(x || '').trim().toLowerCase())
     .filter(Boolean);
   const t = String(to || '').trim().toLowerCase();
