@@ -899,11 +899,12 @@ function loadCurAudit(){
     var a=(d&&d.audit)||[];
     if(!a.length){ b.innerHTML='<div class="bd-note" style="color:var(--green);">✓ No mismatches — every trip is priced correctly (currency + amount).</div>'; return; }
     var money=function(c,n){ return (c==='USD'?'$':'₹')+Math.round(Number(n||0)).toLocaleString(c==='USD'?'en-US':'en-IN'); };
-    b.innerHTML='<div class="info amber" style="margin:2px 0 10px;">Found <b>'+a.length+'</b> trip(s) whose stored cost/currency differs from the corrected estimate. Review the old → new below — then recompute &amp; re-push them for approval.</div>'
+    b.innerHTML='<div class="info amber" style="margin:2px 0 10px;">Found <b>'+a.length+'</b> trip(s) whose stored price differs from the corrected estimate. <b>Tick the ones you want to fix</b> (currency‑wrong ones are pre‑ticked; amount‑only ones are left unticked since they may already be fine), then re‑push.</div>'
       +'<table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12.5px;"><thead><tr>'
-      +[['Request','16%'],['Traveller','14%'],['Route','24%'],['Now (stored)','15%'],['Corrected','15%'],['Stage','16%']].map(function(h){return '<th style="text-align:left;padding:6px 10px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);width:'+h[1]+';">'+h[0]+'</th>';}).join('')
+      +[['✓','5%'],['Request','16%'],['Traveller','13%'],['Route','21%'],['Now (stored)','14%'],['Corrected','14%'],['Stage','17%']].map(function(h){return '<th style="text-align:left;padding:6px 8px;border:1px solid var(--gray-2);background:var(--gray-1);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-6);width:'+h[1]+';">'+h[0]+'</th>';}).join('')
       +'</tr></thead><tbody>'+a.map(function(e){
-        return '<tr><td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;font-weight:700;">'+esc(e.id)+(e.booked?' <span style="background:#FDECEC;color:#b00;border-radius:5px;padding:0 5px;font-size:9px;font-weight:800;">BOOKED</span>':'')+'</td>'
+        return '<tr><td style="padding:6px 8px;border:1px solid var(--gray-2);text-align:center;"><input type="checkbox" class="cur-pick" value="'+esc(e.id)+'"'+(e.curChanged?' checked':'')+'></td>'
+          +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;font-weight:700;">'+esc(e.id)+(e.booked?' <span style="background:#FDECEC;color:#b00;border-radius:5px;padding:0 5px;font-size:9px;font-weight:800;">BOOKED</span>':'')+'</td>'
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.name)+'</td>'
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;">'+esc(e.route)+'</td>'
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);color:#b00;font-weight:700;text-decoration:line-through;">'+esc(money(e.stored,e.oldTotal))+'</td>'
@@ -911,18 +912,22 @@ function loadCurAudit(){
           +'<td style="padding:6px 10px;border:1px solid var(--gray-2);word-break:break-word;color:var(--gray-6);">'+esc(e.status||e.stage)+'</td></tr>';
       }).join('')+'</tbody></table>'
       +'<div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-        +'<button class="pol-edit" id="cur-fix-btn" onclick="runCurFix('+a.length+')" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:800;cursor:pointer;">🔧 Recompute &amp; re-push these '+a.length+' trip(s)</button>'
+        +'<label style="font-size:12px;color:var(--gray-6);cursor:pointer;"><input type="checkbox" id="cur-all" onchange="curPickAll(this.checked)"> Select all</label>'
+        +'<button class="pol-edit" id="cur-fix-btn" onclick="runCurFix()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:800;cursor:pointer;">🔧 Recompute &amp; re-push ticked trips</button>'
         +'<span id="cur-fix-msg" style="font-size:12px;font-weight:700;"></span></div>'
-      +'<div class="bd-note" style="color:var(--gray-5);margin-top:8px;">Recomputes each trip in the corrected currency and re-sends it for approval (completed/forex-issued trips are corrected but not re-opened). This emails approvers.</div>';
+      +'<div class="bd-note" style="color:var(--gray-5);margin-top:8px;">Only the ticked trips are recomputed in the corrected currency/amount and re-sent for approval (completed/forex-issued trips are corrected but not re-opened). This emails approvers.</div>';
   }).catch(function(){ b.innerHTML='<div class="bd-note" style="color:#DC2626;">Could not run the audit.</div>'; });
 }
-function runCurFix(n){
-  if(!confirm('Recompute '+n+' mis-priced trip(s) in the correct currency and re-push the pending ones for approval?\n\nThis will email approvers. Completed/forex-issued trips are corrected but not re-opened.')) return;
+function curPickAll(on){ Array.prototype.forEach.call(document.querySelectorAll('.cur-pick'), function(c){ c.checked=on; }); }
+function runCurFix(){
+  var ids=Array.prototype.map.call(document.querySelectorAll('.cur-pick:checked'), function(c){ return c.value; });
+  if(!ids.length){ var m0=document.getElementById('cur-fix-msg'); if(m0){ m0.textContent='Tick at least one trip first.'; m0.style.color='#DC2626'; } return; }
+  if(!confirm('Recompute '+ids.length+' ticked trip(s) in the correct price and re-push the pending ones for approval?\n\nThis emails approvers. Completed/forex-issued trips are corrected but not re-opened.')) return;
   var btn=document.getElementById('cur-fix-btn'), msg=document.getElementById('cur-fix-msg');
   if(btn){ btn.disabled=true; btn.textContent='Working…'; }
   var set=function(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'var(--gray-5)'; } };
   set('recomputing…');
-  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'recompute-currency'})})
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'recompute-currency',ids:ids})})
     .then(function(r){return r.json();})
     .then(function(d){
       if(d&&d.ok){ set('✓ Fixed '+d.count+' trip(s). Reloading…','var(--green)'); CUR_LOADED=false; setTimeout(function(){ load(); loadCurAudit(); },900); }

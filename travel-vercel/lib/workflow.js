@@ -1082,15 +1082,17 @@ export async function currencyAudit() {
 // Fix the trips flagged by currencyAudit: recompute each with the corrected region logic,
 // overwrite its stored cost columns, and (unless it's already completed) reset it to the first
 // approval stage and re-notify the approver. Finance-only. Returns a per-trip summary.
-export async function recomputeCurrencyFixes(baseUrl, roles) {
+export async function recomputeCurrencyFixes(baseUrl, roles, ids) {
   if (!(roles || []).includes('finance')) return { ok: false, error: 'Finance only.' };
   await applyPolicyOverrides();
   const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+  const only = Array.isArray(ids) && ids.length ? new Set(ids.map((x) => String(x).trim())) : null; // if given, fix ONLY these
   const all = await readAll();
   const fixed = [];
   for (const rec of all) {
     const status = String(rec[COL.STATUS] || '');
     if (/reject|withdraw/i.test(status) || String(rec[COL.STAGE]) === 'rejected') continue;
+    if (only && !only.has(String(rec[COL.ID]))) continue; // Finance picked a subset
     let costs; try { costs = recomputeRec(rec); } catch { continue; }
     const stored = String(rec[COL.CURRENCY] || 'INR').toUpperCase();
     const storedTotal = Number(rec[COL.C_TOTAL] || 0);

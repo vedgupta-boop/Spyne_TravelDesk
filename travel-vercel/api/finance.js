@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       }
       // Finance recomputes + re-pushes trips priced in the wrong currency (INR vs USD).
       if (b.action === 'recompute-currency') {
-        res.status(200).json(await recomputeCurrencyFixes(baseUrl(req), session.roles));
+        res.status(200).json(await recomputeCurrencyFixes(baseUrl(req), session.roles, b.ids));
         return;
       }
       // Finance bulk-scrap test/junk requests by ID (soft-delete; hidden from all dashboards).
