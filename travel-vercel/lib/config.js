@@ -68,6 +68,13 @@ export const POLICY = {
               'des moines','charlotte','raleigh','durham','columbus','cincinnati','cleveland','indianapolis',
               'milwaukee','madison','richmond','providence','hartford','albany','buffalo','rochester','louisville',
               'memphis','oklahoma city','tulsa','albuquerque','spokane'],
+  // US airport IATA codes — so trips entered as bare codes (e.g. RDU, LGA) are still detected as US.
+  US_AIRPORTS: ['JFK','LGA','EWR','LAX','SFO','SJC','OAK','ORD','MDW','ATL','DFW','DAL','DEN','SEA','BOS',
+                'IAD','DCA','BWI','MIA','FLL','MCO','TPA','JAX','PBI','RSW','IAH','HOU','AUS','SAT','PHX',
+                'LAS','RNO','SAN','SMF','ONT','BUR','SNA','PDX','SLC','MSP','DTW','GRR','PHL','PIT','CLE',
+                'CMH','CVG','IND','MKE','MCI','STL','OMA','DSM','BNA','MEM','CLT','RDU','GSO','RIC','ORF',
+                'ALB','BUF','ROC','SYR','PVD','BDL','MHT','BOI','ABQ','TUS','OKC','TUL','ELP','SAV','CHS',
+                'GSP','MYR','HNL','ANC','PDX','LGB'],
   // per night (+ taxes), §6.3 / §7.3. intl_default = non-US international cities (the policy only
   // defines US tier caps; everywhere else overseas uses this default).
   HOTEL: { india: { 1: 6000, 2: 3000, 3: 2500 }, us: { 1: 175, 2: 150, 3: 125, 4: 100 }, intl_default: 175 },

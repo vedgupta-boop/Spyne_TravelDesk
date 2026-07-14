@@ -41,10 +41,14 @@ export function cityTier(city, usd) {
   return 3;
 }
 
-// Is this a US location named in any tier list? Used to infer USD region when country is absent.
+// Is this a US location? Matches a named US city (any tier) OR a US airport IATA code — so
+// entries like "RDU", "LGA" or "New York (JFK)" are all recognised as US.
 export function isListedUsCity(city) {
   const c = String(city || '').toLowerCase();
-  return hit(POLICY.US_TIER_1, c) || hit(POLICY.US_TIER_2, c) || hit(POLICY.US_TIER_3, c);
+  if (hit(POLICY.US_TIER_1, c) || hit(POLICY.US_TIER_2, c) || hit(POLICY.US_TIER_3, c)) return true;
+  const codes = String(city || '').match(/\b[A-Z]{3}\b/g) || [];
+  const us = new Set(POLICY.US_AIRPORTS || []);
+  return codes.some((x) => us.has(x));
 }
 
 export function hotelCapFor(usd, tier) {
