@@ -1,4 +1,4 @@
-import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes } from '../lib/workflow.js';
+import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch } from '../lib/workflow.js';
 import { recordPolicyChange } from '../lib/policystore.js';
 import { addPolicyVersion, deletePolicyVersion } from '../lib/policyversionsstore.js';
 import { readEmailLog } from '../lib/emaillogstore.js';
@@ -41,6 +41,10 @@ export default async function handler(req, res) {
       // Finance recomputes + re-pushes trips priced in the wrong currency (INR vs USD).
       if (b.action === 'recompute-currency') {
         res.status(200).json(await recomputeCurrencyFixes(baseUrl(req), session.roles, b.ids));
+        return;
+      }
+      if (b.action === 'audit-dismiss') {
+        res.status(200).json(await dismissCurrencyMismatch(b.ids, session.roles));
         return;
       }
       // Finance bulk-scrap test/junk requests by ID (soft-delete; hidden from all dashboards).

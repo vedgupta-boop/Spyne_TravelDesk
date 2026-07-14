@@ -1057,13 +1057,30 @@ function recomputeRec(rec) {
 // Read-only audit: trips whose STORED cost/currency differs from what the current (fixed) engine
 // would compute — catches wrong currency (US priced in INR) AND stale amounts (e.g. flight priced
 // with an old estimate/live fare or before the one-way fix). Used to review before recompute+re-push.
+// Trip IDs Finance has chosen to ignore in the mismatch audit (kept in the Settings tab).
+async function dismissedAuditIds() {
+  const raw = await getSetting('audit_dismissed', '');
+  return new Set(String(raw || '').split(',').map((s) => s.trim()).filter(Boolean));
+}
+export async function dismissCurrencyMismatch(ids, roles) {
+  if (!(roles || []).includes('finance')) return { ok: false, error: 'Finance only.' };
+  const add = (Array.isArray(ids) ? ids : []).map((x) => String(x).trim()).filter(Boolean);
+  if (!add.length) return { ok: false, error: 'No trips selected.' };
+  const cur = await dismissedAuditIds();
+  add.forEach((x) => cur.add(x));
+  await setSetting('audit_dismissed', Array.from(cur).join(','), 'finance');
+  return { ok: true, dismissed: add.length };
+}
+
 export async function currencyAudit() {
   await applyPolicyOverrides();
+  const dismissed = await dismissedAuditIds();
   const all = await readAll();
   const rows = [];
   for (const r of all) {
     const status = String(r[COL.STATUS] || '');
     if (/reject|withdraw/i.test(status) || String(r[COL.STAGE]) === 'rejected') continue;
+    if (dismissed.has(String(r[COL.ID]))) continue; // Finance dismissed this one
     let costs; try { costs = recomputeRec(r); } catch { continue; }
     const stored = String(r[COL.CURRENCY] || 'INR').toUpperCase();
     const storedTotal = Number(r[COL.C_TOTAL] || 0);

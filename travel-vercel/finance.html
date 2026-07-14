@@ -914,11 +914,23 @@ function loadCurAudit(){
       +'<div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
         +'<label style="font-size:12px;color:var(--gray-6);cursor:pointer;"><input type="checkbox" id="cur-all" onchange="curPickAll(this.checked)"> Select all</label>'
         +'<button class="pol-edit" id="cur-fix-btn" onclick="runCurFix()" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:800;cursor:pointer;">🔧 Recompute &amp; re-push ticked trips</button>'
+        +'<button class="pol-edit" id="cur-dismiss-btn" onclick="dismissCurTicked()" style="background:#fff;color:var(--gray-7);border:1px solid var(--gray-3);border-radius:8px;padding:9px 14px;font-weight:800;cursor:pointer;">🙈 Dismiss ticked (leave as-is)</button>'
         +'<span id="cur-fix-msg" style="font-size:12px;font-weight:700;"></span></div>'
-      +'<div class="bd-note" style="color:var(--gray-5);margin-top:8px;">Only the ticked trips are recomputed in the corrected currency/amount and re-sent for approval (completed/forex-issued trips are corrected but not re-opened). This emails approvers.</div>';
+      +'<div class="bd-note" style="color:var(--gray-5);margin-top:8px;">Tick trips, then <b>Recompute &amp; re-push</b> (fixes the price + re-sends for approval; emails approvers) <b>or Dismiss</b> (hides them from this list, unchanged — no email). Completed/forex-issued trips are corrected but not re-opened.</div>';
   }).catch(function(){ b.innerHTML='<div class="bd-note" style="color:#DC2626;">Could not run the audit.</div>'; });
 }
 function curPickAll(on){ Array.prototype.forEach.call(document.querySelectorAll('.cur-pick'), function(c){ c.checked=on; }); }
+function dismissCurTicked(){
+  var ids=Array.prototype.map.call(document.querySelectorAll('.cur-pick:checked'), function(c){ return c.value; });
+  var msg=document.getElementById('cur-fix-msg'); var set=function(t,c){ if(msg){ msg.textContent=t; msg.style.color=c||'var(--gray-5)'; } };
+  if(!ids.length){ set('Tick at least one trip to dismiss.','#DC2626'); return; }
+  if(!confirm('Dismiss '+ids.length+' ticked trip(s) from this list?\n\nThey stay exactly as they are (no price change, no email) and just stop showing here.')) return;
+  set('dismissing…');
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'audit-dismiss',ids:ids})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d&&d.ok){ set('✓ Dismissed '+d.dismissed+'. Reloading…','var(--green)'); CUR_LOADED=false; setTimeout(loadCurAudit,700); } else set('✗ '+((d&&d.error)||'failed'),'#DC2626'); })
+    .catch(function(e){ set('✗ '+(e&&e.message||'failed'),'#DC2626'); });
+}
 function runCurFix(){
   var ids=Array.prototype.map.call(document.querySelectorAll('.cur-pick:checked'), function(c){ return c.value; });
   if(!ids.length){ var m0=document.getElementById('cur-fix-msg'); if(m0){ m0.textContent='Tick at least one trip first.'; m0.style.color='#DC2626'; } return; }
