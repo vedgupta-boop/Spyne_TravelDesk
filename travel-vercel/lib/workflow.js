@@ -128,11 +128,12 @@ function withTimeout(promise, ms) {
 // Best-effort LIVE flight price at submit (RapidAPI Sky-Scrapper). Returns the cheapest economy
 // round-trip fare in the trip currency, or null to fall back to the policy estimate. Never throws.
 async function liveFlightCost(p) {
-  try {
-    // Live pricing is part of the flight-search feature. When it's OFF (FLIGHT_SEARCH_UI not
-    // 'true'), the flight budget uses the POLICY ESTIMATE (Finance-editable) instead of a live
-    // fare — so what Finance sets under "Transport estimates" is what drives the cost.
-    if (String(process.env.FLIGHT_SEARCH_UI || '').toLowerCase() !== 'true') return null;
+  // LIVE PRICING DISABLED (deliberate). The flight budget always comes from the Finance-editable
+  // policy estimate — for BOTH the base flight and every extra multi-city leg — so costs are
+  // predictable and fully controlled by Finance, never by fluctuating live fares.
+  return null;
+  /* Preserved for reference — to re-enable live pricing, remove the early return above. */
+  try {                                                                     // eslint-disable-line no-unreachable
     if (!/flight/i.test(String(p.transportMode || ''))) return null;   // only when flying
     if (!p.from || !p.to || !p.startDate) return null;
     const currency = isUsRegion(p) ? 'USD' : 'INR';
