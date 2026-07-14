@@ -1605,6 +1605,14 @@ export async function sendReminders(baseUrl) {
     } else {
       await sendEmail({ to, subject: `${sub}${rec[COL.ID]} — ${label} pending ${hours}h`, html: taskReminderEmailHtml(rec, label, link, hours), cc: reminderCc(rec, to, escCc) });
     }
+    // Cost-free "still pending" nudge to the requester (no breakdown — travellers don't see cost).
+    const reqTo = requesterEmail(rec);
+    if (reqTo && reqTo.toLowerCase() !== String(to).toLowerCase()) {
+      await sendEmail({ to: reqTo, subject: `${rec[COL.ID]} — still awaiting ${label}`,
+        html: emailShell({ title: 'Your travel request is still pending', subtitle: `Spyne TravelDesk · ${rec[COL.ID]}`,
+          statusText: `Awaiting ${label} · ~${hours}h`, statusColor: '#D97706',
+          body: `<p style="color:#3D506A;margin:0 0 12px;">Hi ${rec[COL.NAME] || 'there'}, your trip <b>${rec[COL.FROM]} → ${rec[COL.TO]}</b> (${rec[COL.START]}${rec[COL.RET] ? (' → ' + rec[COL.RET]) : ''}) is still <b>awaiting ${label}</b>. We've nudged the approver — no action needed from you. You can track it any time on <b>My Requests</b>.</p>` }) });
+    }
     await updateCells(rec.__row, [[COL.LAST_REMINDER, new Date(now).toISOString()], [COL.REMINDER_COUNT, count]]);
     sent.push({ id: rec[COL.ID], stage, label, to, hours, reminderCount: count });
   }
