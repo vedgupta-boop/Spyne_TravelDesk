@@ -127,7 +127,7 @@ export function breakdownTable(rec) {
   html += `<tr style="background:#0D1B2A;color:#fff;"><th style="padding:8px 12px;text-align:left;">Estimate Cost Breakdown</th><th style="padding:8px 12px;text-align:right;">${esc(cur)}</th></tr>`;
   html += line('🚆 Travel / Transport', rec[COL.C_TRANSPORT]);
   html += line('🏨 Hotel', rec[COL.C_HOTEL], rec[COL.HOTEL_REQ] === 'Yes' ? `${money(rec[COL.HOTEL_RATE], cur)}/night × ${rec[COL.HOTEL_NIGHTS]}` : 'not required');
-  html += line('🍽️ Meals' + (cur === 'USD' ? ' (hotel without breakfast)' : ''), rec[COL.C_MEALS], `${money(rec[COL.MEAL_RATE], cur)}/day × ${rec[COL.DAYS]}`);
+  html += line('🍽️ Meals' + (cur === 'USD' ? ' ( $50 if breakfast is included or $70 if breakfast is not included )' : ''), rec[COL.C_MEALS], `${money(rec[COL.MEAL_RATE], cur)}/day × ${rec[COL.DAYS]}`);
   html += line('🚖 Local Travel', rec[COL.C_LOCAL]);
   // itemised additional allowances (visa, insurance, phone, laundry, deposit, baggage)
   let extras = {}; try { extras = JSON.parse(rec[COL.C_EXTRAS] || '{}') || {}; } catch (e) { extras = {}; }

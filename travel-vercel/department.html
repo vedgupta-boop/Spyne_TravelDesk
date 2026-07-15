@@ -204,7 +204,7 @@ function openCost(i){
   line('Transport',(b.mode?b.mode+' · ':'')+legs,b.transport);
   line('Local conveyance','airport transfers + 40 km/day cab × '+(b.days||0)+' day(s)',b.local);
   if(b.hotel>0) line('Hotel',fmt(cur,b.hotelRate)+'/night × '+(b.hotelNights||0)+' night(s)',b.hotel);
-  if(b.meals>0) line((cur==='USD'?'Meals (hotel without breakfast)':'Meals (per-diem)'),fmt(cur,b.mealRate)+'/day × '+(b.days||0)+' day(s)',b.meals);
+  if(b.meals>0) line((cur==='USD'?'Meals ( $50 if breakfast is included or $70 if breakfast is not included )':'Meals (per-diem)'),fmt(cur,b.mealRate)+'/day × '+(b.days||0)+' day(s)',b.meals);
   var EXLBL={visa:'Visa fee',insurance:'Travel insurance',phone:'Phone / communication',laundry:'Laundry',baggage:'Baggage (US domestic)'};
   var ex=b.extras||{}; Object.keys(EXLBL).forEach(function(k){ if(ex[k]>0) line(EXLBL[k],'',ex[k]); });
   var html='<div class="bd-exp">'+lines.join('')+'<div class="bdr tot"><div class="bdl"><div class="li">Total estimated cost'+(r.pax>1?' (× '+r.pax+' travellers)':'')+'</div></div><div class="bda">'+fmt(cur,r.total)+'</div></div></div>';
