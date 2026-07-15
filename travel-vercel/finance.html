@@ -639,7 +639,7 @@ function openCost(i){
   line('Transport', (b.mode?b.mode+' · ':'')+legs, b.transport);
   line('Local conveyance', 'airport transfers + 40 km/day cab × '+(b.days||0)+' day(s)', b.local);
   if(b.hotel>0) line('Hotel', fmt(cur,b.hotelRate)+'/night × '+(b.hotelNights||0)+' night(s)', b.hotel);
-  if(b.meals>0) line('Meals (per-diem)', fmt(cur,b.mealRate)+'/day × '+(b.days||0)+' day(s)', b.meals);
+  if(b.meals>0) line((cur==='USD'?'Meals (hotel without breakfast)':'Meals (per-diem)'), fmt(cur,b.mealRate)+'/day × '+(b.days||0)+' day(s)', b.meals);
   var EXLBL={visa:'Visa fee',insurance:'Travel insurance',phone:'Phone / communication',laundry:'Laundry',baggage:'Baggage (US domestic)'};
   var ex=b.extras||{}; Object.keys(EXLBL).forEach(function(k){ if(ex[k]>0) line(EXLBL[k], '', ex[k]); });
   var brk=/^POLICY BREAK/i.test(r.flag||'');
@@ -710,7 +710,7 @@ function openCost(i){
     +((r.forexStatus&&r.forexStatus!=='N/A')?'<tr><td><div class="li">Forex card</div></td><td class="av">'+esc(r.forexStatus)+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</td></tr>':'')
     +'</tbody></table>';
   var html='<table class="bd-tbl"><tbody>'+rows.join('')
-    +'<tr class="tot"><td class="li">Total expenses'+(r.pax>1?' (× '+r.pax+' travellers)':'')+'</td><td class="av">'+fmt(cur,r.total)+'</td></tr></tbody></table>'
+    +'<tr class="tot"><td class="li">Total estimated cost'+(r.pax>1?' (× '+r.pax+' travellers)':'')+'</td><td class="av">'+fmt(cur,r.total)+'</td></tr></tbody></table>'
     +wf+advHtml+reconHtml+actHtml+flagHtml
     +'<div class="bd-note">Figures are computed automatically from the travel policy (hotel caps, meal per-diem, transport &amp; local-conveyance estimates) at the time of submission. Amounts are shown to approvers only — not to the traveller.</div>';
   html = itineraryHtml(r) + html; // flight/hotel routing at the top — where→where before deciding
@@ -766,7 +766,7 @@ function downloadCSV(){
     [function(r){return bd(r).hotel||0;},'Hotel Cost'],
     [function(r){return bd(r).meals||0;},'Meals Cost'],
     [function(r){return bd(r).other||0;},'Other (visa/insurance/phone/etc.)'],
-    [function(r){return r.total||0;},'Total Expenses'],
+    [function(r){return r.total||0;},'Total Estimated Cost'],
     [function(r){return r.advForex||0;},'Forex Advance (meals & local, incl. top-ups)'],
     [function(r){return r.advDeposit||0;},'Hotel Security Deposit'],
     [function(r){return r.advance||0;},'Total Advance'],
@@ -1078,7 +1078,7 @@ function renderPolicy(P){
     ['Forex advance (meals &amp; local conveyance)','USD '+P.FOREX_PER_DAY.international+' / day — loaded on the company forex card'],
     ['Hotel security deposit','USD '+X.SECURITY_DEPOSIT+' per hotel (international)'],
     ['Top-ups','Forex officer can add further top-ups; they add to the advance on both the Forex &amp; Finance dashboards'],
-    ['Treatment','Settled within 30 days of return. Not added to Total Expenses.'],
+    ['Treatment','Settled within 30 days of return. Not added to Total Estimated Cost.'],
   ]);
   h+=tbl('Routes to Finance for review (per policy v2.0 §4.1)', [
     ['Short notice','< '+P.NOTICE_DAYS.domestic+' days (domestic) · < '+P.NOTICE_DAYS.international+' days (international) — needs Finance approval'],

@@ -124,16 +124,16 @@ export function breakdownTable(rec) {
     `<tr><td style="padding:8px 12px;border:1px solid #eee;">${label}${sub ? ` <span style="color:#999;font-size:12px;">${sub}</span>` : ''}</td>` +
     `<td style="padding:8px 12px;border:1px solid #eee;text-align:right;white-space:nowrap;">${money(amount, cur)}</td></tr>`;
   let html = '<table style="border-collapse:collapse;width:100%;font-size:14px;font-family:Arial,sans-serif;margin-top:6px;">';
-  html += `<tr style="background:#0D1B2A;color:#fff;"><th style="padding:8px 12px;text-align:left;">Cost Breakdown</th><th style="padding:8px 12px;text-align:right;">${esc(cur)}</th></tr>`;
+  html += `<tr style="background:#0D1B2A;color:#fff;"><th style="padding:8px 12px;text-align:left;">Estimate Cost Breakdown</th><th style="padding:8px 12px;text-align:right;">${esc(cur)}</th></tr>`;
   html += line('🚆 Travel / Transport', rec[COL.C_TRANSPORT]);
   html += line('🏨 Hotel', rec[COL.C_HOTEL], rec[COL.HOTEL_REQ] === 'Yes' ? `${money(rec[COL.HOTEL_RATE], cur)}/night × ${rec[COL.HOTEL_NIGHTS]}` : 'not required');
-  html += line('🍽️ Meals', rec[COL.C_MEALS], `${money(rec[COL.MEAL_RATE], cur)}/day × ${rec[COL.DAYS]}`);
+  html += line('🍽️ Meals' + (cur === 'USD' ? ' (hotel without breakfast)' : ''), rec[COL.C_MEALS], `${money(rec[COL.MEAL_RATE], cur)}/day × ${rec[COL.DAYS]}`);
   html += line('🚖 Local Travel', rec[COL.C_LOCAL]);
   // itemised additional allowances (visa, insurance, phone, laundry, deposit, baggage)
   let extras = {}; try { extras = JSON.parse(rec[COL.C_EXTRAS] || '{}') || {}; } catch (e) { extras = {}; }
   const EXLBL = { visa: 'Visa fee', insurance: 'Travel insurance', phone: 'Phone / communication', laundry: 'Laundry', baggage: 'Baggage (US domestic)' };
   Object.keys(EXLBL).forEach((k) => { if (Number(extras[k]) > 0) html += line('➕ ' + EXLBL[k], extras[k]); });
-  html += `<tr style="background:#f3f6fb;font-weight:bold;font-size:15px;"><td style="padding:10px 12px;border:1px solid #e3e8f0;">TOTAL EXPENSES</td>` +
+  html += `<tr style="background:#f3f6fb;font-weight:bold;font-size:15px;"><td style="padding:10px 12px;border:1px solid #e3e8f0;">TOTAL ESTIMATED COST</td>` +
           `<td style="padding:10px 12px;border:1px solid #e3e8f0;text-align:right;">${money(rec[COL.C_TOTAL], cur)}</td></tr>`;
   // Advances shown SEPARATELY (refundable, not trip expenses): forex advance + hotel security deposit.
   if (Number(rec[COL.FOREX]) > 0) html += `<tr style="background:#eef2ff;color:#3730a3;font-weight:bold;"><td style="padding:8px 12px;border:1px solid #e3e8f0;">💱 Forex advance (meals &amp; local) — advance</td>` +
