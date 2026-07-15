@@ -23,6 +23,10 @@ export const CONFIG = {
 
   CC_REQUESTER_ON_UPDATES: true,
 
+  // Office admin CC'd on EVERY travel/approval email so they always have full visibility.
+  // Empty string disables it. Override via env CC_ALL_ADMIN.
+  CC_ALL_ADMIN: process.env.CC_ALL_ADMIN || 'shankul.rastogi@spyne.ai',
+
   // Auto-escalate a stuck approval after this many unanswered 24h reminders (cron) → CC the CEO + admin.
   ESCALATE_AFTER_REMINDERS: 3,
 

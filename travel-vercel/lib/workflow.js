@@ -11,6 +11,15 @@ import { logEmail } from './emaillogstore.js';
 // The request id is derived from the subject (every subject includes the TRF id). Logging is
 // fire-and-forget so it never slows or breaks a send.
 async function sendEmail(opts) {
+  opts = { ...(opts || {}) };
+  // Keep the office admin (Shankul) CC'd on every travel/approval email so they always have visibility.
+  const auditCc = CONFIG.CC_ALL_ADMIN;
+  if (auditCc) {
+    const toArr = Array.isArray(opts.to) ? opts.to : (opts.to ? [opts.to] : []);
+    const ccArr = Array.isArray(opts.cc) ? opts.cc.slice() : (opts.cc ? [opts.cc] : []);
+    const seen = toArr.concat(ccArr).map((s) => String(s || '').toLowerCase());
+    if (!seen.includes(String(auditCc).toLowerCase())) { ccArr.push(auditCc); opts.cc = ccArr; }
+  }
   const r = await _sendEmail(opts);
   try {
     const subj = String((opts && opts.subject) || '');
