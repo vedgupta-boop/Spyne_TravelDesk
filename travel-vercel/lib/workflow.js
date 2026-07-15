@@ -90,9 +90,9 @@ async function emailApprover(stage, rec, baseUrl, extra = {}) {
     html = `<div style="background:#FFF7E6;border:1px solid #F59E0B;color:#92400E;padding:11px 14px;border-radius:6px;margin:0 0 14px;font-family:Arial,sans-serif;">` +
       `<b>✏️ This request was edited by the requester and resubmitted.</b> Please review the updated details below before approving.</div>` + html;
   }
-  const opts = { to, subject, html };
-  if (CONFIG.CC_REQUESTER_ON_UPDATES && rec[COL.EMAIL]) opts.cc = rec[COL.EMAIL];
-  await sendEmail(opts);
+  // NOTE: the requester is NOT CC'd here — this email carries the full cost breakdown, and
+  // travellers must never see the estimated cost. They get their own cost-free stage notes.
+  await sendEmail({ to, subject, html });
 }
 
 // "City (CODE)" → the plain city name (Sky-Scrapper's airport search resolves city names reliably).
@@ -1445,9 +1445,8 @@ async function sendItinerary(rec) {
 async function emailForexOfficer(rec, baseUrl) {
   const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
   const html = forexOfficerEmailHtml(rec, (base || '') + '/forex');
-  const opts = { to: CONFIG.FOREX_OFFICER, subject: `[Forex Card] Issue card — ${rec[COL.ID]} (${rec[COL.NAME]})`, html };
-  if (CONFIG.CC_REQUESTER_ON_UPDATES && rec[COL.EMAIL]) opts.cc = rec[COL.EMAIL];
-  await sendEmail(opts);
+  // Requester NOT CC'd — this email carries the cost breakdown (travellers must not see the estimate).
+  await sendEmail({ to: CONFIG.FOREX_OFFICER, subject: `[Forex Card] Issue card — ${rec[COL.ID]} (${rec[COL.NAME]})`, html });
 }
 
 // ---- forex officer (Jasvinder) view + actions ----
