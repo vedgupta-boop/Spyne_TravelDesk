@@ -1,4 +1,4 @@
-import { adminData, setAdminStatus, saveTicket, saveBookings, sendToForex } from '../lib/workflow.js';
+import { adminData, setAdminStatus, saveTicket, saveBookings, sendToForex, recallRequest } from '../lib/workflow.js';
 import { requireRole, baseUrl } from '../lib/auth.js';
 import { applyRoleOverrides } from '../lib/rolesstore.js';
 
@@ -12,6 +12,7 @@ export default async function handler(req, res) {
       if (b.action === 'ticket') { res.status(200).json(await saveTicket(b.id, b.ticketInfo, b.ticketDoc)); return; }
       if (b.action === 'bookings') { res.status(200).json(await saveBookings(b.id, b.bookings)); return; }
       if (b.action === 'tofx') { res.status(200).json(await sendToForex(b.id, s.email, s.roles, baseUrl(req))); return; }
+      if (b.action === 'recall') { res.status(200).json(await recallRequest({ id: b.id, email: s.email, roles: s.roles }, baseUrl(req))); return; }
       if (!b.status) throw new Error('status is required');
       res.status(200).json(await setAdminStatus(b.id, b.status, baseUrl(req)));
       return;

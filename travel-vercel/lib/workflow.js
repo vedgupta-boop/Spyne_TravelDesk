@@ -652,6 +652,95 @@ export async function approverDecision({ id, decision, comment, email, roles }, 
   return { ok: true, id, title: r.title, msg: r.msg };
 }
 
+// ---- recall / pull-back ----
+// Human label for any stage (incl. the post-approval steps).
+function humanStage(s) {
+  return { dept: 'HOD', ceo: 'CEO', finance: 'Finance', arrange: 'Admin (booking)', admin: 'Admin (booking)', forex: 'Forex officer', done: 'Completed' }[s] || s;
+}
+// Where can this record be recalled TO (and FROM), or null if it isn't at a recallable step.
+// Only returns a target while the NEXT person hasn't acted — the record only sits at `cur` while
+// `cur` is still pending; once the current holder acts it advances and the previous step is locked.
+function recallInfo(rec) {
+  const type = String(rec[COL.TYPE]);
+  const broken = String(rec[COL.FLAG] || '').startsWith('POLICY BREAK');
+  const chain = chainFor(type, broken, ceoIsRequester(rec));
+  const cur = String(rec[COL.STAGE]);
+  const ci = chain.indexOf(cur);
+  if (ci > 0) return { toStage: chain[ci - 1], fromStage: cur, ownerStage: chain[ci - 1] };
+  if (ci === 0) return null; // first approver — nothing before to recall to
+  if (cur === 'arrange') { const last = chain[chain.length - 1]; return { toStage: last, fromStage: 'arrange', ownerStage: last }; }
+  if (cur === 'forex') return { toStage: 'arrange', fromStage: 'forex', ownerStage: 'admin' };
+  return null;
+}
+// Does this signed-in user own (act on) the given stage?
+function ownsStage(rec, email, roles, stage) {
+  const e = String(email || '').toLowerCase();
+  const r = roles || [];
+  const dept = String(rec[COL.DEPT] || '');
+  const deptHead = String((CONFIG.DEPARTMENTS[dept] || {}).email || '').toLowerCase();
+  const isCEO = r.includes('ceo') || e === String(CONFIG.CEO_EMAIL).toLowerCase();
+  if (stage === 'dept') { if (deptHeadIsRequester(rec) && isCEO) return true; return r.includes('hod') && (deptHead === e || String(rec[COL.HOD] || '').toLowerCase() === e); }
+  if (stage === 'ceo') return isCEO;
+  if (stage === 'finance') return r.includes('finance');
+  if (stage === 'arrange' || stage === 'admin') return r.includes('admin');
+  if (stage === 'forex') return r.includes('forex');
+  return false;
+}
+// May this user recall the record now? Returns the recallInfo if allowed, else null. The recaller must
+// own the previous/target step; at the forex step, EITHER the previous actor (Admin) OR the current
+// holder (Forex, before issuing the card) may pull it back to Admin.
+function canRecall(rec, email, roles) {
+  const info = recallInfo(rec);
+  if (!info) return null;
+  const allowed = ownsStage(rec, email, roles, info.ownerStage) ||
+    (info.fromStage === 'forex' && (roles || []).includes('forex'));
+  return allowed ? info : null;
+}
+// Recall a request back to the recaller's step for re-review (reopen their decision). Everything is
+// logged to the timeline + all parties (the step it was pulled from, the requester, the office admin) notified.
+export async function recallRequest({ id, email, roles }, baseUrl) {
+  await ensureHeaders();
+  const rec = await findById(id);
+  if (!rec) return { ok: false, error: 'Request not found' };
+  const info = canRecall(rec, email, roles);
+  if (!info) return { ok: false, error: 'You can’t recall this request now — either it isn’t at a recallable step, the next person has already actioned it, or it wasn’t your step.' };
+  const who = String(email || '').split('@')[0];
+  const toStage = info.toStage;
+  const token = randomUUID();
+  const note = 'Recalled from ' + humanStage(info.fromStage) + ' by ' + String(email || who) + ' — reopened for re-review';
+  const upd = [
+    [COL.STAGE, toStage], [COL.TOKEN, token], [COL.HOLD, ''], [COL.DELEGATE_EMAIL, ''],
+    [COL.STATUS, 'Recalled — pending ' + humanStage(toStage) + ' re-review'],
+    [COL.LAST_REMINDER, ''], [COL.REMINDER_COUNT, 0],
+    [COL.COMMENTS, appendComment(rec, toStage, who, note)],
+  ];
+  if (decColFor[toStage]) upd.push([decColFor[toStage], 'Pending']);
+  if (toStage === 'arrange') upd.push([COL.ADMIN, 'Pending']);
+  await updateCells(rec.__row, upd);
+  const fresh = { ...rec, [COL.TOKEN]: token, [COL.STAGE]: toStage };
+  if (['dept', 'ceo', 'finance'].includes(toStage)) { try { await emailApprover(toStage, fresh, baseUrl); } catch (e) { /* non-fatal */ } }
+  try { await notifyRecall(rec, info, email, baseUrl); } catch (e) { /* non-fatal */ }
+  return { ok: true, id, title: 'Recalled', msg: `${id} recalled from ${humanStage(info.fromStage)} — back with ${humanStage(toStage)} for re-review.` };
+}
+// Notify the step it was pulled back FROM + the requester (cost-free). Office admin is CC'd on all mail.
+async function notifyRecall(rec, info, byEmail, baseUrl) {
+  const id = rec[COL.ID];
+  const fromWho = info.fromStage === 'forex' ? CONFIG.FOREX_OFFICER : (info.fromStage === 'arrange' ? CONFIG.ADMIN_TEAM : approverEmailFor(info.fromStage, rec));
+  if (fromWho) {
+    await sendEmail({ to: fromWho, subject: `[Recalled] ${id} — pulled back from ${humanStage(info.fromStage)}`,
+      html: emailShell({ title: 'A request was recalled ↩', subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: `Pulled back to ${humanStage(info.toStage)} for re-review`, statusColor: '#B45309',
+        body: `<p style="color:#3D506A;margin:0;">Travel request <b>${id}</b>${rec[COL.NAME] ? ` for <b>${rec[COL.NAME]}</b>` : ''} that was awaiting your action was <b>recalled</b> by <b>${String(byEmail || '')}</b> and sent back to the ${humanStage(info.toStage)} step. No action is needed from you for now — it will come back to you if re-approved.</p>` }) });
+  }
+  const reqTo = requesterEmail(rec);
+  if (reqTo) {
+    await sendEmail({ to: reqTo, subject: `Travel Request ${id} — pulled back for re-review`,
+      html: emailShell({ title: 'Request pulled back for re-review ↩', subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: `Now back with ${humanStage(info.toStage)}`, statusColor: '#B45309',
+        body: `<p style="color:#3D506A;margin:0;">Heads-up: your travel request <b>${id}</b> was pulled back to the <b>${humanStage(info.toStage)}</b> step for another review. No action is needed from you — you'll be notified as it progresses again.</p>` }) });
+  }
+}
+
 // Delegate the CURRENT approval of a request to a colleague (OOO cover). The delegate gets
 // the approve/reject email and gains dashboard rights for this record's current stage.
 export async function delegateRequest({ id, to, email, roles }, baseUrl) {
@@ -743,6 +832,12 @@ export async function approverData({ email, roles }) {
     if (!relevant) continue;
     const stage = String(rec[COL.STAGE]);
     const awaitingMe = stage === myStage;
+    // Recallable: I approved my step and it's now sitting at the very next step, still pending there
+    // (once that person acts, the record advances and this window closes).
+    const _chain = chainFor(rec[COL.TYPE], broken, ceoIsRequester(rec));
+    const _mi = _chain.indexOf(myStage);
+    const _next = _mi !== -1 ? ((_mi + 1 < _chain.length) ? _chain[_mi + 1] : 'arrange') : null;
+    const recallable = !!_next && stage === _next;
     const held = awaitingMe && !!rec[COL.HOLD];
     const cur = String(rec[COL.CURRENCY] || 'INR');
     const total = Number(rec[COL.C_TOTAL] || 0);
@@ -770,6 +865,7 @@ export async function approverData({ email, roles }) {
       canApproveReimburse: amHOD && String(rec[COL.ACTUALS_STATUS]) === 'Submitted',
       stage, status: rec[COL.STATUS], myStage, ...paxInfo(rec),
       pending: awaitingMe && !held, held,
+      recallable, recallFrom: humanStage(stage), recallTo: humanStage(myStage),
       decision: myDec, decisionDate: myTime, comments: rec[COL.COMMENTS] || '',
     });
   }
@@ -1362,6 +1458,8 @@ export async function adminData() {
       status: r[COL.STATUS], adminStatus: r[COL.ADMIN] || 'Pending',
       upcoming: ['dept', 'ceo', 'finance', 'clarify'].includes(String(r[COL.STAGE])),
       approval: approvalProgress(r), pendingClarify: String(r[COL.STAGE]) === 'clarify',
+      // Admin can recall a request they've handed to the Forex officer, while the card isn't issued yet.
+      recallable: String(r[COL.STAGE]) === 'forex', recallFrom: 'Forex officer', recallTo: 'Admin (booking)',
       route2: (r[COL.FROM] + ' → ' + r[COL.TO]), flag: String(r[COL.FLAG] || ''), breakdown: costBreakdown(r),
       prefFlightDoc: r[COL.PREF_FLIGHT_DOC] || '', prefFlightNotes: r[COL.PREF_FLIGHT_NOTES] || '',
       ...itineraryFor(r), bookings: parseJSON(r[COL.BOOKINGS], { flights: [], hotels: [] }) || { flights: [], hotels: [] },
@@ -1544,6 +1642,8 @@ export async function forexData() {
     route: (r[COL.FROM] + ' → ' + r[COL.TO]), flag: String(r[COL.FLAG] || ''), breakdown: costBreakdown(r),
     done: !!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(String(r[COL.STATUS])), forexIssueDate: fmtDate(r[COL.FOREX_ISSUE_DATE]),
     upcoming: (String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0) && !(!!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(String(r[COL.STATUS]))) && !['forex', 'done', 'rejected', 'withdrawn', 'scrapped'].includes(String(r[COL.STAGE])),
+    // Forex can send a pending (not-yet-issued) request back to Admin to redo the booking.
+    recallable: String(r[COL.STAGE]) === 'forex' && !(!!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(String(r[COL.STATUS]))),
     forexBase: Number(r[COL.FOREX] || 0),
     topups: (parseJSON(r[COL.FOREX_TOPUPS], []) || []).map((t) => ({ amount: Number(t.amount) || 0, note: t.note || '', by: t.by || '', date: fmtDate(t.date) })),
     forexTotal: Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0),

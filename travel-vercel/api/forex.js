@@ -1,5 +1,5 @@
 import { requireRole, getSession, baseUrl } from '../lib/auth.js';
-import { forexData, saveForexConfirm, completeForex, saveForexTopup } from '../lib/workflow.js';
+import { forexData, saveForexConfirm, completeForex, saveForexTopup, recallRequest } from '../lib/workflow.js';
 import { findById } from '../lib/sheets.js';
 import { buildForexLetter, forexLetterFilename } from '../lib/forexletter.js';
 import { applyRoleOverrides } from '../lib/rolesstore.js';
@@ -34,6 +34,7 @@ export default async function handler(req, res) {
       if (b.action === 'confirm') { res.status(200).json(await saveForexConfirm(b.id, b.confirmDoc)); return; }
       if (b.action === 'topup') { const s = getSession(req); res.status(200).json(await saveForexTopup(b.id, b.amount, b.note, s && s.email)); return; }
       if (b.action === 'complete') { res.status(200).json(await completeForex(b.id, baseUrl(req))); return; }
+      if (b.action === 'recall') { const s = getSession(req); res.status(200).json(await recallRequest({ id: b.id, email: s && s.email, roles: (s && s.roles) || [] }, baseUrl(req))); return; }
       throw new Error('unknown action');
     }
     res.status(200).json(await forexData());

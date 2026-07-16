@@ -40,7 +40,7 @@ tr:hover td{background:var(--gray-1);}
 .brk-yes{cursor:pointer;color:var(--red2);font-weight:800;border-bottom:1px dashed var(--red2);white-space:nowrap;}.brk-no{color:var(--green);font-weight:700;}
 .cmt{font-size:10px;color:var(--sky);cursor:pointer;margin-top:3px;display:inline-block;}
 .btn{border:none;border-radius:7px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;}
-.btn-ap{background:var(--green);color:#fff;}.btn-rj{background:var(--red2);color:#fff;}.btn-hold{background:#7C3AED;color:#fff;}.btn-dg{background:#fff;color:var(--sky);border:1px solid #B3D7F5;}.btn-cl{background:#fff;color:#B45309;border:1px solid #FDE68A;}
+.btn-ap{background:var(--green);color:#fff;}.btn-rj{background:var(--red2);color:#fff;}.btn-hold{background:#7C3AED;color:#fff;}.btn-dg{background:#fff;color:var(--sky);border:1px solid #B3D7F5;}.btn-cl{background:#fff;color:#B45309;border:1px solid #FDE68A;}.btn-rc{background:#FFF7E6;color:#B45309;border:1px solid #F59E0B;}
 .empty,.loading{padding:50px;text-align:center;color:var(--gray-5);}
 .hidden{display:none!important;}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;}
@@ -88,6 +88,7 @@ tr:hover td{background:var(--gray-1);}
       <span class="chip active" data-f="pending" onclick="setFilter('pending')">Awaiting me</span>
       <span class="chip" data-f="hold" onclick="setFilter('hold')">On Hold</span>
       <span class="chip" data-f="decided" onclick="setFilter('decided')">Decided</span>
+      <span class="chip" data-f="recallable" onclick="setFilter('recallable')">↩ Recallable</span>
       <span class="chip" data-f="all" onclick="setFilter('all')">All</span>
     </div>
   </div>
@@ -147,6 +148,7 @@ function filtered(){
     if(FILTER==='pending') return r.pending;
     if(FILTER==='hold') return r.held;
     if(FILTER==='decided') return !!r.decision && !r.pending && !r.held;
+    if(FILTER==='recallable') return r.recallable;
     return true;
   });
 }
@@ -170,6 +172,7 @@ function row(r,i){
        +'<button class="btn btn-dg" onclick="delegate(\''+esc(r.id)+'\')">Delegate</button>';
   } else {
     act=/reject/i.test(r.decision)?'<span class="st rejected">Rejected</span>':(/approv/i.test(r.decision)?'<span class="st approved">Approved'+(r.decisionDate?' · '+esc(r.decisionDate):'')+'</span>':'<span class="muted">—</span>');
+    if(r.recallable) act+='<div style="margin-top:5px;"><button class="btn btn-rc" title="Pull this request back to your step for re-review — only works until '+esc(r.recallFrom)+' actions it" onclick="recall(\''+esc(r.id)+'\',\''+esc(r.recallFrom)+'\')">↩ Recall</button></div>';
   }
   var cmt=r.comments?'<div class="cmt" onclick="openCost('+i+')">💬 remarks</div>':'';
   return '<tr>'
@@ -250,6 +253,13 @@ function delegate(id){
     .then(function(r){return r.json();})
     .then(function(res){ if(res&&res.ok){ toast(res.msg||('Delegated '+id)); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
     .catch(function(){ toast('Error'); });
+}
+function recall(id,from){
+  if(!confirm('Recall '+id+' back to your step for re-review?\n\nThis pulls it back from '+(from||'the next step')+' and reopens your decision. It only works if they haven\'t actioned it yet — everyone involved is notified.')) return;
+  fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'recall',id:id})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast(res.msg||('Recalled '+id)); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(){ toast('Error recalling'); });
 }
 var toastT;
 function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove('show');},2600); }

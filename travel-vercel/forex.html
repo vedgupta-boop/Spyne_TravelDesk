@@ -239,7 +239,15 @@ function actions(r){
     +topupBlock(r)
     +'<div class="act-row">'
       +'<button class="btn btn-done" onclick="markComplete(\''+esc(r.id)+'\')">✓ Mark Completed</button>'
+      +(r.recallable?'<button class="btn" style="background:#FFF7E6;color:#B45309;border:1px solid #F59E0B;" onclick="recallFx(\''+esc(r.id)+'\')" title="Send this back to Admin to redo the booking — only before the card is issued">↩ Send back to Admin</button>':'')
     +'</div>';
+}
+function recallFx(id){
+  if(!confirm('Send '+id+' back to Admin to redo the booking?\n\nThis only works before the forex card is issued. Everyone involved is notified.')) return;
+  fetch('/api/forex',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'recall'})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast(res.msg||('Sent back '+id)); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(){ toast('Error'); });
 }
 function addTopup(id){
   var amt=document.getElementById('tu-'+id).value, note=document.getElementById('tn-'+id).value, st=document.getElementById('tust-'+id);

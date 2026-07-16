@@ -1,4 +1,4 @@
-import { approverData, approverDecision, delegateRequest, approveReimbursement, requestClarification } from '../lib/workflow.js';
+import { approverData, approverDecision, delegateRequest, approveReimbursement, requestClarification, recallRequest } from '../lib/workflow.js';
 import { isApprover } from '../lib/config.js';
 import { getSession, baseUrl } from '../lib/auth.js';
 import { applyRoleOverrides } from '../lib/rolesstore.js';
@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       if (b.action === 'delegate') { res.status(200).json(await delegateRequest({ id: b.id, to: b.to, email: s.email, roles: s.roles }, baseUrl(req))); return; }
       if (b.action === 'reimburse') { res.status(200).json(await approveReimbursement(b.id, s.email, s.roles)); return; }
       if (b.action === 'clarify') { res.status(200).json(await requestClarification({ id: b.id, comment: b.comment, email: s.email, roles: s.roles }, baseUrl(req))); return; }
+      if (b.action === 'recall') { res.status(200).json(await recallRequest({ id: b.id, email: s.email, roles: s.roles }, baseUrl(req))); return; }
       res.status(200).json(await approverDecision({ id: b.id, decision: b.decision, comment: b.comment, email: s.email, roles: s.roles }, baseUrl(req)));
     } catch (err) {
       console.error('approver decision error:', err);

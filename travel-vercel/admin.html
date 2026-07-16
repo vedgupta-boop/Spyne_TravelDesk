@@ -266,6 +266,9 @@ function actions(r,done){
     flights.forEach(function(leg,i){ var b=(bk.flights||[])[i]||{}; h+='<div class="hint">✈️ '+esc(leg.label)+': '+esc((b.airline?b.airline+' · ':'')+(b.info||'—'))+(leg.timeLabel?' · 🕒 '+esc(leg.timeLabel):'')+(b.doc?' <a class="lnk" href="'+esc(b.doc)+'" target="_blank">📎</a>':'')+'</div>'; });
     hotels.forEach(function(leg,i){ var b=(bk.hotels||[])[i]||{}; h+='<div class="hint">🏨 '+esc(leg.label)+': '+esc(b.info||'—')+(b.doc?' <a class="lnk" href="'+esc(b.doc)+'" target="_blank">📎</a>':'')+'</div>'; });
     h+=(r.isForex?'<div class="hint" style="color:var(--green);">→ Routed to Forex (Jasvinder)</div>':'<div class="hint ok">✓ Completed</div>');
+    if(r.recallable){
+      h+='<div class="act-row" style="margin-top:8px;"><button class="btn btn-clear" style="border-color:#F59E0B;color:#B45309;" onclick="recallAdm(\''+esc(r.id)+'\')" title="Pull this back from the Forex officer to redo the booking — only works until the card is issued">↩ Recall from Forex</button></div>';
+    }
     // Manual route to Forex for international trips that weren't auto-routed (forex toggle missed at submit).
     if(r.type==='international' && !/forex|jasvinder|issued/i.test(r.status||'')){
       h+='<div class="act-row" style="margin-top:8px;"><button class="btn btn-book" onclick="sendForex(\''+esc(r.id)+'\')">💱 Send to Forex officer</button></div>';
@@ -378,6 +381,13 @@ function mark(id,status){
       if(res && res.ok){ toast(id+' → '+status); var row=(DATA.rows||[]).find(function(x){return x.id===id;}); if(row) row.adminStatus=status; renderKpis(); render(); }
       else toast('Error: '+((res&&res.error)||'failed'));
     }).catch(function(e){ toast('Error: '+(e.message||e)); });
+}
+function recallAdm(id){
+  if(!confirm('Recall '+id+' back from the Forex officer to redo the booking?\n\nThis only works while the forex card hasn\'t been issued yet. Everyone involved is notified.')) return;
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'recall'})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast(res.msg||('Recalled '+id)); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(e){ toast('Error: '+(e.message||e)); });
 }
 function sendForex(id){
   if(!confirm('Send '+id+' to the Forex officer (Jasvinder)? They’ll be emailed and it will appear on the Forex dashboard.')) return;
