@@ -375,6 +375,11 @@ function saveBk(id){
     .catch(function(){ toast('Error saving bookings'); });
 }
 function mark(id,status){
+  if(/done|booked|arranged|complete/i.test(status)){
+    var r=(DATA.rows||[]).find(function(x){return x.id===id;})||{}; var bk=r.bookings||{flights:[],hotels:[]};
+    var hasDoc=(bk.flights||[]).some(function(f){return f&&f.doc;})||(bk.hotels||[]).some(function(h){return h&&h.doc;});
+    if(!hasDoc){ toast('Attach the flight ticket / hotel voucher and click “Save Bookings” before marking completed.'); return; }
+  }
   fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,status:status})})
     .then(function(r){ return r.json(); })
     .then(function(res){

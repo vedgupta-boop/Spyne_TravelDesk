@@ -1518,10 +1518,17 @@ export async function setAdminStatus(id, status, baseUrl) {
   if (!rec) throw new Error('Request not found: ' + id);
   const completing = /done|booked|arranged|complete/i.test(status);
   const isForex = String(rec[COL.TYPE]) === 'international' && Number(rec[COL.FOREX] || 0) > 0;
-  // Forex card issuance is triggered only AFTER the ticket is uploaded — block completing an
-  // international/forex booking until the flight ticket/e-ticket is attached (Admin uploads it first).
-  if (completing && isForex && !rec[COL.DOC_TICKET]) {
-    return { ok: false, error: 'Upload the flight ticket/e-ticket first (Save bookings), then mark complete — the Forex officer needs it before issuing the card.' };
+  // Booking documents are mandatory: a completed booking must have the ticket / voucher attached.
+  if (completing) {
+    const bk = parseJSON(rec[COL.BOOKINGS], { flights: [], hotels: [] }) || { flights: [], hotels: [] };
+    const hasAnyDoc = !!rec[COL.DOC_TICKET] || (bk.flights || []).some((f) => f && f.doc) || (bk.hotels || []).some((h) => h && h.doc);
+    // Forex trips specifically need the flight ticket (the Forex officer needs it to issue the card).
+    if (isForex && !rec[COL.DOC_TICKET]) {
+      return { ok: false, error: 'Upload the flight ticket/e-ticket first (Save bookings), then mark complete — the Forex officer needs it before issuing the card.' };
+    }
+    if (!hasAnyDoc) {
+      return { ok: false, error: 'Attach the flight ticket / hotel voucher (upload it and Save bookings) before marking the booking completed.' };
+    }
   }
   const updates = [[COL.ADMIN, status]];
   if (completing) updates.push([COL.BOOKING_DATE, new Date().toISOString()]);
@@ -1682,6 +1689,8 @@ export async function saveForexTopup(id, amount, note, byEmail) {
 export async function completeForex(id, baseUrl) {
   const rec = await findById(id);
   if (!rec) throw new Error('Request not found: ' + id);
+  // Forex confirmation is mandatory — the card can't be marked issued without the uploaded confirmation.
+  if (!rec[COL.DOC_FOREX_CONFIRM]) return { ok: false, error: 'Upload the forex confirmation (bank/card confirmation) before marking the card issued.' };
   await updateCells(rec.__row, [[COL.STAGE, 'done'], [COL.STATUS, 'Completed — Forex card issued'], [COL.FOREX_ISSUE_DATE, new Date().toISOString()]]);
   if (CONFIG.CC_REQUESTER_ON_UPDATES && rec[COL.EMAIL]) {
     const link = (baseUrl || '') + '/my?forexcard=' + encodeURIComponent(id);

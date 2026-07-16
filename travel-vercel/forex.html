@@ -275,6 +275,8 @@ function uploadConfirm(id){
   reader.readAsDataURL(f);
 }
 function markComplete(id){
+  var r=(DATA.rows||[]).find(function(x){return x.id===id;})||{};
+  if(!r.docForexConfirm){ toast('Upload the forex confirmation first — it’s required before marking the card issued.'); return; }
   if(!confirm('Mark forex card issued and complete '+id+'?')) return;
   fetch('/api/forex',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'complete'})})
     .then(function(r){return r.json();})
