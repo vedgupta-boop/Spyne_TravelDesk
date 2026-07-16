@@ -237,10 +237,10 @@ export const AUTH = {
   ALLOWED_DOMAIN: process.env.ALLOWED_DOMAIN || CONFIG.COMPANY_DOMAIN,
   FINANCE_EMAILS: emailList(process.env.FINANCE_EMAILS, `${CONFIG.FINANCE_SPOC},finance.head@spyne.ai`),
   ADMIN_EMAILS:   emailList(process.env.ADMIN_EMAILS, CONFIG.ADMIN_TEAM + ',bhavesh.singla@spyne.ai'), // Admins: Shankul + Bhavesh (override via ADMIN_EMAILS env or the Roles panel)
-  FOREX_EMAILS:   emailList(process.env.FOREX_EMAILS, 'jasvinder@spyne.ai'), // Forex Card officer(s)
+  FOREX_EMAILS:   emailList(process.env.FOREX_EMAILS, 'jasvinder.singh@spyne.ai'), // Forex Card officer(s)
 };
 // Forex officer who receives the card-issuance task after booking.
-CONFIG.FOREX_OFFICER = AUTH.FOREX_EMAILS[0] || 'jasvinder@spyne.ai';
+CONFIG.FOREX_OFFICER = AUTH.FOREX_EMAILS[0] || 'jasvinder.singh@spyne.ai';
 
 // Heads of department — anyone whose email is a department head gets the 'hod' role.
 let HOD_EMAILS = Object.values(CONFIG.DEPARTMENTS).map((d) => String(d.email).toLowerCase());
