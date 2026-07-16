@@ -165,6 +165,7 @@ const ADMIN = { rows: [
     type: 'domestic', trip: 'Round trip', route: 'Pune → Hyderabad', route2: 'Pune → Hyderabad', start: '10 Aug 2026', end: '12 Aug 2026',
     days: 3, nights: 2, mode: 'Flight (Economy)', currency: 'INR', hotelReq: 'Yes', hotelRate: 3000, hotelNights: 2,
     total: 23800, forex: 0, notes: 'Completed booking (kept for Done tab)', isForex: false, ticketInfo: 'AI505, 10 Aug 2026, PNR PQR789', docTicket: '#doc', adminStatus: 'Completed', status: 'Completed',
+    recallable: true, recallFrom: 'the completed booking', recallTo: 'Admin (booking)',
     flag: 'Within policy', breakdown: { transport: 9000, mode: 'Flight (Economy)', local: 5800, hotel: 6000, hotelRate: 3000, hotelNights: 2, meals: 2400, mealRate: 800, other: 0, forex: 0, days: 3, nights: 2 },
     flights: [ { label: 'Outbound', from: 'Pune', to: 'Hyderabad', date: '10 Aug 2026' }, { label: 'Return', from: 'Hyderabad', to: 'Pune', date: '12 Aug 2026' } ],
     hotels: [ { label: 'Stay (destination)', city: 'Hyderabad', checkIn: '10 Aug 2026', checkOut: '12 Aug 2026', nights: 2 } ],
