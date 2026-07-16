@@ -43,7 +43,12 @@ tr:hover td{background:var(--gray-1);}
 .hidden{display:none!important;}
 .loading{padding:60px;text-align:center;color:var(--gray-5);}
 /* action cell */
-.act-cell{white-space:normal;min-width:340px;}
+.act-cell{white-space:normal;min-width:150px;}
+.main-row{cursor:pointer;}
+.main-row:hover>td{background:#F1F5F9;}
+.cev{display:inline-block;color:#64748B;font-weight:800;margin-right:2px;}
+.det-cell{background:#F8FAFC;padding:0;border-bottom:2px solid var(--gray-3);}
+.det-inner{position:sticky;left:0;max-width:1100px;padding:14px 18px;box-sizing:border-box;}
 .act-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
 .tkt-in{flex:1;min-width:150px;padding:6px 9px;border:1.5px solid var(--gray-3);border-radius:7px;font-size:12px;font-family:inherit;}
 .btn{border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;}
@@ -169,8 +174,8 @@ function row(r,i){
   var b=r.breakdown||{};
   var hotelTxt = (b.hotel>0) ? (fmt(r.currency,b.hotelRate)+'/n × '+(b.hotelNights||0)) : 'Not required';
   var bookEst = (b.transport||0)+(b.hotel||0);
-  return '<tr>'
-    +'<td class="r muted">'+(i+1)+'</td>'
+  return '<tr class="main-row" onclick="toggleDetail('+i+')">'
+    +'<td class="r muted"><span class="cev" id="cev-'+i+'">▸</span> '+(i+1)+'</td>'
     +'<td class="id">'+esc(r.id)+'</td>'
     +'<td>'+esc(r.name)+(r.pax>1?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">+'+(r.pax-1)+' pax</span>':'')+'<div class="muted" style="font-size:11px;">'+esc(r.email)+'</div>'+(r.pax>1?'<div class="muted" style="font-size:10px;">👥 '+esc((r.passengers||[]).join(', '))+'</div>':'')+'</td>'
     +'<td class="muted">'+esc(r.dept)+'</td>'
@@ -184,8 +189,16 @@ function row(r,i){
     +'<td class="r amt">'+fmt(r.currency,b.hotel)+'</td>'
     +'<td class="r amt total">'+fmt(r.currency,bookEst)+'</td>'
     +'<td><span class="st '+(done?'done':'pending')+'">'+esc(done?'Done':(r.adminStatus||'Pending'))+'</span></td>'
-    +'<td class="act-cell">'+actions(r,done)+'</td>'
-  +'</tr>';
+    +'<td class="act-cell"><button type="button" class="btn btn-clear det-btn" id="detbtn-'+i+'" onclick="event.stopPropagation();toggleDetail('+i+')">🔎 View details</button></td>'
+  +'</tr>'
+  +'<tr class="det-row hidden" id="det-'+i+'"><td colspan="15" class="det-cell"><div class="det-inner">'+actions(r,done)+'</div></td></tr>';
+}
+function toggleDetail(i){
+  var row=document.getElementById('det-'+i), btn=document.getElementById('detbtn-'+i), cev=document.getElementById('cev-'+i);
+  if(!row) return;
+  var nowHidden=row.classList.toggle('hidden');
+  if(btn) btn.innerHTML = nowHidden ? '🔎 View details' : '▴ Hide details';
+  if(cev) cev.textContent = nowHidden ? '▸' : '▾';
 }
 var UP={}; // upload cache: UP[id] = { f:{idx:link}, h:{idx:link} }
 function legLabel(kind,leg){

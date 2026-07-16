@@ -42,7 +42,13 @@ tr:hover td{background:var(--gray-1);}
 .docs-cell{white-space:normal;min-width:230px;}
 .docs-cell a{color:var(--sky);font-size:11.5px;margin-right:10px;white-space:nowrap;}
 .docs-cell span{color:var(--gray-5);font-size:11.5px;margin-right:10px;}
-.act-cell{white-space:normal;min-width:300px;}
+.act-cell{white-space:normal;min-width:150px;}
+.main-row{cursor:pointer;}
+.main-row:hover>td{background:#F1F5F9;}
+.cev{display:inline-block;color:#64748B;font-weight:800;margin-right:2px;}
+.det-cell{background:#F8FAFC;padding:0;border-bottom:2px solid var(--gray-3);}
+.det-inner{position:sticky;left:0;max-width:1100px;padding:14px 18px;box-sizing:border-box;}
+.det-h{font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
 .act-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
 .btn{border:none;border-radius:7px;padding:6px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;}
 .btn-letter{background:var(--navy);color:#fff;}.btn-done{background:var(--green);color:#fff;}.btn[disabled]{opacity:.45;cursor:default;}
@@ -163,8 +169,8 @@ function row(r,i){
   if(r.docTicket && !fl.some(function(f){return f&&f.doc===r.docTicket;})) docs+=docLink('Air Ticket',r.docTicket);
   docs+=docLink('Forex Confirmation',r.docForexConfirm);
   if(r.docForexCard) docs+=docLink('Forex card (back)',r.docForexCard);
-  return '<tr>'
-    +'<td class="r muted">'+(i+1)+'</td>'
+  return '<tr class="main-row" onclick="toggleDetail('+i+')">'
+    +'<td class="r muted"><span class="cev" id="cev-'+i+'">▸</span> '+(i+1)+'</td>'
     +'<td class="id">'+esc(r.id)+'</td>'
     +'<td>'+esc(r.name)+'<div class="muted" style="font-size:11px;">'+esc(r.email)+'</div></td>'
     +'<td class="muted">'+esc(r.dept)+'</td>'
@@ -182,8 +188,19 @@ function row(r,i){
     +'<td class="muted" style="white-space:normal;min-width:140px;">'+esc(r.ticketInfo||'—')+'</td>'
     +'<td class="docs-cell">'+docs+'</td>'
     +'<td>'+(r.done?'<span class="st done">Card issued'+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</span>':'<span class="st pending">Card pending</span>')+'</td>'
-    +'<td class="act-cell">'+actions(r)+'</td>'
-  +'</tr>';
+    +'<td class="act-cell"><button type="button" class="btn btn-letter det-btn" id="detbtn-'+i+'" onclick="event.stopPropagation();toggleDetail('+i+')">🔎 View details</button></td>'
+  +'</tr>'
+  +'<tr class="det-row hidden" id="det-'+i+'"><td colspan="19" class="det-cell"><div class="det-inner">'
+    +'<div class="det-h">📎 Documents &amp; tickets</div><div class="docs-cell" style="min-width:0;">'+(docs||'<span class="hint">None uploaded</span>')+'</div>'
+    +'<div class="det-h" style="margin-top:14px;">⚙️ Actions</div>'+actions(r)
+  +'</div></td></tr>';
+}
+function toggleDetail(i){
+  var row=document.getElementById('det-'+i), btn=document.getElementById('detbtn-'+i), cev=document.getElementById('cev-'+i);
+  if(!row) return;
+  var nowHidden=row.classList.toggle('hidden');
+  if(btn) btn.innerHTML = nowHidden ? '🔎 View details' : '▴ Hide details';
+  if(cev) cev.textContent = nowHidden ? '▸' : '▾';
 }
 function topupBlock(r){
   var list=(r.topups||[]).map(function(t){return '<div class="hint">+ '+fmt('USD',t.amount)+(t.note?' ('+esc(t.note)+')':'')+' · '+esc(t.by)+' · '+esc(t.date)+'</div>';}).join('');
