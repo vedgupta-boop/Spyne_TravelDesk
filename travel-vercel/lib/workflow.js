@@ -79,12 +79,17 @@ function approvalProgress(rec) {
 function stageLabel(stage) {
   return { dept: 'Department Head', ceo: 'CEO', finance: 'Finance SPOC', admin: 'Admin' }[stage] || stage;
 }
+// Every admin (role holder) — admin arrangement/reminder emails go to ALL admins, not just the first.
+function adminTo() {
+  const list = (AUTH.ADMIN_EMAILS || []).filter(Boolean);
+  return list.length ? list.join(',') : CONFIG.ADMIN_TEAM;
+}
 function approverEmailFor(stage, rec) {
   if (rec[COL.DELEGATE_EMAIL]) return rec[COL.DELEGATE_EMAIL]; // OOO delegation overrides the default approver for this stage
   if (stage === 'dept')    return deptHeadIsRequester(rec) ? CONFIG.CEO_EMAIL : (rec[COL.HOD] || CONFIG.FINANCE_SPOC); // dept head's own trip → CEO approves
   if (stage === 'ceo')     return CONFIG.CEO_EMAIL;
   if (stage === 'finance') return CONFIG.FINANCE_SPOC;
-  return CONFIG.ADMIN_TEAM;
+  return adminTo();
 }
 // Next APPROVAL stage, or null if the current stage was the last approval.
 function nextStage(type, current, broken, ceoReq) {
@@ -361,7 +366,7 @@ function ownerForStage(rec, stage) {
   if (stage === 'dept') return rec[COL.DELEGATE_EMAIL] || rec[COL.HOD] || CONFIG.FINANCE_SPOC;
   if (stage === 'ceo') return CONFIG.CEO_EMAIL;
   if (stage === 'finance') return CONFIG.FINANCE_SPOC;
-  if (stage === 'arrange' || stage === 'admin') return CONFIG.ADMIN_TEAM;
+  if (stage === 'arrange' || stage === 'admin') return adminTo();
   if (stage === 'forex') return CONFIG.FOREX_OFFICER;
   return '';
 }
@@ -576,7 +581,7 @@ async function applyDecision(rec, stage, decision, baseUrl) {
   const reqTo = requesterEmail(rec);
   // Admin gets the full cost breakdown; the requester is NOT CC'd here (travellers must not see the
   // estimated cost) — they get the separate cost-free "APPROVED" note below instead.
-  await sendEmail({ to: CONFIG.ADMIN_TEAM, subject: `[Approved — for arrangements] ${id} (${rec[COL.NAME]})`,
+  await sendEmail({ to: adminTo(), subject: `[Approved — for arrangements] ${id} (${rec[COL.NAME]})`,
     html: adminEmailHtml(rec, baseUrl) });
   // Advance heads-up to the Forex officer for approved international trips that will need a forex card,
   // so they can prepare in advance (the formal issue request still comes later, after Admin books).
@@ -1784,7 +1789,7 @@ function advanceReminderEmailHtml(rec, link, overdue, dueLabel, advLabel) {
 // deliberately NOT CC'd, because reminder emails carry the cost breakdown and travellers must not
 // see the estimated cost. The requester tracks status on their My Requests page instead.
 function reminderCc(rec, to, extra) {
-  const list = [CONFIG.ADMIN_TEAM].concat(extra || [])
+  const list = (AUTH.ADMIN_EMAILS || [CONFIG.ADMIN_TEAM]).concat(extra || [])
     .map((x) => String(x || '').trim().toLowerCase())
     .filter(Boolean);
   const t = String(to || '').trim().toLowerCase();
@@ -1830,8 +1835,8 @@ export async function sendReminders(baseUrl) {
     if (stage === 'dept')         { since = rec[COL.TS];                                                          to = rec[COL.HOD] || CONFIG.FINANCE_SPOC; label = 'HOD'; }
     else if (stage === 'ceo')     { since = rec[COL.CEO_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS];               to = CONFIG.CEO_EMAIL;    label = 'CEO'; }
     else if (stage === 'finance') { since = rec[COL.FIN_TIME] || rec[COL.CEO_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS]; to = CONFIG.FINANCE_SPOC; label = 'Finance'; }
-    else if (stage === 'admin')   { since = rec[COL.FIN_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS];               to = CONFIG.ADMIN_TEAM;   label = 'Admin'; }
-    else if (stage === 'arrange') { since = rec[COL.FIN_TIME] || rec[COL.CEO_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS]; to = CONFIG.ADMIN_TEAM; label = 'Admin — Booking & Arrangements'; kind = 'task'; link = base + '/admin'; }
+    else if (stage === 'admin')   { since = rec[COL.FIN_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS];               to = adminTo();   label = 'Admin'; }
+    else if (stage === 'arrange') { since = rec[COL.FIN_TIME] || rec[COL.CEO_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS]; to = adminTo(); label = 'Admin — Booking & Arrangements'; kind = 'task'; link = base + '/admin'; }
     else if (stage === 'forex')   { since = rec[COL.BOOKING_DATE] || rec[COL.TS];                                 to = CONFIG.FOREX_OFFICER; label = 'Forex Card Issuance'; kind = 'task'; link = base + '/forex'; }
     else continue;
 
