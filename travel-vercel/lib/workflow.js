@@ -712,8 +712,10 @@ function ownsStage(rec, email, roles, stage) {
 function canRecall(rec, email, roles) {
   const info = recallInfo(rec);
   if (!info) return null;
-  const allowed = ownsStage(rec, email, roles, info.ownerStage) ||
-    (info.fromStage === 'forex' && (roles || []).includes('forex'));
+  const r = roles || [];
+  const allowed = r.includes('finance') || // Finance is the app-wide superuser (can act on any dashboard)
+    ownsStage(rec, email, r, info.ownerStage) ||
+    (info.fromStage === 'forex' && r.includes('forex'));
   return allowed ? info : null;
 }
 // Recall a request back to the recaller's step for re-review (reopen their decision). Everything is
