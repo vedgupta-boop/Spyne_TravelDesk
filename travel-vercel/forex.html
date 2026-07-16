@@ -73,7 +73,8 @@ tr:hover td{background:var(--gray-1);}
   <div id="kpi" class="kpi"><div class="lb">Pending Forex Cards</div><div class="num" id="kpi-num">—</div></div>
   <div class="bar"><div class="title">Forex Card Issuance</div>
     <div class="filters" id="filters">
-      <span class="chip active" data-f="pending" onclick="setFilter('pending')">Pending</span>
+      <span class="chip active" data-f="pending" onclick="setFilter('pending')">Pending (new card)</span>
+      <span class="chip" data-f="existing" onclick="setFilter('existing')">💳 Existing card (load only)</span>
       <span class="chip" data-f="upcoming" onclick="setFilter('upcoming')">⏳ Upcoming</span>
       <span class="chip" data-f="done" onclick="setFilter('done')">Done</span>
       <span class="chip" data-f="all" onclick="setFilter('all')">All</span>
@@ -134,7 +135,7 @@ function onData(d){
   updateKpi(); render();
 }
 function updateKpi(){
-  var pending=(DATA.rows||[]).filter(function(r){return !r.done && !r.upcoming;}).length;
+  var pending=(DATA.rows||[]).filter(function(r){return !r.done && !r.upcoming && !r.existingCard;}).length;
   document.getElementById('kpi-num').textContent=pending;
 }
 function setFilter(f){
@@ -147,7 +148,8 @@ function filteredRows(){
     if(FILTER==='all') return true;
     if(FILTER==='done') return r.done;
     if(FILTER==='upcoming') return r.upcoming;
-    return !r.done && !r.upcoming; // 'pending' = ready to issue now
+    if(FILTER==='existing') return r.existingCard && !r.done && !r.upcoming;
+    return !r.done && !r.upcoming && !r.existingCard; // 'pending' = new-card, ready to issue
   });
 }
 function docLink(label,url){ return url ? '<a href="'+esc(url)+'" target="_blank">📎 '+label+'</a>' : '<span>'+label+': —</span>'; }
@@ -193,7 +195,7 @@ function row(r,i){
     +'<td class="r fx-amt">'+fmt('USD',(r.forexTotal!=null?r.forexTotal:(b.forex||r.forex||0)))+((r.topups||[]).length?'<div class="muted" style="font-size:10px;">base '+fmt('USD',r.forexBase||b.forex||r.forex||0)+' + '+(r.topups||[]).length+' top-up'+((r.topups||[]).length>1?'s':'')+'</div>':'')+'</td>'
     +'<td class="muted" style="white-space:normal;min-width:140px;">'+esc(r.ticketInfo||'—')+'</td>'
     +'<td class="docs-cell">'+docs+'</td>'
-    +'<td>'+(r.done?'<span class="st done">Card issued'+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</span>':(r.upcoming?'<span class="st" style="background:#EDE9FE;color:#5B21B6;">⏳ Upcoming</span>':'<span class="st pending">Card pending</span>'))+'</td>'
+    +'<td>'+(r.done?'<span class="st done">'+(r.existingCard?'Amount loaded':'Card issued')+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</span>':(r.upcoming?'<span class="st" style="background:#EDE9FE;color:#5B21B6;">⏳ Upcoming</span>':(r.existingCard?'<span class="st" style="background:#E0F2FE;color:#075985;">💳 Load amount</span>':'<span class="st pending">Card pending</span>')))+'</td>'
     +'<td class="act-cell"><button type="button" class="btn btn-letter det-btn" id="detbtn-'+i+'" onclick="event.stopPropagation();toggleDetail('+i+')">🔎 View details</button></td>'
   +'</tr>'
   +'<tr class="det-row hidden" id="det-'+i+'"><td colspan="19" class="det-cell"><div class="det-inner">'
@@ -225,20 +227,21 @@ function actions(r){
     return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">⏳ <b>Not ready to issue yet.</b> Current status: <b>'+esc(r.status||'in progress')+'</b>. The formal issue request arrives once Admin finishes booking. This is early notice so you can prepare KYC / any extra paperwork in advance.</div>';
   }
   var letter='<div class="act-row"><a class="btn btn-letter" href="/api/forex?download=letter&id='+encodeURIComponent(r.id)+'">⬇ Forex Letter</a></div>';
+  var exNote=r.existingCard?'<div style="background:#E0F2FE;border:1px solid #7DD3FC;color:#075985;padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:8px;">💳 <b>Existing card — load amount only.</b> The traveller already holds a company forex card. No new card / KYC / passport handover — just load the amount and upload the confirmation.</div>':'';
   if(r.done){
-    return letter
+    return exNote+letter
       +'<div class="act-row">'+(r.docForexConfirm?'<a class="lnk" href="'+esc(r.docForexConfirm)+'" target="_blank">📎 View confirmation</a>':'<span class="hint">No confirmation uploaded</span>')+'</div>'
-      +'<div class="hint ok">✓ Forex card issued'+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</div>'
+      +'<div class="hint ok">✓ Forex '+(r.existingCard?'amount loaded':'card issued')+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</div>'
       +topupBlock(r);
   }
-  return letter
+  return exNote+letter
     +'<div class="act-row">'
       +'<label class="hint">Upload confirmation: <input type="file" id="fc-'+esc(r.id)+'" accept="image/*,.pdf" onchange="uploadConfirm(\''+esc(r.id)+'\')"></label>'
       +'<span class="hint" id="fcst-'+esc(r.id)+'"></span>'
     +'</div>'
     +topupBlock(r)
     +'<div class="act-row">'
-      +'<button class="btn btn-done" onclick="markComplete(\''+esc(r.id)+'\')">✓ Mark Completed</button>'
+      +'<button class="btn btn-done" onclick="markComplete(\''+esc(r.id)+'\')">✓ '+(r.existingCard?'Mark amount loaded':'Mark Completed')+'</button>'
       +(r.recallable?'<button class="btn" style="background:#FFF7E6;color:#B45309;border:1px solid #F59E0B;" onclick="recallFx(\''+esc(r.id)+'\')" title="Send this back to Admin to redo the booking — only before the card is issued">↩ Send back to Admin</button>':'')
     +'</div>';
 }

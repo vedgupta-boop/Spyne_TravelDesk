@@ -242,6 +242,7 @@ async function computeTripFields(p) {
     [COL.C_HOTEL]: costs.hotel, [COL.MEAL_RATE]: costs.mealsPerDay, [COL.C_MEALS]: costs.meals,
     [COL.C_LOCAL]: costs.local, [COL.C_OTHER]: costs.other, [COL.C_TOTAL]: costs.total,
     [COL.FOREX]: costs.forex, [COL.FLAG]: costs.flag, [COL.NOTES]: p.notes || '',
+    [COL.FOREX_EXISTING]: (p.travelType === 'international' && p.forexExisting) ? 'Yes' : '',
     [COL.VISA_NEEDED]: (p.travelType === 'international') ? (p.visaNeeded ? 'Yes' : 'No') : '',
     [COL.C_EXTRAS]: JSON.stringify(costs.extras || {}), [COL.C_DEPOSIT]: costs.deposit || 0,
     [COL.PASSENGERS]: JSON.stringify(passengers), [COL.PAX]: pax,
@@ -989,7 +990,7 @@ function editPayload(r) {
     hotelNeeded: ph.needed != null ? !!ph.needed : (String(r[COL.HOTEL_REQ]) === 'Yes'),
     hotelCountry: ph.country || '', hotelCity: ph.city || '', hotelCheckIn: ph.checkIn || '', hotelCheckOut: ph.checkOut || '',
     purpose: r[COL.PURPOSE] || '', transportMode: r[COL.MODE] || '', notes: r[COL.NOTES] || '',
-    forexNeeded: Number(r[COL.FOREX] || 0) > 0, visaNeeded: String(r[COL.VISA_NEEDED]) === 'Yes',
+    forexNeeded: Number(r[COL.FOREX] || 0) > 0, forexExisting: String(r[COL.FOREX_EXISTING]) === 'Yes', visaNeeded: String(r[COL.VISA_NEEDED]) === 'Yes',
     // Forex/passport details (so editing a forex request keeps them).
     nationality: r[COL.NATIONALITY] || '', passportNo: r[COL.PASSPORT_NO] || '', passportIssue: r[COL.PASSPORT_ISSUE] || '',
     passportExpiry: r[COL.PASSPORT_EXPIRY] || '', panNo: r[COL.PAN_NO] || '', airline: r[COL.AIRLINES] || '',
@@ -1665,6 +1666,8 @@ export async function forexData() {
     upcoming: (String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0) && !(!!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(String(r[COL.STATUS]))) && !['forex', 'done', 'rejected', 'withdrawn', 'scrapped'].includes(String(r[COL.STAGE])),
     // Forex can send a pending (not-yet-issued) request back to Admin to redo the booking.
     recallable: String(r[COL.STAGE]) === 'forex' && !(!!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(String(r[COL.STATUS]))),
+    // Traveller already holds a company forex card → load the amount onto it (no new card / KYC).
+    existingCard: String(r[COL.FOREX_EXISTING]) === 'Yes',
     forexBase: Number(r[COL.FOREX] || 0),
     topups: (parseJSON(r[COL.FOREX_TOPUPS], []) || []).map((t) => ({ amount: Number(t.amount) || 0, note: t.note || '', by: t.by || '', date: fmtDate(t.date) })),
     forexTotal: Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0),
@@ -1703,19 +1706,29 @@ export async function saveForexTopup(id, amount, note, byEmail) {
 export async function completeForex(id, baseUrl) {
   const rec = await findById(id);
   if (!rec) throw new Error('Request not found: ' + id);
-  // Forex confirmation is mandatory — the card can't be marked issued without the uploaded confirmation.
-  if (!rec[COL.DOC_FOREX_CONFIRM]) return { ok: false, error: 'Upload the forex confirmation (bank/card confirmation) before marking the card issued.' };
-  await updateCells(rec.__row, [[COL.STAGE, 'done'], [COL.STATUS, 'Completed — Forex card issued'], [COL.FOREX_ISSUE_DATE, new Date().toISOString()]]);
+  const existing = String(rec[COL.FOREX_EXISTING]) === 'Yes';
+  // Forex confirmation is mandatory — can't complete without the uploaded confirmation.
+  if (!rec[COL.DOC_FOREX_CONFIRM]) return { ok: false, error: `Upload the forex confirmation (bank/card confirmation) before marking the ${existing ? 'amount loaded' : 'card issued'}.` };
+  await updateCells(rec.__row, [[COL.STAGE, 'done'], [COL.STATUS, existing ? 'Completed — Forex amount loaded' : 'Completed — Forex card issued'], [COL.FOREX_ISSUE_DATE, new Date().toISOString()]]);
   if (CONFIG.CC_REQUESTER_ON_UPDATES && rec[COL.EMAIL]) {
-    const link = (baseUrl || '') + '/my?forexcard=' + encodeURIComponent(id);
-    await sendEmail({
-      to: rec[COL.EMAIL],
-      subject: `Travel Request ${id} — Forex card issued`,
-      html: `<p>Your forex card for trip <b>${id}</b> has been issued. Your travel is fully processed. Safe travels!</p>`
-        + `<p style="margin-top:14px;"><b>One quick step:</b> please upload a snapshot of the <b>back of your forex card</b> (card number &amp; details). We keep it on file so the Forex officer can load any future <b>top-ups</b> to your card quickly — without asking you for the details each time.</p>`
-        + `<p><a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:600;">Upload forex card (back) →</a></p>`
-        + `<p style="color:#667;font-size:13px;">Open your request, then use the <b>“💳 Forex card”</b> action to attach the photo.</p>`,
-    });
+    if (existing) {
+      // They already hold the card — just confirm the amount is loaded (no card-back KYC prompt).
+      await sendEmail({
+        to: rec[COL.EMAIL],
+        subject: `Travel Request ${id} — Forex amount loaded`,
+        html: `<p>The forex amount for trip <b>${id}</b> has been <b>loaded onto your existing company forex card</b>. Your travel is fully processed. Safe travels!</p>`,
+      });
+    } else {
+      const link = (baseUrl || '') + '/my?forexcard=' + encodeURIComponent(id);
+      await sendEmail({
+        to: rec[COL.EMAIL],
+        subject: `Travel Request ${id} — Forex card issued`,
+        html: `<p>Your forex card for trip <b>${id}</b> has been issued. Your travel is fully processed. Safe travels!</p>`
+          + `<p style="margin-top:14px;"><b>One quick step:</b> please upload a snapshot of the <b>back of your forex card</b> (card number &amp; details). We keep it on file so the Forex officer can load any future <b>top-ups</b> to your card quickly — without asking you for the details each time.</p>`
+          + `<p><a href="${link}" style="display:inline-block;background:#e11d48;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:600;">Upload forex card (back) →</a></p>`
+          + `<p style="color:#667;font-size:13px;">Open your request, then use the <b>“💳 Forex card”</b> action to attach the photo.</p>`,
+      });
+    }
   }
   return { ok: true, id };
 }

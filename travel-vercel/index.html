@@ -332,6 +332,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
           <div id="forex-docs" class="hidden" style="margin-top:16px;">
             <div id="profile-prefill-hint" class="info hidden" style="margin-bottom:12px;background:#EAF7EE;border:1px solid #9ED6B3;color:#0b6e3b;">✓ <b>Prefilled from your last trip</b> — please verify your passport details are still current before submitting.</div>
             <div class="info amber" style="margin-bottom:14px;">📋 <b>International travel</b> — the details and documents below are required. Upload your <b>visa copy</b> only if you already hold a visa; if not, an estimated visa fee is added to the trip cost. Your <b>air ticket</b> is attached automatically once Admin books the flight.<br><b>Forex Card KYC:</b> for a new card, KYC is mandatory — please carry your <b>original passport</b> when you collect it.</div>
+            <div class="toggle-row" style="margin-bottom:14px;">
+              <div><div style="font-size:13px;font-weight:600;">💳 I already have a company forex card</div>
+                <div class="hint">Tick if a card was issued to you before — the Forex team will just <b>load the amount</b> onto your existing card (no new card, no KYC/passport handover).</div></div>
+              <label class="toggle"><input type="checkbox" id="f-forex-existing"><div class="track"><div class="thumb"></div></div></label>
+            </div>
             <div class="grid">
               <div class="field"><label>Nationality <span class="req">*</span></label><select id="f-nationality" onchange="updateIdDocs()"><option value="">Select country</option></select></div>
               <div class="field"><label>Passport No. <span class="req">*</span></label><input id="f-passportno" placeholder="Passport number"></div>
@@ -870,6 +875,7 @@ function buildPayload(){
     hotelCheckIn:val('f-hotel-checkin'), hotelCheckOut:val('f-hotel-checkout'),
     purpose:purposeVal(), transportMode:val('f-mode'),
     forexNeeded:(isIntl() && $('f-forex').checked),
+    forexExisting:(isIntl() && $('f-forex').checked && $('f-forex-existing') && $('f-forex-existing').checked),
     visaNeeded:(isIntl() && !($('f-visa') && $('f-visa').checked)),
     nationality:val('f-nationality'), passportNo:val('f-passportno'), passportIssue:val('f-passportissue'),
     passportExpiry:val('f-passportexpiry'), panNo:val('f-panno'),
@@ -953,7 +959,7 @@ function submitForm(){
     var c=val('f-nationality');
     if(c==='India'){ if(!state.docs.aadhaar) mark('Aadhaar upload','f-doc-aadhaar'); if(!state.docs.pan) mark('PAN upload','f-doc-pan'); }
     else if(c){ if(!state.docs.nationalId) mark((c==='United States'?'US ID':'National ID')+' upload','f-doc-nationalId'); }
-    if($('f-forex') && $('f-forex').checked && !val('f-panno')) mark('PAN No.','f-panno');
+    if($('f-forex') && $('f-forex').checked && !($('f-forex-existing') && $('f-forex-existing').checked) && !val('f-panno')) mark('PAN No.','f-panno');
   }
   if(miss.length){ showInvalid(badEls); showErr('Please fix the highlighted '+(miss.length>1?'fields':'field')+': '+miss.join(', ')); return; }
   var tm=typeMismatch(); if(tm){ showErr(tm.replace(/<\/?b>/g,'')); return; }
@@ -1090,6 +1096,7 @@ function prefillForm(ed){
   }
   if(isIntl()){
     if($('f-forex')){ $('f-forex').checked=!!ed.forexNeeded; recalc(); }
+    if($('f-forex-existing')) $('f-forex-existing').checked=!!ed.forexExisting;
     if($('f-visa')) $('f-visa').checked = !ed.visaNeeded; // checkbox = "already have visa"
     // forex / passport details
     [['nationality','f-nationality'],['passportNo','f-passportno'],['passportIssue','f-passportissue'],

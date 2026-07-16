@@ -190,6 +190,9 @@ export const COL = {
   // Booking on behalf of someone else: REQUESTED_BY = email of the person who filed the form
   // (the signed-in user). When self-booking this equals the traveller's email.
   REQUESTED_BY:'Requested By (Email)',
+  // Traveller already holds a company forex card → the Forex officer only LOADS the amount onto the
+  // existing card (no new card / KYC / passport handover). 'Yes' when set.
+  FOREX_EXISTING:'Existing Forex Card',
 };
 
 export const HEADERS = [
@@ -219,6 +222,7 @@ export const HEADERS = [
   COL.DOC_FOREX_CARD,
   COL.CLARIFY_NOTE,
   COL.ADVANCE_REMINDER,
+  COL.FOREX_EXISTING,
 ];
 
 // ---------------------------------------------------------------------------

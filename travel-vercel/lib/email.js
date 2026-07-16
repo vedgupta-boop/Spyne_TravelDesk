@@ -218,12 +218,15 @@ export function itineraryEmailHtml(rec, itinerary, bookings) {
 }
 
 export function forexOfficerEmailHtml(rec, link) {
+  const existing = String(rec[COL.FOREX_EXISTING]) === 'Yes';
   return emailShell({
-    title: 'Forex card — issuance required 💳',
+    title: existing ? 'Forex — load amount to existing card 💳' : 'Forex card — issuance required 💳',
     subtitle: `Spyne TravelDesk · ${esc(rec[COL.ID])}`,
     statusText: `${esc(rec[COL.NAME] || '')} · ${esc(rec[COL.FROM])} → ${esc(rec[COL.TO])}`,
     statusColor: '#6D28D9',
-    body: `<p style="color:#3D506A;margin:0 0 14px;">Flight booking is complete. Please verify the details, issue the forex card, upload the confirmation and mark <b>Completed</b>.<br><b>KYC:</b> collect the traveller's original passport at handover.</p>` +
+    body: (existing
+        ? `<p style="color:#3D506A;margin:0 0 14px;"><b>The traveller already holds a company forex card.</b> No new card / KYC / passport handover — just <b>load the amount</b> onto their existing card, upload the confirmation and mark <b>Completed</b>.</p>`
+        : `<p style="color:#3D506A;margin:0 0 14px;">Flight booking is complete. Please verify the details, issue the forex card, upload the confirmation and mark <b>Completed</b>.<br><b>KYC:</b> collect the traveller's original passport at handover.</p>`) +
       tripSummary(rec) + breakdownTable(rec) +
       `<div style="margin:20px 0 4px;">${btn(link, 'Open Forex view →', '#6D28D9')}</div>`,
   });
