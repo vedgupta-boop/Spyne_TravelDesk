@@ -1325,9 +1325,12 @@ export async function adminData() {
       const st = String(r[COL.STAGE]);
       const status = String(r[COL.STATUS]);
       if (st === 'rejected' || /reject/i.test(status)) return false;
-      // keep everything that reached Admin arrangement — including completed/booked/forex-routed,
-      // so the Done / All tabs can show finished requests with their full details.
-      return ['admin', 'arrange', 'forex', 'done'].includes(st) || /admin|confirmed|completed|booking|forex/i.test(status);
+      if (['withdrawn', 'scrapped'].includes(st) || /withdraw/i.test(status)) return false;
+      // arranged/approved trips (Admin's queue, incl. completed/booked/forex-routed) + UPCOMING:
+      // still-in-approval trips, so Admin can anticipate the flight/booking cost and arrange funds early.
+      const arranged = ['admin', 'arrange', 'forex', 'done'].includes(st) || /admin|confirmed|completed|booking|forex/i.test(status);
+      const upcoming = ['dept', 'ceo', 'finance', 'clarify'].includes(st);
+      return arranged || upcoming;
     })
     .map((r) => ({
       id: r[COL.ID], date: fmtDate(r[COL.TS]), name: r[COL.NAME], email: r[COL.EMAIL],
@@ -1342,6 +1345,7 @@ export async function adminData() {
       ticketInfo: r[COL.TICKET_INFO] || '', docTicket: r[COL.DOC_TICKET] || '',
       docPassport: r[COL.DOC_PASSPORT] || '', docVisa: r[COL.DOC_VISA] || '', docPanAadhaar: r[COL.DOC_PANAADHAAR] || '',
       status: r[COL.STATUS], adminStatus: r[COL.ADMIN] || 'Pending',
+      upcoming: ['dept', 'ceo', 'finance', 'clarify'].includes(String(r[COL.STAGE])),
       route2: (r[COL.FROM] + ' → ' + r[COL.TO]), flag: String(r[COL.FLAG] || ''), breakdown: costBreakdown(r),
       prefFlightDoc: r[COL.PREF_FLIGHT_DOC] || '', prefFlightNotes: r[COL.PREF_FLIGHT_NOTES] || '',
       ...itineraryFor(r), bookings: parseJSON(r[COL.BOOKINGS], { flights: [], hotels: [] }) || { flights: [], hotels: [] },

@@ -168,6 +168,15 @@ const ADMIN = { rows: [
     flights: [ { label: 'Outbound', from: 'Pune', to: 'Hyderabad', date: '10 Aug 2026' }, { label: 'Return', from: 'Hyderabad', to: 'Pune', date: '12 Aug 2026' } ],
     hotels: [ { label: 'Stay (destination)', city: 'Hyderabad', checkIn: '10 Aug 2026', checkOut: '12 Aug 2026', nights: 2 } ],
     bookings: { flights: [ { info: 'AI505 · PNR PQR789', doc: '#doc' }, { info: 'AI512 · PNR PQR790', doc: '#doc' } ], hotels: [ { info: 'Novotel HYD · CNF44521', doc: '#doc' } ] } },
+  { id: 'TRF-20261015-UPC7', date: '16 Jul 2026', name: 'Priya Nair', email: 'priya.nair@spyne.ai', dept: 'Product',
+    type: 'domestic', trip: 'Round trip', route: 'Bengaluru → Delhi  |  return Delhi → Bengaluru', route2: 'Bengaluru → Delhi', start: '15 Oct 2026', end: '17 Oct 2026',
+    days: 3, nights: 2, mode: 'Flight (Economy)', currency: 'INR', hotelReq: 'Yes', hotelRate: 6000, hotelNights: 2,
+    total: 31200, forex: 0, notes: 'Product roadmap workshop', isForex: false, ticketInfo: '', docTicket: '', adminStatus: 'Pending', status: 'Pending CEO Approval',
+    upcoming: true,
+    flag: 'Within policy', breakdown: { transport: 9000, mode: 'Flight (Economy)', local: 4200, hotel: 12000, hotelRate: 6000, hotelNights: 2, meals: 2400, mealRate: 800, other: 0, forex: 0, days: 3, nights: 2 },
+    flights: [ { label: 'Outbound', from: 'Bengaluru', to: 'Delhi', date: '15 Oct 2026' }, { label: 'Return', from: 'Delhi', to: 'Bengaluru', date: '17 Oct 2026' } ],
+    hotels: [ { label: 'Stay (destination)', city: 'Delhi', checkIn: '15 Oct 2026', checkOut: '17 Oct 2026', nights: 2 } ],
+    bookings: { flights: [], hotels: [] } },
 ] };
 
 // ---- forex (booking done, awaiting card) ----

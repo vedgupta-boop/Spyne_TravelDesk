@@ -81,6 +81,7 @@ tr:hover td{background:var(--gray-1);}
     <div class="title">Approved Travel — to Arrange</div>
     <div class="filters" id="filters">
       <span class="chip active" data-f="pending" onclick="setFilter('pending')">To arrange</span>
+      <span class="chip" data-f="upcoming" onclick="setFilter('upcoming')">⏳ Upcoming</span>
       <span class="chip" data-f="done" onclick="setFilter('done')">Done</span>
       <span class="chip" data-f="all" onclick="setFilter('all')">All</span>
     </div>
@@ -147,12 +148,18 @@ function onData(d){
 }
 function renderKpis(){
   var rows=DATA.rows||[];
-  var pending=rows.filter(function(r){return !isDone(r.adminStatus) && !isDone(r.status);}).length;
-  var done=rows.length-pending;
+  var upcoming=rows.filter(function(r){return r.upcoming;});
+  var approved=rows.filter(function(r){return !r.upcoming;});
+  var pending=approved.filter(function(r){return !isDone(r.adminStatus) && !isDone(r.status);}).length;
+  var done=approved.length-pending;
+  // Funds to arrange in advance = estimated flight + hotel cost of upcoming (in-approval) trips, per currency.
+  var upFund={}; upcoming.forEach(function(r){ var b=r.breakdown||{}; var c=r.currency||'INR'; upFund[c]=(upFund[c]||0)+((b.transport||0)+(b.hotel||0)); });
+  var fundStr=Object.keys(upFund).map(function(c){return fmt(c,upFund[c]);}).join(' + ')||'—';
   document.getElementById('kpis').innerHTML =
     '<div class="kpi amber"><div class="lb">To Arrange</div><div class="num">'+pending+'</div></div>'
    +'<div class="kpi green"><div class="lb">Completed</div><div class="num">'+done+'</div></div>'
-   +'<div class="kpi"><div class="lb">Total Approved</div><div class="num">'+rows.length+'</div></div>';
+   +'<div class="kpi"><div class="lb">Total Approved</div><div class="num">'+approved.length+'</div></div>'
+   +'<div class="kpi" style="border-left:4px solid #7C3AED;"><div class="lb">⏳ Upcoming — funds to arrange</div><div class="num">'+upcoming.length+'</div><div class="lb" style="margin-top:2px;font-weight:800;color:#5B21B6;">'+fundStr+'</div></div>';
 }
 function setFilter(f){
   FILTER=f;
@@ -161,6 +168,8 @@ function setFilter(f){
 }
 function render(){
   var rows=(DATA.rows||[]).filter(function(r){
+    if(FILTER==='upcoming') return r.upcoming;
+    if(r.upcoming) return FILTER==='all'; // upcoming shows only under its own tab (and All)
     var done=isDone(r.adminStatus)||isDone(r.status);
     return FILTER==='all' || (FILTER==='done'?done:!done);
   });
@@ -188,7 +197,7 @@ function row(r,i){
     +'<td class="r amt">'+fmt(r.currency,b.transport)+'</td>'
     +'<td class="r amt">'+fmt(r.currency,b.hotel)+'</td>'
     +'<td class="r amt total">'+fmt(r.currency,bookEst)+'</td>'
-    +'<td><span class="st '+(done?'done':'pending')+'">'+esc(done?'Done':(r.adminStatus||'Pending'))+'</span></td>'
+    +'<td>'+(r.upcoming?'<span class="st" style="background:#EDE9FE;color:#5B21B6;">⏳ Upcoming</span>':'<span class="st '+(done?'done':'pending')+'">'+esc(done?'Done':(r.adminStatus||'Pending'))+'</span>')+'</td>'
     +'<td class="act-cell"><button type="button" class="btn btn-clear det-btn" id="detbtn-'+i+'" onclick="event.stopPropagation();toggleDetail('+i+')">🔎 View details</button></td>'
   +'</tr>'
   +'<tr class="det-row hidden" id="det-'+i+'"><td colspan="15" class="det-cell"><div class="det-inner">'+actions(r,done)+'</div></td></tr>';
@@ -230,6 +239,10 @@ function legRow(id,kind,i,leg,booked,cur){
     +'</div>';
 }
 function actions(r,done){
+  if(r.upcoming){
+    var b=r.breakdown||{}; var est=(b.transport||0)+(b.hotel||0);
+    return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">⏳ <b>Awaiting approval — not ready to book yet.</b> Current status: <b>'+esc(r.status||'in approval')+'</b>.<br>Estimated booking cost (flight + hotel): <b>'+fmt(r.currency,est)+'</b>'+(r.forex>0?' · forex advance <b>'+fmt('USD',r.forex)+'</b>':'')+'.<br>Shown early so you can arrange funds in advance — booking controls appear once it\'s fully approved.</div>';
+  }
   var flights=r.flights||[], hotels=r.hotels||[];
   var bk=r.bookings||{flights:[],hotels:[]};
   if(done){
