@@ -712,7 +712,8 @@ function openCost(i){
   var html='<table class="bd-tbl"><tbody>'+rows.join('')
     +'<tr class="tot"><td class="li">Total estimated cost'+(r.pax>1?' (× '+r.pax+' travellers)':'')+'</td><td class="av">'+fmt(cur,r.total)+'</td></tr></tbody></table>'
     +wf+advHtml+reconHtml+actHtml+flagHtml
-    +'<div class="bd-note">Figures are computed automatically from the travel policy (hotel caps, meal per-diem, transport &amp; local-conveyance estimates) at the time of submission. Amounts are shown to approvers only — not to the traveller.</div>';
+    +'<div class="bd-note">Figures are computed automatically from the travel policy (hotel caps, meal per-diem, transport &amp; local-conveyance estimates) at the time of submission. Amounts are shown to approvers only — not to the traveller.</div>'
+    +'<div style="margin-top:10px;color:#8B0000;font-weight:700;font-size:12px;">Note: Actual expense reimbursement or Forex allocation will be done as per Travel Policy limits.</div>';
   html = itineraryHtml(r) + html; // flight/hotel routing at the top — where→where before deciding
   document.getElementById('cd-body').innerHTML=html;
   document.getElementById('cost-drawer').classList.add('open');

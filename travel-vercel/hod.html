@@ -217,6 +217,7 @@ function openCost(i){
   if(brk){ html+='<div class="bd-flag brk">⚠ Policy breach — routed through Finance:</div>'+'<table class="bd-tbl"><tbody>'+reasons.map(function(x,n){return '<tr><td><div class="li">Reason '+(n+1)+'</div><div class="bs">'+esc(x)+'</div></td></tr>';}).join('')+'</tbody></table>'; }
   else { html+='<div class="bd-flag ok">✓ Within policy</div>'; }
   if(r.comments){ html+='<div class="bd-sec">Approver remarks</div><div class="bd-cmt">'+esc(r.comments)+'</div>'; }
+  html+='<div style="margin-top:12px;color:#8B0000;font-weight:700;font-size:12px;">Note: Actual expense reimbursement or Forex allocation will be done as per Travel Policy limits.</div>';
   html = itineraryHtml(r) + html; // routing at the top — clarity on where→where before approving
   document.getElementById('cd-body').innerHTML=html;
   document.getElementById('cost-drawer').classList.add('open'); document.getElementById('cost-drawer').setAttribute('aria-hidden','false'); document.getElementById('cost-ov').classList.add('open');

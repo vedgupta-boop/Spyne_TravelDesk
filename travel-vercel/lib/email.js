@@ -141,6 +141,7 @@ export function breakdownTable(rec) {
   if (Number(rec[COL.C_DEPOSIT]) > 0) html += `<tr style="background:#eef2ff;color:#3730a3;font-weight:bold;"><td style="padding:8px 12px;border:1px solid #e3e8f0;">🏨 Hotel security deposit — advance</td>` +
           `<td style="padding:8px 12px;border:1px solid #e3e8f0;text-align:right;">${money(rec[COL.C_DEPOSIT], 'USD')}</td></tr>`;
   html += '</table>';
+  html += `<p style="font-size:12px;color:#8B0000;font-weight:bold;margin:8px 0 0;">Note: Actual expense reimbursement or Forex allocation will be done as per Travel Policy limits.</p>`;
   html += `<p style="font-size:12px;color:#555;margin:8px 0 0;"><b>Budget check:</b> ${esc(rec[COL.FLAG])}</p>`;
   if (rec[COL.NOTES]) html += `<p style="font-size:13px;color:#333;margin:8px 0 0;"><b>Notes:</b> ${esc(rec[COL.NOTES])}</p>`;
   return html;
