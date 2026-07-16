@@ -48,7 +48,7 @@
   }
   function flightTimeLabel(dateISO,hhmm,from,to,originTz){ var t=flightTimes(dateISO,hhmm,from,to,originTz); return t?(t.ist+(t.us?' · '+t.us:'')):''; }
   // Timezone picker options (IANA value + friendly label). Shared by the form dropdowns.
-  var TZ_OPTS=[['Asia/Kolkata','IST — India'],['America/New_York','EST/EDT — US Eastern'],['America/Chicago','CST/CDT — US Central'],['America/Denver','MST/MDT — US Mountain'],['America/Los_Angeles','PST/PDT — US Pacific'],['Europe/London','GMT/BST — UK'],['Europe/Paris','CET — Europe'],['Asia/Dubai','GST — Gulf/Dubai'],['Asia/Singapore','SGT — Singapore'],['Asia/Hong_Kong','HKT — Hong Kong'],['Asia/Tokyo','JST — Japan'],['Australia/Sydney','AEST — Sydney']];
+  var TZ_OPTS=[['Asia/Kolkata','IST (India)'],['America/New_York','EST/EDT (US East)'],['America/Chicago','CST/CDT (US Central)'],['America/Denver','MST/MDT (US Mtn)'],['America/Los_Angeles','PST/PDT (US West)'],['Europe/London','GMT/BST (UK)'],['Europe/Paris','CET (Europe)'],['Asia/Dubai','GST (Gulf)'],['Asia/Singapore','SGT (Singapore)'],['Asia/Hong_Kong','HKT (HK)'],['Asia/Tokyo','JST (Japan)'],['Australia/Sydney','AEST (Sydney)']];
   function tzOptionsHTML(){ return TZ_OPTS.map(function(o){ return '<option value="'+o[0]+'">'+o[1]+'</option>'; }).join(''); }
   window.TZ={cityTz:cityTz, flightTimes:flightTimes, flightTimeLabel:flightTimeLabel, tzOptionsHTML:tzOptionsHTML, TZ_OPTS:TZ_OPTS};
 })();

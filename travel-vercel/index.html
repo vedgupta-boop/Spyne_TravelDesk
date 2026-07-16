@@ -29,9 +29,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .sec-s{font-size:12px;color:var(--gray-5);margin-top:1px;}
 .sec-b{padding:20px 24px;}
 .sec-b+.sec-h{border-top:1px solid var(--gray-2);}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;}
 .span2{grid-column:1/-1;}
-.field{display:flex;flex-direction:column;gap:5px;}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0;}
 .field label{font-size:12px;font-weight:700;color:var(--gray-7);text-transform:uppercase;letter-spacing:.4px;}
 .field label .req{color:var(--red);}
 .field input,.field select,.field textarea{padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--gray-3);font-size:14px;font-family:inherit;color:var(--ink);background:#fff;outline:none;transition:border-color .2s;width:100%;}
