@@ -188,10 +188,11 @@ function row(r,i){
 // approvers (HOD/CEO/Finance) see the full itinerary, especially for multi-city trips.
 function itineraryHtml(r){
   var fl=(r.flights||[]), ht=(r.hotels||[]); if(!fl.length && !ht.length) return '';
-  function irow(t,s){ return '<div style="padding:8px 4px;border-bottom:1px solid #EDF1F7;"><div style="font-weight:700;color:#0D1B2A;">'+esc(t)+'</div><div style="font-size:11px;color:#8A97AA;margin-top:2px;">'+esc(s)+'</div></div>'; }
+  function irow(t,s,ex){ return '<div style="padding:8px 4px;border-bottom:1px solid #EDF1F7;"><div style="font-weight:700;color:#0D1B2A;">'+esc(t)+'</div><div style="font-size:11px;color:#8A97AA;margin-top:2px;">'+esc(s)+'</div>'+(ex||'')+'</div>'; }
+  function prefLink(d){ return d?'<div style="margin-top:3px;"><a class="lnk" href="'+esc(d)+'" target="_blank">📎 traveller preference</a></div>':''; }
   var h='';
-  if(fl.length) h+='<div class="bd-sec" style="color:#0077CC;">✈️ Flights — route &amp; dates'+(fl.length>2?(' · '+fl.length+' legs'):'')+'</div>'+fl.map(function(f){ return irow(f.label||'Flight',((f.from||'?')+' → '+(f.to||'?'))+(f.date?(' · '+f.date):'')+(f.timeLabel?('  ·  '+f.timeLabel):'')); }).join('');
-  if(ht.length) h+='<div class="bd-sec" style="color:#0077CC;">🏨 Hotels'+(ht.length>1?(' · '+ht.length):'')+'</div>'+ht.map(function(hh){ return irow((hh.label||'Stay')+(hh.city?(' — '+hh.city):''),((hh.checkIn||'')+(hh.checkOut?(' → '+hh.checkOut):''))+(hh.nights?('  ·  '+hh.nights+' night(s)'):'')); }).join('');
+  if(fl.length) h+='<div class="bd-sec" style="color:#0077CC;">✈️ Flights — route &amp; dates'+(fl.length>2?(' · '+fl.length+' legs'):'')+'</div>'+fl.map(function(f){ return irow(f.label||'Flight',((f.from||'?')+' → '+(f.to||'?'))+(f.date?(' · '+f.date):'')+(f.timeLabel?('  ·  '+f.timeLabel):''),prefLink(f.prefDoc)); }).join('');
+  if(ht.length) h+='<div class="bd-sec" style="color:#0077CC;">🏨 Hotels'+(ht.length>1?(' · '+ht.length):'')+'</div>'+ht.map(function(hh){ return irow((hh.label||'Stay')+(hh.city?(' — '+hh.city):''),((hh.checkIn||'')+(hh.checkOut?(' → '+hh.checkOut):''))+(hh.nights?('  ·  '+hh.nights+' night(s)'):''),prefLink(hh.prefDoc)); }).join('');
   return h;
 }
 function openCost(i){

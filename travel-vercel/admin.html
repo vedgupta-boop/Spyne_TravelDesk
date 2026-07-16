@@ -227,7 +227,7 @@ function legRow(id,kind,i,leg,booked,cur){
       +'<input class="tkt-in" id="bk-f-'+esc(id)+'-'+i+'" value="'+esc(info)+'" placeholder="Flight no., PNR, dates">'
     : '<input class="tkt-in" id="bk-h-'+esc(id)+'-'+i+'" value="'+esc(info)+'" placeholder="Hotel name, confirmation no., dates">';
   return '<div class="leg-bk">'
-    +'<div class="leg-bk-h">'+(kind==='f'?'✈️':'🏨')+' <b>'+esc(leg.label||'')+'</b> — '+legLabel(kind,leg)+'</div>'
+    +'<div class="leg-bk-h">'+(kind==='f'?'✈️':'🏨')+' <b>'+esc(leg.label||'')+'</b> — '+legLabel(kind,leg)+(leg.prefDoc?' · <a class="lnk" href="'+esc(leg.prefDoc)+'" target="_blank">📎 traveller preference</a>':'')+'</div>'
     +'<div class="act-row">'
       +inputs
       +'<input class="tkt-in" id="bk-act-'+kind+'-'+esc(id)+'-'+i+'" type="number" min="0" step="any" value="'+esc(actual)+'" placeholder="Actual '+esc(cur||'')+'" title="Actual amount paid (from invoice)" style="max-width:130px;">'

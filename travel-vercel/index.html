@@ -790,6 +790,33 @@ function uploadDoc(inputId, key, statusId){
   };
   reader.readAsDataURL(f);
 }
+// Restore a previously-uploaded per-leg preference screenshot when editing a request.
+function restoreLegDoc(el, link){
+  if(!el || !link) return;
+  el.dataset.prefDoc=link;
+  var st=el.querySelector('.leg-prefst');
+  if(st){ st.className='hint leg-prefst ok'; st.innerHTML='<a class="lnk" href="'+link+'" target="_blank">📎 attached — view</a>'; }
+}
+// Optional per-leg preference screenshot (flight/hotel). Uploaded to Drive; the link is stored on the
+// leg element's dataset and collected into the itinerary. Empty = no attachment (it's optional).
+function uploadLegDoc(inp){
+  var leg=inp.closest('.leg'); var st=leg&&leg.querySelector('.leg-prefst'); var f=inp.files[0];
+  if(!leg) return;
+  if(!f){ leg.dataset.prefDoc=''; if(st){ st.className='hint leg-prefst'; st.textContent=''; } return; }
+  if(f.size > 3*1024*1024){ if(st){ st.className='hint leg-prefst bad'; st.textContent='File too large — max 3 MB.'; } inp.value=''; leg.dataset.prefDoc=''; return; }
+  if(st){ st.className='hint leg-prefst'; st.textContent='Uploading…'; }
+  var reader=new FileReader();
+  reader.onload=function(){
+    var base64=String(reader.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+      body:JSON.stringify({filename:f.name, mimeType:f.type, base64:base64})})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if(d.ok){ leg.dataset.prefDoc=d.link; if(st){ st.className='hint leg-prefst ok'; st.innerHTML='<a class="lnk" href="'+d.link+'" target="_blank">✓ Attached — view</a>'; } }
+        else { leg.dataset.prefDoc=''; if(st){ st.className='hint leg-prefst bad'; st.textContent='Upload failed: '+(d.error||'error'); } } })
+      .catch(function(){ leg.dataset.prefDoc=''; if(st){ st.className='hint leg-prefst bad'; st.textContent='Upload failed.'; } });
+  };
+  reader.readAsDataURL(f);
+}
 
 // ---- multi-city itinerary (extra flights & hotels) ----
 function cityOptionsHTML(){
@@ -818,6 +845,7 @@ function addFlight(){
       +'<div class="field"><label>To</label><select class="lf-to" onchange="legOther(this)">'+cityOptionsHTML()+'</select><input class="city-other hidden" placeholder="Type city / airport"></div>'
       +'<div class="field"><label>Flight Date</label><input type="date" class="lf-date"></div>'
       +'<div class="field"><label>Flight Time <span class="tag">Optional</span></label><div class="timepick"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><input type="hidden" class="lf-time"></div></div>'
+      +'<div class="field span2"><label>Preference screenshot <span class="tag">Optional</span></label><input type="file" accept="image/*,.pdf" class="leg-prefdoc" onchange="uploadLegDoc(this)"><div class="hint leg-prefst"></div></div>'
     +'</div>';
   $('flights-list').appendChild(d);
   fillTimeOptions();
@@ -831,18 +859,19 @@ function addHotel(){
       +'<div class="field span2"><label>City / Location</label><select class="lh-city" onchange="legOther(this)">'+cityOptionsHTML()+'</select><input class="city-other hidden" placeholder="Type city"></div>'
       +'<div class="field"><label>Check-in</label><input type="date" class="lh-in" onchange="applyDateMaxes()"></div>'
       +'<div class="field"><label>Check-out</label><input type="date" class="lh-out"></div>'
+      +'<div class="field span2"><label>Preference screenshot <span class="tag">Optional</span></label><input type="file" accept="image/*,.pdf" class="leg-prefdoc" onchange="uploadLegDoc(this)"><div class="hint leg-prefst"></div></div>'
     +'</div>';
   $('hotels-list').appendChild(d);
   applyDateMins();
 }
 function collectFlights(){
   return [].map.call(document.querySelectorAll('#flights-list .leg'), function(el){
-    return { from:legCityVal(el,'.lf-from'), to:legCityVal(el,'.lf-to'), date:el.querySelector('.lf-date').value, time:el.querySelector('.lf-time')?el.querySelector('.lf-time').value:'' };
+    return { from:legCityVal(el,'.lf-from'), to:legCityVal(el,'.lf-to'), date:el.querySelector('.lf-date').value, time:el.querySelector('.lf-time')?el.querySelector('.lf-time').value:'', prefDoc:el.dataset.prefDoc||'' };
   }).filter(function(f){ return f.from||f.to||f.date; });
 }
 function collectHotels(){
   return [].map.call(document.querySelectorAll('#hotels-list .leg'), function(el){
-    return { city:legCityVal(el,'.lh-city'), checkIn:el.querySelector('.lh-in').value, checkOut:el.querySelector('.lh-out').value };
+    return { city:legCityVal(el,'.lh-city'), checkIn:el.querySelector('.lh-in').value, checkOut:el.querySelector('.lh-out').value, prefDoc:el.dataset.prefDoc||'' };
   }).filter(function(h){ return h.city||h.checkIn||h.checkOut; });
 }
 // ---- additional passengers (group travel) ----
@@ -1113,9 +1142,9 @@ function prefillForm(ed){
     if(ed.nationality) updateIdDocs();
   }
   $('flights-list').innerHTML=''; (ed.extraFlights||[]).forEach(function(f){ addFlight(); var el=$('flights-list').lastChild;
-    setLegCity(el,'.lf-from',f.from); setLegCity(el,'.lf-to',f.to); el.querySelector('.lf-date').value=f.date||''; var lt=el.querySelector('.lf-time'); if(lt){ lt.value=f.time||''; syncTimePicker(lt); } });
+    setLegCity(el,'.lf-from',f.from); setLegCity(el,'.lf-to',f.to); el.querySelector('.lf-date').value=f.date||''; var lt=el.querySelector('.lf-time'); if(lt){ lt.value=f.time||''; syncTimePicker(lt); } restoreLegDoc(el,f.prefDoc); });
   $('hotels-list').innerHTML=''; (ed.extraHotels||[]).forEach(function(h){ addHotel(); var el=$('hotels-list').lastChild;
-    setLegCity(el,'.lh-city',h.city); el.querySelector('.lh-in').value=h.checkIn||''; el.querySelector('.lh-out').value=h.checkOut||''; });
+    setLegCity(el,'.lh-city',h.city); el.querySelector('.lh-in').value=h.checkIn||''; el.querySelector('.lh-out').value=h.checkOut||''; restoreLegDoc(el,h.prefDoc); });
   $('pax-list').innerHTML=''; (ed.extraPassengers||[]).forEach(function(x){ addPassenger(); var el=$('pax-list').lastChild;
     el.querySelector('.px-name').value=x.name||''; el.querySelector('.px-email').value=x.email||''; });
   updateIdDocs(); recalc();

@@ -1426,7 +1426,7 @@ function itineraryFor(r) {
       time: times.ret || '', timeLabel: flightTimeLabel(r[COL.RET], times.ret, r[COL.RETFROM] || r[COL.TO], r[COL.RETTO] || r[COL.FROM]) });
   }
   (extra.flights || []).forEach((f, i) => flights.push({ label: 'Extra flight ' + (i + 1), from: f.from, to: f.to, date: fmtDate(f.date),
-    time: f.time || '', timeLabel: flightTimeLabel(f.date, f.time, f.from, f.to) }));
+    time: f.time || '', timeLabel: flightTimeLabel(f.date, f.time, f.from, f.to), prefDoc: f.prefDoc || '' }));
   const hotels = [];
   const ph = extra.primaryHotel;
   if (Number(r[COL.HOTEL_NIGHTS] || 0) > 0) {
@@ -1436,7 +1436,7 @@ function itineraryFor(r) {
       checkOut: fmtDate((ph && ph.checkOut) || r[COL.RET]),
       nights: Number(r[COL.HOTEL_NIGHTS] || 0) });
   }
-  (extra.hotels || []).forEach((h) => hotels.push({ label: 'Stay', city: h.city, checkIn: fmtDate(h.checkIn), checkOut: fmtDate(h.checkOut), nights: hotelNights(h.checkIn, h.checkOut) }));
+  (extra.hotels || []).forEach((h) => hotels.push({ label: 'Stay', city: h.city, checkIn: fmtDate(h.checkIn), checkOut: fmtDate(h.checkOut), nights: hotelNights(h.checkIn, h.checkOut), prefDoc: h.prefDoc || '' }));
   return { flights, hotels };
 }
 
