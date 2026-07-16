@@ -40,6 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .timepick{display:flex;align-items:center;gap:6px;}
 .timepick select{width:auto;flex:1 1 0;min-width:0;}
 .timepick .tp-sep{font-weight:700;color:var(--gray-7);}
+.timepick .tz-sel{flex:2 1 0;min-width:0;}
 .field-invalid{border-color:#e11d48 !important;box-shadow:0 0 0 3px rgba(225,29,72,.18) !important;border-radius:10px;}
 .field-invalid input,.field-invalid select{border-color:#e11d48 !important;}
 .rc.field-invalid{box-shadow:0 0 0 3px rgba(225,29,72,.18) !important;}
@@ -248,8 +249,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
             </div>
             <div class="field"><label>Going Date — Departure <span class="req">*</span></label><input id="f-start" type="date" onchange="onTripDates()"></div>
             <div class="field" id="returndate-wrap"><label>Return Date — Coming Back <span class="req">*</span></label><input id="f-return" type="date" onchange="onTripDates()"></div>
-            <div class="field"><label>Outbound Flight Time <span class="tag">Optional</span></label><div class="timepick" data-target="f-start-time"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><input type="hidden" id="f-start-time"></div><div class="hint" id="ft-out"></div></div>
-            <div class="field" id="returntime-wrap"><label>Return Flight Time <span class="tag">Optional</span></label><div class="timepick" data-target="f-return-time"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><input type="hidden" id="f-return-time"></div><div class="hint" id="ft-ret"></div></div>
+            <div class="field"><label>Outbound Flight Time <span class="tag">Optional</span></label><div class="timepick" data-target="f-start-time"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><select class="tz-sel" id="f-start-tz" data-auto="1" onchange="onTzPick(this)" title="Time zone" aria-label="Time zone"></select><input type="hidden" id="f-start-time"></div><div class="hint" id="ft-out"></div></div>
+            <div class="field" id="returntime-wrap"><label>Return Flight Time <span class="tag">Optional</span></label><div class="timepick" data-target="f-return-time"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><select class="tz-sel" id="f-return-tz" data-auto="1" onchange="onTzPick(this)" title="Time zone" aria-label="Time zone"></select><input type="hidden" id="f-return-time"></div><div class="hint" id="ft-ret"></div></div>
             <div class="field span2"><label>Duration <span class="tag">Auto</span></label><input id="f-duration" readonly placeholder="Calculated from your dates"></div>
           </div>
           <div class="info hidden" id="notice" style="margin-top:14px;"></div>
@@ -535,7 +536,7 @@ function tpChange(sel){
   var hidden=box.querySelector('input[type=hidden]'); var out='';
   if(h&&m&&ap){ var H=parseInt(h,10)%12; if(ap==='PM') H+=12; out=('0'+H).slice(-2)+':'+m; }
   hidden.value=out;
-  if(hidden.id==='f-start-time'||hidden.id==='f-return-time') onFlightTime();
+  onFlightTime();
 }
 function syncTimePicker(hidden){
   if(!hidden) return; var box=hidden.closest('.timepick'); if(!box) return;
@@ -548,10 +549,22 @@ function syncTimePicker(hidden){
     h.value=('0'+h12).slice(-2); m.value=mm; ap.value=apv;
   } else { h.value=''; m.value=''; ap.value=''; }
 }
+function tzVal(id){ var e=$(id); return e?e.value:''; }
+function onTzPick(sel){ if(sel) sel.dataset.auto='0'; onFlightTime(); } // manual pick sticks
+function fillTzOptions(){ if(!window.TZ) return; document.querySelectorAll('.tz-sel').forEach(function(s){ if(!s.options.length) s.innerHTML=TZ.tzOptionsHTML(); }); }
+// Auto-fill a tz dropdown from its origin city — unless the user manually picked one (data-auto='0').
+function autoTzSel(sel, originCity){ if(!sel||!window.TZ) return; if(sel.dataset.auto==='0') return; var tz=TZ.cityTz(originCity); if(tz) sel.value=tz; }
 function onFlightTime(){
   if(!window.TZ) return;
-  var fo=$('ft-out'); if(fo){ var l=TZ.flightTimeLabel(val('f-start'),val('f-start-time'),cityVal('f-from'),cityVal('f-to')); fo.textContent=l?('🕒 '+l):''; }
-  var fr=$('ft-ret'); if(fr){ var l2=TZ.flightTimeLabel(val('f-return'),val('f-return-time'),cityVal('f-returnfrom'),cityVal('f-returnto')); fr.textContent=l2?('🕒 '+l2):''; }
+  fillTzOptions();
+  autoTzSel($('f-start-tz'), cityVal('f-from'));
+  autoTzSel($('f-return-tz'), cityVal('f-returnfrom'));
+  var fo=$('ft-out'); if(fo){ var l=TZ.flightTimeLabel(val('f-start'),val('f-start-time'),cityVal('f-from'),cityVal('f-to'),tzVal('f-start-tz')); fo.textContent=l?('🕒 '+l):''; }
+  var fr=$('ft-ret'); if(fr){ var l2=TZ.flightTimeLabel(val('f-return'),val('f-return-time'),cityVal('f-returnfrom'),cityVal('f-returnto'),tzVal('f-return-tz')); fr.textContent=l2?('🕒 '+l2):''; }
+  document.querySelectorAll('#flights-list .leg').forEach(function(el){
+    var tsel=el.querySelector('.tz-sel'); autoTzSel(tsel, legCityVal(el,'.lf-from'));
+    var lab=el.querySelector('.lf-tlabel'); if(lab){ var d=el.querySelector('.lf-date'), tm=el.querySelector('.lf-time');
+      var lb=TZ.flightTimeLabel(d?d.value:'', tm?tm.value:'', legCityVal(el,'.lf-from'), legCityVal(el,'.lf-to'), tsel?tsel.value:''); lab.textContent=lb?('🕒 '+lb):''; } });
 }
 // ---- Live flight search (cheapest / fastest / non-stop) for the trip's route + dates ----
 function flyDur(min){ min=Number(min)||0; var h=Math.floor(min/60), m=min%60; return (h?h+'h ':'')+(m?m+'m':(h?'':'0m')); }
@@ -830,7 +843,7 @@ function cityOptionsHTML(){
   return h;
 }
 // Show/hide a multi-city leg's manual city input when "Other" is picked.
-function legOther(sel){ var inp=sel.parentNode.querySelector('.city-other'); if(inp) inp.classList.toggle('hidden', sel.value!=='__other__'); }
+function legOther(sel){ var inp=sel.parentNode.querySelector('.city-other'); if(inp) inp.classList.toggle('hidden', sel.value!=='__other__'); onFlightTime(); }
 function legCityVal(el,selClass){ var s=el.querySelector(selClass); if(!s) return ''; if(s.value==='__other__'){ var t=s.parentNode.querySelector('.city-other'); return t?t.value.trim():''; } return s.value; }
 function setLegCity(el,selClass,value){ var s=el.querySelector(selClass); if(!s) return; value=value||''; var has=[].some.call(s.options,function(o){return o.value===value;}); var inp=s.parentNode.querySelector('.city-other');
   if(value&&has){ s.value=value; if(inp){inp.classList.add('hidden');inp.value='';} }
@@ -844,12 +857,14 @@ function addFlight(){
       +'<div class="field"><label>From</label><select class="lf-from" onchange="legOther(this)">'+cityOptionsHTML()+'</select><input class="city-other hidden" placeholder="Type city / airport"></div>'
       +'<div class="field"><label>To</label><select class="lf-to" onchange="legOther(this)">'+cityOptionsHTML()+'</select><input class="city-other hidden" placeholder="Type city / airport"></div>'
       +'<div class="field"><label>Flight Date</label><input type="date" class="lf-date"></div>'
-      +'<div class="field"><label>Flight Time <span class="tag">Optional</span></label><div class="timepick"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><input type="hidden" class="lf-time"></div></div>'
+      +'<div class="field"><label>Flight Time <span class="tag">Optional</span></label><div class="timepick"><select class="tp-h" onchange="tpChange(this)" aria-label="Hour"></select><span class="tp-sep">:</span><select class="tp-m" onchange="tpChange(this)" aria-label="Minute"></select><select class="tp-ap" onchange="tpChange(this)" aria-label="AM/PM"></select><select class="tz-sel" data-auto="1" onchange="onTzPick(this)" title="Time zone" aria-label="Time zone"></select><input type="hidden" class="lf-time"></div><div class="hint lf-tlabel"></div></div>'
       +'<div class="field span2"><label>Preference screenshot <span class="tag">Optional</span></label><input type="file" accept="image/*,.pdf" class="leg-prefdoc" onchange="uploadLegDoc(this)"><div class="hint leg-prefst"></div></div>'
     +'</div>';
   $('flights-list').appendChild(d);
   fillTimeOptions();
+  fillTzOptions();
   applyDateMins();
+  onFlightTime();
 }
 function addHotel(){
   var d=document.createElement('div'); d.className='leg'; d.setAttribute('data-k','hotel');
@@ -866,7 +881,7 @@ function addHotel(){
 }
 function collectFlights(){
   return [].map.call(document.querySelectorAll('#flights-list .leg'), function(el){
-    return { from:legCityVal(el,'.lf-from'), to:legCityVal(el,'.lf-to'), date:el.querySelector('.lf-date').value, time:el.querySelector('.lf-time')?el.querySelector('.lf-time').value:'', prefDoc:el.dataset.prefDoc||'' };
+    return { from:legCityVal(el,'.lf-from'), to:legCityVal(el,'.lf-to'), date:el.querySelector('.lf-date').value, time:el.querySelector('.lf-time')?el.querySelector('.lf-time').value:'', tz:(el.querySelector('.tz-sel')||{}).value||'', prefDoc:el.dataset.prefDoc||'' };
   }).filter(function(f){ return f.from||f.to||f.date; });
 }
 function collectHotels(){
@@ -903,7 +918,7 @@ function buildPayload(){
     from:cityVal('f-from'), to:cityVal('f-to'), returnFrom:cityVal('f-returnfrom'), returnTo:cityVal('f-returnto'),
     originCountry:countryOf(cityVal('f-from')), destCountry:countryOf(cityVal('f-to')),
     startDate:val('f-start'), returnDate:val('f-return'),
-    flightTimes:{ out:val('f-start-time'), ret:val('f-return-time') },
+    flightTimes:{ out:val('f-start-time'), ret:val('f-return-time'), outTz:tzVal('f-start-tz'), retTz:tzVal('f-return-tz') },
     prefFlightDoc:state.docs.prefFlight||'', prefFlightNotes:val('f-prefflight-notes'),
     hotelNeeded:(state.hotel!=='no'),
     hotelCountry:val('f-hotel-country'), hotelCity:cityVal('f-hotel-city'),
@@ -1069,6 +1084,7 @@ function applyDateMaxes(){
 function onTripDates(){ applyDateMaxes(); recalc(); }
 function afterBoot(){
   fillTimeOptions();
+  fillTzOptions();
   applyDateMins();
   // Clear a field's red highlight as soon as the user starts fixing it.
   var clr=function(e){ var t=e.target; if(!t||!t.closest) return; var box=t.closest('.field-invalid'); if(box) box.classList.remove('field-invalid'); if(t.classList) t.classList.remove('field-invalid'); };
@@ -1109,7 +1125,9 @@ function prefillForm(ed){
   });
   if(ed.startDate) $('f-start').value=ed.startDate;
   if(ed.returnDate) $('f-return').value=ed.returnDate;
-  if(ed.flightTimes){ if($('f-start-time')){ $('f-start-time').value=ed.flightTimes.out||''; syncTimePicker($('f-start-time')); } if($('f-return-time')){ $('f-return-time').value=ed.flightTimes.ret||''; syncTimePicker($('f-return-time')); } }
+  if(ed.flightTimes){ if($('f-start-time')){ $('f-start-time').value=ed.flightTimes.out||''; syncTimePicker($('f-start-time')); } if($('f-return-time')){ $('f-return-time').value=ed.flightTimes.ret||''; syncTimePicker($('f-return-time')); }
+    if($('f-start-tz') && ed.flightTimes.outTz){ $('f-start-tz').value=ed.flightTimes.outTz; $('f-start-tz').dataset.auto='0'; }
+    if($('f-return-tz') && ed.flightTimes.retTz){ $('f-return-tz').value=ed.flightTimes.retTz; $('f-return-tz').dataset.auto='0'; } }
   if(ed.prefFlightNotes && $('f-prefflight-notes')) $('f-prefflight-notes').value=ed.prefFlightNotes;
   if(ed.prefFlightDoc){ state.docs.prefFlight=ed.prefFlightDoc; var up=$('up-prefflight'); if(up){ up.className='hint ok'; up.innerHTML='✓ attached (<a class="lnk" href="'+esc(ed.prefFlightDoc)+'" target="_blank">view</a>)'; } }
   // hotel block
@@ -1142,7 +1160,7 @@ function prefillForm(ed){
     if(ed.nationality) updateIdDocs();
   }
   $('flights-list').innerHTML=''; (ed.extraFlights||[]).forEach(function(f){ addFlight(); var el=$('flights-list').lastChild;
-    setLegCity(el,'.lf-from',f.from); setLegCity(el,'.lf-to',f.to); el.querySelector('.lf-date').value=f.date||''; var lt=el.querySelector('.lf-time'); if(lt){ lt.value=f.time||''; syncTimePicker(lt); } restoreLegDoc(el,f.prefDoc); });
+    setLegCity(el,'.lf-from',f.from); setLegCity(el,'.lf-to',f.to); el.querySelector('.lf-date').value=f.date||''; var lt=el.querySelector('.lf-time'); if(lt){ lt.value=f.time||''; syncTimePicker(lt); } var lts=el.querySelector('.tz-sel'); if(lts&&f.tz){ lts.value=f.tz; lts.dataset.auto='0'; } restoreLegDoc(el,f.prefDoc); });
   $('hotels-list').innerHTML=''; (ed.extraHotels||[]).forEach(function(h){ addHotel(); var el=$('hotels-list').lastChild;
     setLegCity(el,'.lh-city',h.city); el.querySelector('.lh-in').value=h.checkIn||''; el.querySelector('.lh-out').value=h.checkOut||''; restoreLegDoc(el,h.prefDoc); });
   $('pax-list').innerHTML=''; (ed.extraPassengers||[]).forEach(function(x){ addPassenger(); var el=$('pax-list').lastChild;
@@ -1155,7 +1173,7 @@ function snapshotDraft(){
     from:cityVal('f-from'), to:cityVal('f-to'), returnFrom:cityVal('f-returnfrom'), returnTo:cityVal('f-returnto'),
     originCountry:countryOf(cityVal('f-from')), destCountry:countryOf(cityVal('f-to')),
     startDate:val('f-start'), returnDate:val('f-return'),
-    flightTimes:{ out:val('f-start-time'), ret:val('f-return-time') }, prefFlightNotes:val('f-prefflight-notes'),
+    flightTimes:{ out:val('f-start-time'), ret:val('f-return-time'), outTz:tzVal('f-start-tz'), retTz:tzVal('f-return-tz') }, prefFlightNotes:val('f-prefflight-notes'),
     hotelNeeded:(state.hotel!=='no'), hotelCountry:val('f-hotel-country'), hotelCity:cityVal('f-hotel-city'),
     hotelCheckIn:val('f-hotel-checkin'), hotelCheckOut:val('f-hotel-checkout'),
     purpose:purposeVal(),

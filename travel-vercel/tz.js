@@ -37,15 +37,18 @@
   }
   function hm(inst,tz){ return new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(inst); }
   function dayTag(inst,tz,base){ var dd=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(inst); return dd===base?'':(dd>base?' +1':' −1'); }
-  function flightTimes(dateISO,hhmm,from,to){
+  function flightTimes(dateISO,hhmm,from,to,originTz){
     if(!dateISO||!hhmm) return null;
-    var oTz=cityTz(from), inst=toInstant(dateISO,hhmm,oTz);
+    var oTz=originTz||cityTz(from), inst=toInstant(dateISO,hhmm,oTz);
     if(!inst||isNaN(inst)) return null;
     var ist=hm(inst,IST)+dayTag(inst,IST,dateISO)+' IST';
     var otherTz=oTz!==IST?oTz:(cityTz(to)!==IST?cityTz(to):null);
     var us=otherTz?(hm(inst,otherTz)+dayTag(inst,otherTz,dateISO)+' '+tzAbbr(otherTz,inst)):null;
     return {ist:ist, us:us};
   }
-  function flightTimeLabel(dateISO,hhmm,from,to){ var t=flightTimes(dateISO,hhmm,from,to); return t?(t.ist+(t.us?' · '+t.us:'')):''; }
-  window.TZ={cityTz:cityTz, flightTimes:flightTimes, flightTimeLabel:flightTimeLabel};
+  function flightTimeLabel(dateISO,hhmm,from,to,originTz){ var t=flightTimes(dateISO,hhmm,from,to,originTz); return t?(t.ist+(t.us?' · '+t.us:'')):''; }
+  // Timezone picker options (IANA value + friendly label). Shared by the form dropdowns.
+  var TZ_OPTS=[['Asia/Kolkata','IST — India'],['America/New_York','EST/EDT — US Eastern'],['America/Chicago','CST/CDT — US Central'],['America/Denver','MST/MDT — US Mountain'],['America/Los_Angeles','PST/PDT — US Pacific'],['Europe/London','GMT/BST — UK'],['Europe/Paris','CET — Europe'],['Asia/Dubai','GST — Gulf/Dubai'],['Asia/Singapore','SGT — Singapore'],['Asia/Hong_Kong','HKT — Hong Kong'],['Asia/Tokyo','JST — Japan'],['Australia/Sydney','AEST — Sydney']];
+  function tzOptionsHTML(){ return TZ_OPTS.map(function(o){ return '<option value="'+o[0]+'">'+o[1]+'</option>'; }).join(''); }
+  window.TZ={cityTz:cityTz, flightTimes:flightTimes, flightTimeLabel:flightTimeLabel, tzOptionsHTML:tzOptionsHTML, TZ_OPTS:TZ_OPTS};
 })();

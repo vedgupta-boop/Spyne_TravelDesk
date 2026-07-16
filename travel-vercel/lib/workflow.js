@@ -215,11 +215,11 @@ async function computeTripFields(p) {
   // multi-city itinerary — extra flight legs & hotel stays (beyond the primary trip)
   const extraFlights = (Array.isArray(p.extraFlights) ? p.extraFlights : [])
     .filter((f) => f && (f.from || f.to || f.date))
-    .map((f) => ({ from: String(f.from || ''), to: String(f.to || ''), date: String(f.date || ''), time: String(f.time || '') }));
-  const flightTimesIn = (p.flightTimes && typeof p.flightTimes === 'object') ? { out: String(p.flightTimes.out || ''), ret: String(p.flightTimes.ret || '') } : { out: '', ret: '' };
+    .map((f) => ({ from: String(f.from || ''), to: String(f.to || ''), date: String(f.date || ''), time: String(f.time || ''), tz: String(f.tz || ''), prefDoc: String(f.prefDoc || '') }));
+  const flightTimesIn = (p.flightTimes && typeof p.flightTimes === 'object') ? { out: String(p.flightTimes.out || ''), ret: String(p.flightTimes.ret || ''), outTz: String(p.flightTimes.outTz || ''), retTz: String(p.flightTimes.retTz || '') } : { out: '', ret: '', outTz: '', retTz: '' };
   const extraHotels = (Array.isArray(p.extraHotels) ? p.extraHotels : [])
     .filter((h) => h && (h.city || h.checkIn || h.checkOut))
-    .map((h) => ({ city: String(h.city || ''), checkIn: String(h.checkIn || ''), checkOut: String(h.checkOut || '') }));
+    .map((h) => ({ city: String(h.city || ''), checkIn: String(h.checkIn || ''), checkOut: String(h.checkOut || ''), prefDoc: String(h.prefDoc || '') }));
   // Group travel — passenger list (primary requester + any added passengers); cost scales by count.
   const extraPassengers = (Array.isArray(p.extraPassengers) ? p.extraPassengers : [])
     .filter((x) => x && (x.name || x.email))
@@ -1428,13 +1428,13 @@ function itineraryFor(r) {
   const times = extra.times || {};
   const flights = [];
   flights.push({ label: 'Outbound', from: r[COL.FROM], to: r[COL.TO], date: fmtDate(r[COL.START]),
-    time: times.out || '', timeLabel: flightTimeLabel(r[COL.START], times.out, r[COL.FROM], r[COL.TO]) });
+    time: times.out || '', timeLabel: flightTimeLabel(r[COL.START], times.out, r[COL.FROM], r[COL.TO], times.outTz) });
   if (String(r[COL.TRIP]) === 'Round trip') {
     flights.push({ label: 'Return', from: r[COL.RETFROM] || r[COL.TO], to: r[COL.RETTO] || r[COL.FROM], date: fmtDate(r[COL.RET]),
-      time: times.ret || '', timeLabel: flightTimeLabel(r[COL.RET], times.ret, r[COL.RETFROM] || r[COL.TO], r[COL.RETTO] || r[COL.FROM]) });
+      time: times.ret || '', timeLabel: flightTimeLabel(r[COL.RET], times.ret, r[COL.RETFROM] || r[COL.TO], r[COL.RETTO] || r[COL.FROM], times.retTz) });
   }
   (extra.flights || []).forEach((f, i) => flights.push({ label: 'Extra flight ' + (i + 1), from: f.from, to: f.to, date: fmtDate(f.date),
-    time: f.time || '', timeLabel: flightTimeLabel(f.date, f.time, f.from, f.to), prefDoc: f.prefDoc || '' }));
+    time: f.time || '', timeLabel: flightTimeLabel(f.date, f.time, f.from, f.to, f.tz), prefDoc: f.prefDoc || '' }));
   const hotels = [];
   const ph = extra.primaryHotel;
   if (Number(r[COL.HOTEL_NIGHTS] || 0) > 0) {

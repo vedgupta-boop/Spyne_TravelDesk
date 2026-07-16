@@ -59,9 +59,9 @@ function dayTag(instant, tz, baseDateISO) {
 
 // Given the departure local time at originCity (with the other city for US-zone detection),
 // return { ist, us } display strings (us is null for India-only legs).
-export function flightTimes(dateISO, hhmm, originCity, otherCity) {
+export function flightTimes(dateISO, hhmm, originCity, otherCity, originTz) {
   if (!dateISO || !hhmm) return null;
-  const oTz = cityTz(originCity);
+  const oTz = originTz || cityTz(originCity);
   const inst = toInstant(dateISO, hhmm, oTz);
   if (!inst || isNaN(inst)) return null;
   const ist = fmtHM(inst, IST) + dayTag(inst, IST, dateISO) + ' IST';
@@ -71,8 +71,8 @@ export function flightTimes(dateISO, hhmm, originCity, otherCity) {
 }
 
 // Short "10:00 IST · 23:30 −1 ET" style label for a leg (or '' if no time).
-export function flightTimeLabel(dateISO, hhmm, originCity, otherCity) {
-  const t = flightTimes(dateISO, hhmm, originCity, otherCity);
+export function flightTimeLabel(dateISO, hhmm, originCity, otherCity, originTz) {
+  const t = flightTimes(dateISO, hhmm, originCity, otherCity, originTz);
   if (!t) return '';
   return t.ist + (t.us ? ' · ' + t.us : '');
 }
