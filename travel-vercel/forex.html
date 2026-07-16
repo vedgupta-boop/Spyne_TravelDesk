@@ -74,6 +74,7 @@ tr:hover td{background:var(--gray-1);}
   <div class="bar"><div class="title">Forex Card Issuance</div>
     <div class="filters" id="filters">
       <span class="chip active" data-f="pending" onclick="setFilter('pending')">Pending</span>
+      <span class="chip" data-f="upcoming" onclick="setFilter('upcoming')">⏳ Upcoming</span>
       <span class="chip" data-f="done" onclick="setFilter('done')">Done</span>
       <span class="chip" data-f="all" onclick="setFilter('all')">All</span>
     </div>
@@ -133,7 +134,7 @@ function onData(d){
   updateKpi(); render();
 }
 function updateKpi(){
-  var pending=(DATA.rows||[]).filter(function(r){return !r.done;}).length;
+  var pending=(DATA.rows||[]).filter(function(r){return !r.done && !r.upcoming;}).length;
   document.getElementById('kpi-num').textContent=pending;
 }
 function setFilter(f){
@@ -142,7 +143,12 @@ function setFilter(f){
   render();
 }
 function filteredRows(){
-  return (DATA.rows||[]).filter(function(r){ return FILTER==='all' || (FILTER==='done'?r.done:!r.done); });
+  return (DATA.rows||[]).filter(function(r){
+    if(FILTER==='all') return true;
+    if(FILTER==='done') return r.done;
+    if(FILTER==='upcoming') return r.upcoming;
+    return !r.done && !r.upcoming; // 'pending' = ready to issue now
+  });
 }
 function docLink(label,url){ return url ? '<a href="'+esc(url)+'" target="_blank">📎 '+label+'</a>' : '<span>'+label+': —</span>'; }
 function render(){
@@ -187,7 +193,7 @@ function row(r,i){
     +'<td class="r fx-amt">'+fmt('USD',(r.forexTotal!=null?r.forexTotal:(b.forex||r.forex||0)))+((r.topups||[]).length?'<div class="muted" style="font-size:10px;">base '+fmt('USD',r.forexBase||b.forex||r.forex||0)+' + '+(r.topups||[]).length+' top-up'+((r.topups||[]).length>1?'s':'')+'</div>':'')+'</td>'
     +'<td class="muted" style="white-space:normal;min-width:140px;">'+esc(r.ticketInfo||'—')+'</td>'
     +'<td class="docs-cell">'+docs+'</td>'
-    +'<td>'+(r.done?'<span class="st done">Card issued'+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</span>':'<span class="st pending">Card pending</span>')+'</td>'
+    +'<td>'+(r.done?'<span class="st done">Card issued'+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</span>':(r.upcoming?'<span class="st" style="background:#EDE9FE;color:#5B21B6;">⏳ Upcoming</span>':'<span class="st pending">Card pending</span>'))+'</td>'
     +'<td class="act-cell"><button type="button" class="btn btn-letter det-btn" id="detbtn-'+i+'" onclick="event.stopPropagation();toggleDetail('+i+')">🔎 View details</button></td>'
   +'</tr>'
   +'<tr class="det-row hidden" id="det-'+i+'"><td colspan="19" class="det-cell"><div class="det-inner">'
@@ -215,6 +221,9 @@ function topupBlock(r){
     +'</div></div>';
 }
 function actions(r){
+  if(r.upcoming){
+    return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">⏳ <b>Not ready to issue yet.</b> Current status: <b>'+esc(r.status||'in progress')+'</b>. The formal issue request arrives once Admin finishes booking. This is early notice so you can prepare KYC / any extra paperwork in advance.</div>';
+  }
   var letter='<div class="act-row"><a class="btn btn-letter" href="/api/forex?download=letter&id='+encodeURIComponent(r.id)+'">⬇ Forex Letter</a></div>';
   if(r.done){
     return letter

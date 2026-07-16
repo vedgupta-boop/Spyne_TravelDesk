@@ -562,6 +562,11 @@ async function applyDecision(rec, stage, decision, baseUrl) {
   // estimated cost) — they get the separate cost-free "APPROVED" note below instead.
   await sendEmail({ to: CONFIG.ADMIN_TEAM, subject: `[Approved — for arrangements] ${id} (${rec[COL.NAME]})`,
     html: adminEmailHtml(rec, baseUrl) });
+  // Advance heads-up to the Forex officer for approved international trips that will need a forex card,
+  // so they can prepare in advance (the formal issue request still comes later, after Admin books).
+  if (String(rec[COL.TYPE]) === 'international' && Number(rec[COL.FOREX] || 0) > 0) {
+    try { await emailForexHeadsUp(rec, baseUrl); } catch (e) { /* non-fatal */ }
+  }
   if (CONFIG.CC_REQUESTER_ON_UPDATES && reqTo) {
     const forName = rec[COL.NAME] ? ` for <b>${rec[COL.NAME]}</b>` : '';
     await sendEmail({ to: reqTo, subject: `Travel Request ${id} — APPROVED`,
@@ -1458,6 +1463,39 @@ async function emailForexOfficer(rec, baseUrl) {
   await sendEmail({ to: CONFIG.FOREX_OFFICER, subject: `[Forex Card] Issue card — ${rec[COL.ID]} (${rec[COL.NAME]})`, html });
 }
 
+// Early heads-up to the Forex officer the moment an international + forex trip is fully approved,
+// so they can prepare (KYC / paperwork) in advance — before Admin finishes booking and the formal
+// issue request arrives. Informational only; no action required yet.
+async function emailForexHeadsUp(rec, baseUrl) {
+  const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+  const id = rec[COL.ID];
+  const forex = Number(rec[COL.FOREX] || 0);
+  const kv = [
+    ['Traveller', rec[COL.NAME]],
+    ['Destination', rec[COL.TO]],
+    ['Dates', fmtDate(rec[COL.START]) + (rec[COL.RET] ? ' → ' + fmtDate(rec[COL.RET]) : '')],
+    ['Days', String(rec[COL.DAYS] || '')],
+    ['Nationality', rec[COL.NATIONALITY] || '—'],
+    ['Passport no.', rec[COL.PASSPORT_NO] || '—'],
+    ['Forex advance (est.)', 'USD ' + forex.toLocaleString('en-US')],
+  ];
+  const tbl = '<table style="border-collapse:collapse;width:100%;font-size:14px;font-family:Arial,sans-serif;">' +
+    kv.map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #eee;color:#667;">${k}</td><td style="padding:6px 10px;border:1px solid #eee;font-weight:600;">${String(v == null ? '' : v)}</td></tr>`).join('') +
+    '</table>';
+  const html = emailShell({
+    title: 'Forex card coming up — heads-up ⏳',
+    subtitle: `Spyne TravelDesk · ${id}`,
+    statusText: 'Approved · with Admin for booking',
+    statusColor: '#7C3AED',
+    body: `<p style="color:#3D506A;margin:0 0 14px;">An international trip that will need a <b>forex card</b> has just been <b>fully approved</b>. It's now with Admin for flight/hotel booking — you'll receive the formal <b>issue request</b> once booking is complete.</p>` +
+      `<p style="color:#3D506A;margin:0 0 14px;">This is an early heads-up so you can <b>prepare in advance</b> — KYC, any extra paperwork, or anything else required beyond the usual process — before it lands in your queue.</p>` +
+      tbl +
+      `<p style="margin:16px 0 0;">${btn((base || '') + '/forex', 'Open Forex dashboard', '#7C3AED')}</p>`,
+    footerNote: 'You are receiving this as the Forex officer, for advance preparation. No action is needed yet — the trip appears under “Upcoming” on your dashboard.',
+  });
+  await sendEmail({ to: CONFIG.FOREX_OFFICER, subject: `[Heads-up] ${id} — forex card will be needed (${rec[COL.NAME]})`, html });
+}
+
 // ---- forex officer (Jasvinder) view + actions ----
 export async function forexData() {
   const all = await readAll();
@@ -1465,8 +1503,11 @@ export async function forexData() {
     const st = String(r[COL.STAGE]);
     const status = String(r[COL.STATUS]);
     const isForex = String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0;
-    // pending forex cards (stage 'forex') + already-issued ones (kept for the Done / All tabs)
-    return st === 'forex' || (isForex && (r[COL.FOREX_ISSUE_DATE] || /forex card issued/i.test(status)));
+    const done = !!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(status);
+    // pending (stage 'forex') + already-issued (Done/All) + UPCOMING: approved / in-progress intl+forex
+    // trips not yet at the issue stage — surfaced so the officer can prepare in advance.
+    const upcoming = isForex && !done && !['forex', 'done', 'rejected', 'withdrawn', 'scrapped'].includes(st);
+    return st === 'forex' || (isForex && done) || upcoming;
   }).map((r) => ({
     id: r[COL.ID], date: fmtDate(r[COL.TS]), name: r[COL.NAME], email: r[COL.EMAIL], dept: r[COL.DEPT],
     to: r[COL.TO], purpose: r[COL.PURPOSE], start: fmtDate(r[COL.START]), days: Number(r[COL.DAYS] || 0),
@@ -1482,6 +1523,7 @@ export async function forexData() {
     currency: r[COL.CURRENCY] || 'USD', total: Number(r[COL.C_TOTAL] || 0), trip: r[COL.TRIP] || '',
     route: (r[COL.FROM] + ' → ' + r[COL.TO]), flag: String(r[COL.FLAG] || ''), breakdown: costBreakdown(r),
     done: !!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(String(r[COL.STATUS])), forexIssueDate: fmtDate(r[COL.FOREX_ISSUE_DATE]),
+    upcoming: (String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0) && !(!!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(String(r[COL.STATUS]))) && !['forex', 'done', 'rejected', 'withdrawn', 'scrapped'].includes(String(r[COL.STAGE])),
     forexBase: Number(r[COL.FOREX] || 0),
     topups: (parseJSON(r[COL.FOREX_TOPUPS], []) || []).map((t) => ({ amount: Number(t.amount) || 0, note: t.note || '', by: t.by || '', date: fmtDate(t.date) })),
     forexTotal: Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0),

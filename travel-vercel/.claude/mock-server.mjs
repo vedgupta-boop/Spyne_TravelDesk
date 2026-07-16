@@ -190,6 +190,15 @@ const FOREX = { rows: [
     currency: 'USD', total: 2570, trip: 'Round trip', route: 'Mumbai → London',
     flag: 'Within policy', breakdown: { transport: 800, mode: 'Flight (Economy)', local: 290, hotel: 520, hotelRate: 130, hotelNights: 4, meals: 300, mealRate: 60, other: 225, extras: { insurance: 25, phone: 20, deposit: 100, visa: 0 }, forex: 625, days: 5, nights: 4 },
     done: true, forexIssueDate: '15 Jun 2026', forexBase: 625, topups: [ { amount: 150, note: 'Extended stay — 2 more nights', by: 'jasvinder', date: '16 Jun 2026' } ], forexTotal: 775 },
+  { id: 'TRF-20261010-UP88', date: '16 Jul 2026', name: 'Rohan Verma', email: 'rohan.verma@spyne.ai', dept: 'GTM Sales & Marketing',
+    to: 'Singapore', purpose: 'Client Meeting', start: '10 Oct 2026', days: 3, nationality: 'India', passportNo: 'P9988776',
+    passportIssue: '05 Jan 2023, Delhi', designation: 'Account Executive', address: '5 Park Street, Kolkata 700016', mobile: '+91 90000 11111',
+    forex: 450, ticketInfo: '', docPassport: '#doc', docVisa: '#doc', docPanAadhaar: '',
+    idDocType: 'Aadhaar & PAN (India)', docAadhaar: '#doc', docPan: '', docNationalId: '', docTicket: '',
+    docForexConfirm: '', status: 'Approved — With Admin for Arrangements',
+    currency: 'USD', total: 1980, trip: 'Round trip', route: 'Kolkata → Singapore',
+    flag: 'Within policy', breakdown: { transport: 600, mode: 'Flight (Economy)', local: 210, hotel: 375, hotelRate: 125, hotelNights: 3, meals: 210, mealRate: 70, other: 85, extras: { insurance: 25, phone: 20 }, forex: 450, days: 3, nights: 3 },
+    done: false, upcoming: true, forexBase: 450, topups: [], forexTotal: 450 },
 ] };
 
 // ---- app accounts (user management) ----
