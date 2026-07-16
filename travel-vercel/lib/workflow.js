@@ -665,17 +665,22 @@ function recallInfo(rec) {
   const broken = String(rec[COL.FLAG] || '').startsWith('POLICY BREAK');
   const chain = chainFor(type, broken, ceoIsRequester(rec));
   const cur = String(rec[COL.STAGE]);
+  const forexIssued = !!rec[COL.FOREX_ISSUE_DATE];
+  const closed = String(rec[COL.ACTUALS_STATUS]) === 'Closed';
+  // Admin has booked / handed to forex / completed the booking (by stage OR by admin status — some
+  // completed trips are stored at 'arrange' with Admin='Completed'). Admin can pull it back to redo,
+  // unless it's already finished downstream (forex card issued or reimbursement closed by Finance).
+  const adminDone = cur === 'forex' || cur === 'done' || /done|complete|booked|confirmed/i.test(String(rec[COL.ADMIN] || ''));
+  if (adminDone) {
+    if (cur === 'forex') return { toStage: 'arrange', fromStage: 'forex', ownerStage: 'admin' };
+    if (forexIssued || closed) return null;
+    return { toStage: 'arrange', fromStage: cur === 'done' ? 'done' : 'arrange', ownerStage: 'admin' };
+  }
+  // Otherwise it's still in the approval chain / awaiting admin → the previous approver can recall.
   const ci = chain.indexOf(cur);
   if (ci > 0) return { toStage: chain[ci - 1], fromStage: cur, ownerStage: chain[ci - 1] };
   if (ci === 0) return null; // first approver — nothing before to recall to
   if (cur === 'arrange') { const last = chain[chain.length - 1]; return { toStage: last, fromStage: 'arrange', ownerStage: last }; }
-  if (cur === 'forex') return { toStage: 'arrange', fromStage: 'forex', ownerStage: 'admin' };
-  if (cur === 'done') {
-    // Admin can undo a completed booking (redo it), but NOT once the forex card was issued (intl) or
-    // the trip's reimbursement has been closed by Finance — those are downstream completions.
-    if (rec[COL.FOREX_ISSUE_DATE] || String(rec[COL.ACTUALS_STATUS]) === 'Closed') return null;
-    return { toStage: 'arrange', fromStage: 'done', ownerStage: 'admin' };
-  }
   return null;
 }
 // Does this signed-in user own (act on) the given stage?
@@ -1465,8 +1470,9 @@ export async function adminData() {
       upcoming: ['dept', 'ceo', 'finance', 'clarify'].includes(String(r[COL.STAGE])),
       approval: approvalProgress(r), pendingClarify: String(r[COL.STAGE]) === 'clarify',
       // Admin can recall a booking: while it's with the Forex officer (card not issued), or a completed
-      // booking (redo) — but not once the forex card is issued or Finance has closed the reimbursement.
-      recallable: String(r[COL.STAGE]) === 'forex' || (String(r[COL.STAGE]) === 'done' && !r[COL.FOREX_ISSUE_DATE] && String(r[COL.ACTUALS_STATUS]) !== 'Closed'),
+      // booking (redo) — by stage OR admin status (some completed trips sit at 'arrange' with Admin=Completed).
+      // Blocked once the forex card is issued or Finance has closed the reimbursement.
+      recallable: (String(r[COL.STAGE]) === 'forex' || String(r[COL.STAGE]) === 'done' || /done|complete|booked|confirmed/i.test(String(r[COL.ADMIN] || ''))) && !r[COL.FOREX_ISSUE_DATE] && String(r[COL.ACTUALS_STATUS]) !== 'Closed',
       recallFrom: String(r[COL.STAGE]) === 'forex' ? 'Forex officer' : 'the completed booking', recallTo: 'Admin (booking)',
       route2: (r[COL.FROM] + ' → ' + r[COL.TO]), flag: String(r[COL.FLAG] || ''), breakdown: costBreakdown(r),
       prefFlightDoc: r[COL.PREF_FLIGHT_DOC] || '', prefFlightNotes: r[COL.PREF_FLIGHT_NOTES] || '',
