@@ -12,13 +12,16 @@ import { logEmail } from './emaillogstore.js';
 // fire-and-forget so it never slows or breaks a send.
 async function sendEmail(opts) {
   opts = { ...(opts || {}) };
-  // Keep the office admin (Shankul) CC'd on every travel/approval email so they always have visibility.
-  const auditCc = CONFIG.CC_ALL_ADMIN;
-  if (auditCc) {
+  // Keep EVERY admin (role holder) + the configured office admin CC'd on every travel/approval email,
+  // so all admins have full visibility. Gated by CC_ALL_ADMIN (empty string disables the whole CC).
+  if (CONFIG.CC_ALL_ADMIN) {
+    const auditList = (AUTH.ADMIN_EMAILS || []).concat([CONFIG.CC_ALL_ADMIN])
+      .map((s) => String(s || '').trim().toLowerCase()).filter(Boolean);
     const toArr = Array.isArray(opts.to) ? opts.to : (opts.to ? [opts.to] : []);
     const ccArr = Array.isArray(opts.cc) ? opts.cc.slice() : (opts.cc ? [opts.cc] : []);
-    const seen = toArr.concat(ccArr).map((s) => String(s || '').toLowerCase());
-    if (!seen.includes(String(auditCc).toLowerCase())) { ccArr.push(auditCc); opts.cc = ccArr; }
+    const seen = new Set(toArr.concat(ccArr).map((s) => String(s || '').toLowerCase()));
+    auditList.forEach((a) => { if (!seen.has(a)) { ccArr.push(a); seen.add(a); } });
+    if (ccArr.length) opts.cc = ccArr;
   }
   const r = await _sendEmail(opts);
   try {

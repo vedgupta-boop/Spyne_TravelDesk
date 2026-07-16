@@ -236,7 +236,7 @@ function emailList(envVal, fallback) {
 export const AUTH = {
   ALLOWED_DOMAIN: process.env.ALLOWED_DOMAIN || CONFIG.COMPANY_DOMAIN,
   FINANCE_EMAILS: emailList(process.env.FINANCE_EMAILS, `${CONFIG.FINANCE_SPOC},finance.head@spyne.ai`),
-  ADMIN_EMAILS:   emailList(process.env.ADMIN_EMAILS, CONFIG.ADMIN_TEAM), // Admin = ADMIN_TEAM (shankul.rastogi@spyne.ai) only
+  ADMIN_EMAILS:   emailList(process.env.ADMIN_EMAILS, CONFIG.ADMIN_TEAM + ',bhavesh.singla@spyne.ai'), // Admins: Shankul + Bhavesh (override via ADMIN_EMAILS env or the Roles panel)
   FOREX_EMAILS:   emailList(process.env.FOREX_EMAILS, 'jasvinder@spyne.ai'), // Forex Card officer(s)
 };
 // Forex officer who receives the card-issuance task after booking.
