@@ -78,7 +78,7 @@ export const POLICY = {
                 'LAS','RNO','SAN','SMF','ONT','BUR','SNA','PDX','SLC','MSP','DTW','GRR','PHL','PIT','CLE',
                 'CMH','CVG','IND','MKE','MCI','STL','OMA','DSM','BNA','MEM','CLT','RDU','GSO','RIC','ORF',
                 'ALB','BUF','ROC','SYR','PVD','BDL','MHT','BOI','ABQ','TUS','OKC','TUL','ELP','SAV','CHS',
-                'GSP','MYR','HNL','ANC','PDX','LGB'],
+                'GSP','MYR','HNL','ANC','PDX','LGB','SDF','MSY','FAT','GEG','OGG','KOA'],
   // per night (+ taxes), §6.3 / §7.3. intl_default = non-US international cities (the policy only
   // defines US tier caps; everywhere else overseas uses this default).
   HOTEL: { india: { 1: 6000, 2: 3000, 3: 2500 }, us: { 1: 175, 2: 150, 3: 125, 4: 100 }, intl_default: 175 },

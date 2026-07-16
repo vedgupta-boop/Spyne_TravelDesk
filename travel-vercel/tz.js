@@ -5,10 +5,13 @@
   var IST='Asia/Kolkata';
   function cityTz(city){
     var c=String(city||'').toLowerCase();
-    if(/new york|jfk|newark|ewr|philadelph|phl|boston|\bbos\b|atlanta|atl|miami|mia|washington|iad|dca|orlando|mco/.test(c)) return 'America/New_York';
-    if(/chicago|ord|dallas|dfw|houston|iah|austin|\baus\b|minneapolis|msp/.test(c)) return 'America/Chicago';
-    if(/denver|den|phoenix|phx|salt lake|slc/.test(c)) return 'America/Denver';
-    if(/los angeles|lax|san francisco|sfo|san jose|sjc|seattle|sea|las vegas|\blas\b|san diego/.test(c)) return 'America/Los_Angeles';
+    if(/new york|\bjfk\b|\blga\b|newark|\bewr\b|philadelph|\bphl\b|boston|\bbos\b|atlanta|\batl\b|miami|\bmia\b|washington|\biad\b|\bdca\b|baltimore|\bbwi\b|orlando|\bmco\b|fort lauderdale|\bfll\b|tampa|\btpa\b|west palm|\bpbi\b|jacksonville|\bjax\b|raleigh|durham|\brdu\b|greensboro|\bgso\b|charlotte|\bclt\b|richmond|\bric\b|norfolk|\borf\b|pittsburgh|\bpit\b|buffalo|\bbuf\b|rochester|\broc\b|albany|\balb\b|syracuse|\bsyr\b|providence|\bpvd\b|hartford|\bbdl\b|manchester|\bmht\b|detroit|\bdtw\b|grand rapids|\bgrr\b|cleveland|\bcle\b|columbus|\bcmh\b|cincinnati|\bcvg\b|indianapolis|\bind\b|louisville|\bsdf\b|charleston|\bchs\b|savannah|\bsav\b|greenville|\bgsp\b/.test(c)) return 'America/New_York';
+    if(/chicago|\bord\b|\bmdw\b|dallas|\bdfw\b|\bdal\b|houston|\biah\b|\bhou\b|austin|\baus\b|san antonio|\bsat\b|minneapolis|\bmsp\b|st\.? ?louis|\bstl\b|kansas city|\bmci\b|new orleans|\bmsy\b|nashville|\bbna\b|memphis|\bmem\b|oklahoma city|\bokc\b|tulsa|\btul\b|omaha|\boma\b|milwaukee|\bmke\b|des moines|\bdsm\b/.test(c)) return 'America/Chicago';
+    if(/phoenix|\bphx\b|tucson|\btus\b|scottsdale|tempe|\bmesa\b/.test(c)) return 'America/Phoenix';
+    if(/denver|\bden\b|salt lake|\bslc\b|albuquerque|\babq\b|boise|\bboi\b|el paso|\belp\b|colorado springs|\bcos\b|billings/.test(c)) return 'America/Denver';
+    if(/los angeles|\blax\b|san francisco|\bsfo\b|san jose|\bsjc\b|oakland|\boak\b|san diego|\bsan\b|sacramento|\bsmf\b|ontario|\bont\b|burbank|\bbur\b|orange county|\bsna\b|long beach|\blgb\b|fresno|\bfat\b|palm springs|\bpsp\b|seattle|\bsea\b|portland|\bpdx\b|spokane|\bgeg\b|las vegas|\blas\b|reno|\brno\b/.test(c)) return 'America/Los_Angeles';
+    if(/anchorage|\banc\b/.test(c)) return 'America/Anchorage';
+    if(/honolulu|\bhnl\b|\bogg\b|\bkoa\b|hawaii/.test(c)) return 'Pacific/Honolulu';
     if(/london|heathrow|lhr|gatwick|lgw|manchester|united kingdom|\buk\b|england|dublin|\bdub\b|ireland/.test(c)) return 'Europe/London';
     if(/paris|\bcdg\b|orly|france|frankfurt|\bfra\b|munich|\bmuc\b|germany|amsterdam|\bams\b|madrid|\bmad\b|barcelona|\bbcn\b|rome|\bfco\b|milan|zurich|\bzrh\b|geneva|\bgva\b|brussels|\bbru\b/.test(c)) return 'Europe/Paris';
     if(/dubai|\bdxb\b|abu dhabi|\bauh\b|sharjah|\buae\b|united arab/.test(c)) return 'Asia/Dubai';
@@ -48,7 +51,7 @@
   }
   function flightTimeLabel(dateISO,hhmm,from,to,originTz){ var t=flightTimes(dateISO,hhmm,from,to,originTz); return t?(t.ist+(t.us?' · '+t.us:'')):''; }
   // Timezone picker options (IANA value + friendly label). Shared by the form dropdowns.
-  var TZ_OPTS=[['Asia/Kolkata','IST (India)'],['America/New_York','EST/EDT (US East)'],['America/Chicago','CST/CDT (US Central)'],['America/Denver','MST/MDT (US Mtn)'],['America/Los_Angeles','PST/PDT (US West)'],['Europe/London','GMT/BST (UK)'],['Europe/Paris','CET (Europe)'],['Asia/Dubai','GST (Gulf)'],['Asia/Singapore','SGT (Singapore)'],['Asia/Hong_Kong','HKT (HK)'],['Asia/Tokyo','JST (Japan)'],['Australia/Sydney','AEST (Sydney)']];
+  var TZ_OPTS=[['Asia/Kolkata','IST (India)'],['America/New_York','EST/EDT (US East)'],['America/Chicago','CST/CDT (US Central)'],['America/Denver','MST/MDT (US Mtn)'],['America/Los_Angeles','PST/PDT (US West)'],['America/Phoenix','MST (Arizona)'],['America/Anchorage','AKST (Alaska)'],['Pacific/Honolulu','HST (Hawaii)'],['Europe/London','GMT/BST (UK)'],['Europe/Paris','CET (Europe)'],['Asia/Dubai','GST (Gulf)'],['Asia/Singapore','SGT (Singapore)'],['Asia/Hong_Kong','HKT (HK)'],['Asia/Tokyo','JST (Japan)'],['Australia/Sydney','AEST (Sydney)']];
   function tzOptionsHTML(){ return TZ_OPTS.map(function(o){ return '<option value="'+o[0]+'">'+o[1]+'</option>'; }).join(''); }
   window.TZ={cityTz:cityTz, flightTimes:flightTimes, flightTimeLabel:flightTimeLabel, tzOptionsHTML:tzOptionsHTML, TZ_OPTS:TZ_OPTS};
 })();
