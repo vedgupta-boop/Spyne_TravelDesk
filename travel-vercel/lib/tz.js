@@ -10,13 +10,28 @@ const IST = 'Asia/Kolkata';
 
 export function cityTz(city) {
   const c = String(city || '').toLowerCase();
-  if (/new york|jfk|newark|ewr|philadelph|phl|boston|\bbos\b|atlanta|atl|miami|mia|washington|iad|dca/.test(c)) return 'America/New_York';
-  if (/chicago|ord|dallas|dfw|houston|iah|austin|aus/.test(c)) return 'America/Chicago';
-  if (/denver|den|phoenix|phx/.test(c)) return 'America/Denver';
-  if (/los angeles|lax|san francisco|sfo|san jose|sjc|seattle|sea|las vegas|las/.test(c)) return 'America/Los_Angeles';
+  if (/new york|jfk|newark|ewr|philadelph|phl|boston|\bbos\b|atlanta|atl|miami|mia|washington|iad|dca|orlando|mco/.test(c)) return 'America/New_York';
+  if (/chicago|ord|dallas|dfw|houston|iah|austin|\baus\b|minneapolis|msp/.test(c)) return 'America/Chicago';
+  if (/denver|den|phoenix|phx|salt lake|slc/.test(c)) return 'America/Denver';
+  if (/los angeles|lax|san francisco|sfo|san jose|sjc|seattle|sea|las vegas|\blas\b|san diego/.test(c)) return 'America/Los_Angeles';
+  if (/london|heathrow|lhr|gatwick|lgw|manchester|united kingdom|\buk\b|england|dublin|\bdub\b|ireland/.test(c)) return 'Europe/London';
+  if (/paris|\bcdg\b|orly|france|frankfurt|\bfra\b|munich|\bmuc\b|germany|amsterdam|\bams\b|madrid|\bmad\b|barcelona|\bbcn\b|rome|\bfco\b|milan|zurich|\bzrh\b|geneva|\bgva\b|brussels|\bbru\b/.test(c)) return 'Europe/Paris';
+  if (/dubai|\bdxb\b|abu dhabi|\bauh\b|sharjah|\buae\b|united arab/.test(c)) return 'Asia/Dubai';
+  if (/singapore|\bsin\b/.test(c)) return 'Asia/Singapore';
+  if (/hong kong|\bhkg\b/.test(c)) return 'Asia/Hong_Kong';
+  if (/tokyo|haneda|\bhnd\b|narita|\bnrt\b|osaka|\bkix\b|japan/.test(c)) return 'Asia/Tokyo';
+  if (/sydney|\bsyd\b|melbourne|\bmel\b|australia/.test(c)) return 'Australia/Sydney';
   return IST; // India (and anything unknown) → IST
 }
-const US_ABBR = { 'America/New_York': 'ET', 'America/Chicago': 'CT', 'America/Denver': 'MT', 'America/Los_Angeles': 'PT' };
+// Fixed-offset zones whose OS abbreviation is a bare GMT offset — show the well-known code instead
+// (these have no DST, so it's always accurate). US/Europe/Australia get DST-correct abbreviations from Intl.
+const FRIENDLY = { 'Asia/Kolkata': 'IST', 'Asia/Dubai': 'GST', 'Asia/Singapore': 'SGT', 'Asia/Hong_Kong': 'HKT', 'Asia/Tokyo': 'JST' };
+function tzAbbr(tz, instant) {
+  let n = '';
+  try { new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(instant).forEach((p) => { if (p.type === 'timeZoneName') n = p.value; }); } catch (e) { /* older runtime */ }
+  if (n && !/^(GMT|UTC)[+\-−]/.test(n)) return n; // EST, EDT, PST, PDT, CST, CDT, MST, MDT, GMT, BST…
+  return FRIENDLY[tz] || n || '';
+}
 
 function tzOffsetMin(tz, date) {
   const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -50,8 +65,8 @@ export function flightTimes(dateISO, hhmm, originCity, otherCity) {
   const inst = toInstant(dateISO, hhmm, oTz);
   if (!inst || isNaN(inst)) return null;
   const ist = fmtHM(inst, IST) + dayTag(inst, IST, dateISO) + ' IST';
-  let usTz = oTz !== IST ? oTz : (cityTz(otherCity) !== IST ? cityTz(otherCity) : null);
-  const us = usTz ? (fmtHM(inst, usTz) + dayTag(inst, usTz, dateISO) + ' ' + (US_ABBR[usTz] || 'US')) : null;
+  const otherTz = oTz !== IST ? oTz : (cityTz(otherCity) !== IST ? cityTz(otherCity) : null);
+  const us = otherTz ? (fmtHM(inst, otherTz) + dayTag(inst, otherTz, dateISO) + ' ' + tzAbbr(otherTz, inst)) : null;
   return { ist, us };
 }
 
