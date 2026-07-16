@@ -332,10 +332,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
           <div id="forex-docs" class="hidden" style="margin-top:16px;">
             <div id="profile-prefill-hint" class="info hidden" style="margin-bottom:12px;background:#EAF7EE;border:1px solid #9ED6B3;color:#0b6e3b;">✓ <b>Prefilled from your last trip</b> — please verify your passport details are still current before submitting.</div>
             <div class="info amber" style="margin-bottom:14px;">📋 <b>International travel</b> — the details and documents below are required. Upload your <b>visa copy</b> only if you already hold a visa; if not, an estimated visa fee is added to the trip cost. Your <b>air ticket</b> is attached automatically once Admin books the flight.<br><b>Forex Card KYC:</b> for a new card, KYC is mandatory — please carry your <b>original passport</b> when you collect it.</div>
-            <div class="toggle-row" style="margin-bottom:14px;">
-              <div><div style="font-size:13px;font-weight:600;">💳 I already have a company forex card</div>
-                <div class="hint">Tick if a card was issued to you before — the Forex team will just <b>load the amount</b> onto your existing card (no new card, no KYC/passport handover).</div></div>
-              <label class="toggle"><input type="checkbox" id="f-forex-existing"><div class="track"><div class="thumb"></div></div></label>
+            <div style="margin-bottom:14px;padding:12px 14px;background:#F5F8FC;border:1px solid #DCE6F2;border-radius:10px;">
+              <div style="font-size:13px;font-weight:700;color:#0D1B2A;margin-bottom:8px;">💱 What do you need?</div>
+              <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:9px;cursor:pointer;">
+                <input type="radio" name="forexmode" id="f-forex-new" value="new" checked style="margin-top:3px;">
+                <span><b>Forex card + amount</b><div class="hint">You don't have a company forex card yet — a new card is issued with the amount (KYC required; carry your original passport at handover).</div></span>
+              </label>
+              <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;">
+                <input type="radio" name="forexmode" id="f-forex-existing" value="existing" style="margin-top:3px;">
+                <span><b>Only forex amount — I already have a company forex card</b><div class="hint">A card was issued to you before — the Forex team just <b>loads the amount</b> onto it (no new card / KYC / passport handover).</div></span>
+              </label>
             </div>
             <div class="grid">
               <div class="field"><label>Nationality <span class="req">*</span></label><select id="f-nationality" onchange="updateIdDocs()"><option value="">Select country</option></select></div>
@@ -1096,7 +1102,7 @@ function prefillForm(ed){
   }
   if(isIntl()){
     if($('f-forex')){ $('f-forex').checked=!!ed.forexNeeded; recalc(); }
-    if($('f-forex-existing')) $('f-forex-existing').checked=!!ed.forexExisting;
+    if($('f-forex-existing') && $('f-forex-new')){ $('f-forex-existing').checked=!!ed.forexExisting; $('f-forex-new').checked=!ed.forexExisting; }
     if($('f-visa')) $('f-visa').checked = !ed.visaNeeded; // checkbox = "already have visa"
     // forex / passport details
     [['nationality','f-nationality'],['passportNo','f-passportno'],['passportIssue','f-passportissue'],
