@@ -61,6 +61,21 @@ export function chainLabels(type, broken, ceoReq) {
   steps.push('Confirmed');
   return steps;
 }
+// Approval-chain progress for a record → [{label, state:'done'|'current'|'todo'}], so dashboards can
+// show at which level a not-yet-approved request is currently pending.
+function approvalProgress(rec) {
+  const type = String(rec[COL.TYPE]);
+  const broken = /^POLICY BREAK/.test(String(rec[COL.FLAG] || ''));
+  const ceoReq = ceoIsRequester(rec);
+  const chain = chainFor(type, broken, ceoReq);
+  const labels = { dept: 'HOD', ceo: 'CEO', finance: 'Finance' };
+  const cur = String(rec[COL.STAGE]);
+  const ci = chain.indexOf(cur);
+  return chain.map((s, idx) => ({
+    label: labels[s] || s,
+    state: ci === -1 ? 'done' : (idx < ci ? 'done' : (idx === ci ? 'current' : 'todo')),
+  }));
+}
 function stageLabel(stage) {
   return { dept: 'Department Head', ceo: 'CEO', finance: 'Finance SPOC', admin: 'Admin' }[stage] || stage;
 }
@@ -1346,6 +1361,7 @@ export async function adminData() {
       docPassport: r[COL.DOC_PASSPORT] || '', docVisa: r[COL.DOC_VISA] || '', docPanAadhaar: r[COL.DOC_PANAADHAAR] || '',
       status: r[COL.STATUS], adminStatus: r[COL.ADMIN] || 'Pending',
       upcoming: ['dept', 'ceo', 'finance', 'clarify'].includes(String(r[COL.STAGE])),
+      approval: approvalProgress(r), pendingClarify: String(r[COL.STAGE]) === 'clarify',
       route2: (r[COL.FROM] + ' → ' + r[COL.TO]), flag: String(r[COL.FLAG] || ''), breakdown: costBreakdown(r),
       prefFlightDoc: r[COL.PREF_FLIGHT_DOC] || '', prefFlightNotes: r[COL.PREF_FLIGHT_NOTES] || '',
       ...itineraryFor(r), bookings: parseJSON(r[COL.BOOKINGS], { flights: [], hotels: [] }) || { flights: [], hotels: [] },

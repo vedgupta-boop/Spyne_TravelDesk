@@ -172,7 +172,7 @@ const ADMIN = { rows: [
     type: 'domestic', trip: 'Round trip', route: 'Bengaluru → Delhi  |  return Delhi → Bengaluru', route2: 'Bengaluru → Delhi', start: '15 Oct 2026', end: '17 Oct 2026',
     days: 3, nights: 2, mode: 'Flight (Economy)', currency: 'INR', hotelReq: 'Yes', hotelRate: 6000, hotelNights: 2,
     total: 31200, forex: 0, notes: 'Product roadmap workshop', isForex: false, ticketInfo: '', docTicket: '', adminStatus: 'Pending', status: 'Pending CEO Approval',
-    upcoming: true,
+    upcoming: true, pendingClarify: false, approval: [ { label: 'HOD', state: 'done' }, { label: 'CEO', state: 'current' }, { label: 'Finance', state: 'todo' } ],
     flag: 'Within policy', breakdown: { transport: 9000, mode: 'Flight (Economy)', local: 4200, hotel: 12000, hotelRate: 6000, hotelNights: 2, meals: 2400, mealRate: 800, other: 0, forex: 0, days: 3, nights: 2 },
     flights: [ { label: 'Outbound', from: 'Bengaluru', to: 'Delhi', date: '15 Oct 2026' }, { label: 'Return', from: 'Delhi', to: 'Bengaluru', date: '17 Oct 2026' } ],
     hotels: [ { label: 'Stay (destination)', city: 'Delhi', checkIn: '15 Oct 2026', checkOut: '17 Oct 2026', nights: 2 } ],

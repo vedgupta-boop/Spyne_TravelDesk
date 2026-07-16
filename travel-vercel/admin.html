@@ -197,7 +197,7 @@ function row(r,i){
     +'<td class="r amt">'+fmt(r.currency,b.transport)+'</td>'
     +'<td class="r amt">'+fmt(r.currency,b.hotel)+'</td>'
     +'<td class="r amt total">'+fmt(r.currency,bookEst)+'</td>'
-    +'<td>'+(r.upcoming?'<span class="st" style="background:#EDE9FE;color:#5B21B6;">⏳ Upcoming</span>':'<span class="st '+(done?'done':'pending')+'">'+esc(done?'Done':(r.adminStatus||'Pending'))+'</span>')+'</td>'
+    +'<td>'+(r.upcoming?'<span class="st" style="background:#EDE9FE;color:#5B21B6;">⏳ Upcoming</span><div style="margin-top:5px;">'+chainHtml(r)+'</div>':'<span class="st '+(done?'done':'pending')+'">'+esc(done?'Done':(r.adminStatus||'Pending'))+'</span>')+'</td>'
     +'<td class="act-cell"><button type="button" class="btn btn-clear det-btn" id="detbtn-'+i+'" onclick="event.stopPropagation();toggleDetail('+i+')">🔎 View details</button></td>'
   +'</tr>'
   +'<tr class="det-row hidden" id="det-'+i+'"><td colspan="15" class="det-cell"><div class="det-inner">'+actions(r,done)+'</div></td></tr>';
@@ -238,10 +238,26 @@ function legRow(id,kind,i,leg,booked,cur){
     +(kind==='f'?'<div id="flyadm-'+esc(id)+'-'+i+'" style="margin-top:6px;"></div>':'')
     +'</div>';
 }
+function chainHtml(r){
+  if(!r.approval || !r.approval.length) return '';
+  return '<div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center;">'+r.approval.map(function(s){
+    var bg,fg,ic;
+    if(s.state==='done'){bg='#E6F4EA';fg='#0F766E';ic='✓';}
+    else if(s.state==='current'){bg='#FEF3C7';fg='#B45309';ic='⏳';}
+    else {bg='#EEF1F5';fg='#8A97AA';ic='○';}
+    return '<span style="background:'+bg+';color:'+fg+';border-radius:5px;padding:1px 7px;font-size:10px;font-weight:800;white-space:nowrap;">'+ic+' '+esc(s.label)+(s.state==='current'?' · pending':'')+'</span>';
+  }).join('<span style="color:#CBD5E1;font-size:10px;">→</span>')+'</div>';
+}
 function actions(r,done){
   if(r.upcoming){
     var b=r.breakdown||{}; var est=(b.transport||0)+(b.hotel||0);
-    return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">⏳ <b>Awaiting approval — not ready to book yet.</b> Current status: <b>'+esc(r.status||'in approval')+'</b>.<br>Estimated booking cost (flight + hotel): <b>'+fmt(r.currency,est)+'</b>'+(r.forex>0?' · forex advance <b>'+fmt('USD',r.forex)+'</b>':'')+'.<br>Shown early so you can arrange funds in advance — booking controls appear once it\'s fully approved.</div>';
+    var pend=(r.approval||[]).filter(function(s){return s.state==='current';})[0];
+    var pendTxt=r.pendingClarify?'Sent back to requester for clarification':(pend?('Pending at '+esc(pend.label)+' approval'):esc(r.status||'in approval'));
+    return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">'
+      +'<div style="margin-bottom:7px;">'+chainHtml(r)+'</div>'
+      +'⏳ <b>'+pendTxt+'</b> — not ready to book yet.<br>'
+      +'Estimated booking cost (flight + hotel): <b>'+fmt(r.currency,est)+'</b>'+(r.forex>0?' · forex advance <b>'+fmt('USD',r.forex)+'</b>':'')+'.<br>'
+      +'Shown early so you can arrange funds in advance — booking controls appear once it\'s fully approved.</div>';
   }
   var flights=r.flights||[], hotels=r.hotels||[];
   var bk=r.bookings||{flights:[],hotels:[]};
