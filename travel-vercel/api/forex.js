@@ -17,9 +17,11 @@ export default async function handler(req, res) {
     try {
       const rec = await findById((req.query || {}).id);
       if (!rec) throw new Error('Request not found');
-      const buf = await buildForexLetter(rec);
+      const amtQ = (req.query || {}).amount;
+      const opts = (amtQ != null && amtQ !== '' && Number(amtQ) > 0) ? { amount: Number(amtQ) } : {};
+      const buf = await buildForexLetter(rec, opts);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="${forexLetterFilename(rec)}"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${forexLetterFilename(rec, opts)}"`);
       res.status(200).send(buf);
     } catch (err) { console.error('forex letter error:', err); res.status(500).json({ ok: false, error: String(err.message || err) }); }
     return;

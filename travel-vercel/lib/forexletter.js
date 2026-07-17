@@ -117,9 +117,12 @@ function parseTopups(rec) {
   try { const a = JSON.parse(rec[COL.FOREX_TOPUPS] || '[]'); return Array.isArray(a) ? a : []; } catch { return []; }
 }
 
-export async function buildForexLetter(rec) {
+export async function buildForexLetter(rec, opts) {
+  opts = opts || {};
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const totalForex = Number(rec[COL.FOREX] || 0) + parseTopups(rec).reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  // opts.amount → a letter for a SPECIFIC amount (e.g. a single top-up); otherwise the full total.
+  const totalForex = (opts.amount != null && opts.amount !== '') ? Number(opts.amount)
+    : Number(rec[COL.FOREX] || 0) + parseTopups(rec).reduce((s, t) => s + (Number(t.amount) || 0), 0);
   const exchange = money(totalForex, 'USD');
   const fmtDate = (v) => { const d = new Date(v); return isNaN(d) ? (v || '') : d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }); };
   const ticket = rec[COL.TICKET_INFO] || '____________________';
@@ -179,6 +182,8 @@ export async function buildForexLetter(rec) {
   return Packer.toBuffer(doc);
 }
 
-export function forexLetterFilename(rec) {
-  return `Forex-Letter-${rec[COL.ID] || 'request'}.docx`;
+export function forexLetterFilename(rec, opts) {
+  opts = opts || {};
+  const suffix = (opts.amount != null && opts.amount !== '') ? `-TopUp-USD${Math.round(Number(opts.amount) || 0)}` : '';
+  return `Forex-Letter-${rec[COL.ID] || 'request'}${suffix}.docx`;
 }

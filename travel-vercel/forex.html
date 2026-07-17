@@ -211,7 +211,7 @@ function toggleDetail(i){
   if(cev) cev.textContent = nowHidden ? '▸' : '▾';
 }
 function topupBlock(r){
-  var list=(r.topups||[]).map(function(t){return '<div class="hint">+ '+fmt('USD',t.amount)+(t.note?' ('+esc(t.note)+')':'')+' · '+esc(t.by)+' · '+esc(t.date)+'</div>';}).join('');
+  var list=(r.topups||[]).map(function(t){return '<div class="hint">+ '+fmt('USD',t.amount)+(t.note?' ('+esc(t.note)+')':'')+' · '+esc(t.by)+' · '+esc(t.date)+' <a class="lnk" href="/api/forex?download=letter&id='+encodeURIComponent(r.id)+'&amount='+encodeURIComponent(t.amount)+'" title="Forex letter for this top-up amount only">⬇ Letter</a></div>';}).join('');
   var added=(r.forexTotal!=null&&r.forexBase!=null)?(r.forexTotal-r.forexBase):0;
   return '<div class="act-row" style="flex-direction:column;align-items:flex-start;gap:4px;">'
     +(list?('<div style="font-size:11px;font-weight:700;color:var(--gray-7);">Top-ups (added '+fmt('USD',added)+'):</div>'+list):'')
