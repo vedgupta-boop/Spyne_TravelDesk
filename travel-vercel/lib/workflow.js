@@ -53,7 +53,9 @@ export function chainFor(type) {
   const broken = arguments[1];
   const ceoReq = arguments[2]; // CEO's own trip → Finance approves (no HOD/CEO self-approval)
   if (ceoReq) return ['finance'];
-  if (type === 'international') return broken ? ['dept', 'ceo', 'finance'] : ['dept', 'ceo'];
+  // International: HOD approves (+ Finance only if policy-broken). CEO is NO LONGER an approver — he's
+  // notified for information only (see emailCeoFyi). Admin then arranges.
+  if (type === 'international') return broken ? ['dept', 'finance'] : ['dept'];
   // Local & domestic: HOD approves (+ Finance only if policy-broken). Admin then arranges (no approval).
   return broken ? ['dept', 'finance'] : ['dept'];
 }
@@ -590,6 +592,10 @@ async function applyDecision(rec, stage, decision, baseUrl) {
   // so they can prepare in advance (the formal issue request still comes later, after Admin books).
   if (String(rec[COL.TYPE]) === 'international' && Number(rec[COL.FOREX] || 0) > 0) {
     try { await emailForexHeadsUp(rec, baseUrl); } catch (e) { /* non-fatal */ }
+  }
+  // CEO no longer approves international trips — notify him for information only (no action needed).
+  if (String(rec[COL.TYPE]) === 'international' && !ceoIsRequester(rec)) {
+    try { await emailCeoFyi(rec, baseUrl); } catch (e) { /* non-fatal */ }
   }
   if (CONFIG.CC_REQUESTER_ON_UPDATES && reqTo) {
     const forName = rec[COL.NAME] ? ` for <b>${rec[COL.NAME]}</b>` : '';
@@ -1644,6 +1650,35 @@ async function emailForexHeadsUp(rec, baseUrl) {
     footerNote: 'You are receiving this as the Forex officer, for advance preparation. No action is needed yet — the trip appears under “Upcoming” on your dashboard.',
   });
   await sendEmail({ to: CONFIG.FOREX_OFFICER, subject: `[Heads-up] ${id} — forex card will be needed (${rec[COL.NAME]})`, html });
+}
+
+// CEO no longer approves international trips — this is an information-only notice sent to the CEO
+// when an international trip is fully approved. No action required from them.
+async function emailCeoFyi(rec, baseUrl) {
+  const to = CONFIG.CEO_EMAIL;
+  if (!to) return;
+  const id = rec[COL.ID];
+  const cur = rec[COL.CURRENCY] || 'INR';
+  const kv = [
+    ['Traveller', rec[COL.NAME]],
+    ['Department', rec[COL.DEPT]],
+    ['Route', String(rec[COL.FROM]) + ' → ' + String(rec[COL.TO])],
+    ['Dates', fmtDate(rec[COL.START]) + (rec[COL.RET] ? ' → ' + fmtDate(rec[COL.RET]) : '')],
+    ['Purpose', rec[COL.PURPOSE] || ''],
+    ['Estimated cost', cur + ' ' + Number(rec[COL.C_TOTAL] || 0).toLocaleString(cur === 'USD' ? 'en-US' : 'en-IN', { maximumFractionDigits: 0 })],
+  ];
+  const tbl = '<table style="border-collapse:collapse;width:100%;font-size:14px;font-family:Arial,sans-serif;">' +
+    kv.map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #eee;color:#667;">${k}</td><td style="padding:6px 10px;border:1px solid #eee;font-weight:600;">${String(v == null ? '' : v)}</td></tr>`).join('') +
+    '</table>';
+  const html = emailShell({
+    title: 'International travel — for your information ✈️',
+    subtitle: `Spyne TravelDesk · ${id}`,
+    statusText: 'Approved · no action needed',
+    statusColor: '#2563EB',
+    body: `<p style="color:#3D506A;margin:0 0 14px;">An <b>international</b> travel request has been <b>approved</b> and is proceeding to booking. Sharing for your visibility — <b>no approval is needed from you.</b></p>` + tbl,
+    footerNote: 'You are receiving this as CEO, for visibility of international travel. It also appears on your dashboard.',
+  });
+  await sendEmail({ to, subject: `[FYI] International travel approved — ${id} (${rec[COL.NAME]})`, html });
 }
 
 // ---- forex officer (Jasvinder) view + actions ----
