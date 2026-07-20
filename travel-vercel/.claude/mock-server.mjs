@@ -276,6 +276,7 @@ http.createServer((req, res) => {
         if (b.action === 'scrap') return json(res, { ok: true, scrapped: (b.ids || []).length, notFound: [] });
         if (b.action === 'audit-dismiss') return json(res, { ok: true, dismissed: (b.ids || []).length });
         if (b.action === 'audit-restore') return json(res, { ok: true, restored: (b.ids || []).length });
+        if (b.action === 'migrate-ceo') return json(res, { ok: true, found: 2, migrated: 2 });
         if (b.action === 'recompute-currency') return json(res, { ok: true, count: 2, fixed: [
           { id: 'TRF-20260708-3T46', from: 'INR', to: 'USD', oldTotal: 331800, newTotal: 600, action: 'corrected (kept as completed — not re-opened)' },
           { id: 'TRF-20260715-KM90', from: 'INR', to: 'USD', oldTotal: 84000, newTotal: 300, action: 're-pushed for approval' },

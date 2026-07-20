@@ -1,4 +1,4 @@
-import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch, undismissCurrencyMismatch } from '../lib/workflow.js';
+import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch, undismissCurrencyMismatch, migrateCeoStageTickets } from '../lib/workflow.js';
 import { recordPolicyChange } from '../lib/policystore.js';
 import { addPolicyVersion, deletePolicyVersion } from '../lib/policyversionsstore.js';
 import { readEmailLog } from '../lib/emaillogstore.js';
@@ -49,6 +49,11 @@ export default async function handler(req, res) {
       }
       if (b.action === 'audit-restore') {
         res.status(200).json(await undismissCurrencyMismatch(b.ids, session.roles));
+        return;
+      }
+      // Advance any international tickets still parked at the removed CEO approval step.
+      if (b.action === 'migrate-ceo') {
+        res.status(200).json(await migrateCeoStageTickets(baseUrl(req)));
         return;
       }
       // Finance bulk-scrap test/junk requests by ID (soft-delete; hidden from all dashboards).

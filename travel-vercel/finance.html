@@ -189,6 +189,16 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
     </div>
     <div id="cur-body" class="hidden" style="padding:0 18px 16px;overflow-x:auto;"></div>
   </div>
+  <!-- MAINTENANCE: advance international tickets still parked at the removed CEO approval step -->
+  <div class="panel" style="margin-bottom:18px;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="font-weight:800;color:var(--navy);">🔀 Advance stuck CEO tickets <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— older international trips waiting at the (now removed) CEO step → move to next approver</span></div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span id="ceo-mig-msg" style="font-size:12px;font-weight:700;"></span>
+        <button onclick="runCeoMigrate(this)" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:800;cursor:pointer;font-family:inherit;">🔀 Advance now</button>
+      </div>
+    </div>
+  </div>
 
   <div class="panel" style="margin-bottom:16px;">
     <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleAnalytics()">
@@ -1088,6 +1098,18 @@ function renderPolicy(P){
   pb.innerHTML=editor+h;
 }
 
+function runCeoMigrate(btn){
+  var msg=document.getElementById('ceo-mig-msg');
+  if(!confirm('Advance any international tickets still waiting at the (removed) CEO step to their next approver?\n\nPolicy-breach trips go to Finance; the rest go to Admin for booking. The CEO gets an FYI. Safe to run anytime.')) return;
+  if(btn) btn.disabled=true;
+  if(msg){ msg.style.color='#667'; msg.textContent='Working…'; }
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'migrate-ceo'})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(btn) btn.disabled=false;
+      if(msg){ if(d&&d.ok){ msg.style.color='#0F9D58'; msg.textContent=(d.migrated||0)+' of '+(d.found||0)+' advanced'; } else { msg.style.color='#E8232A'; msg.textContent='Error: '+((d&&d.error)||'failed'); } }
+      if(d&&d.ok) load(); })
+    .catch(function(){ if(btn) btn.disabled=false; if(msg){ msg.style.color='#E8232A'; msg.textContent='Error'; } });
+}
 requireView('finance', function(me){ renderUserbar(me); load(); fetch('/api/config').then(function(r){return r.json();}).then(function(c){ CFG=c; PCFG=c&&c.policy; if(PCFG) renderPolicy(PCFG); renderAnalytics(); renderExec(); }).catch(function(){}); });
 </script>
 </body>
