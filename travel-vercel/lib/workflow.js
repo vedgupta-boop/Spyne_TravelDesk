@@ -1681,6 +1681,42 @@ async function emailCeoFyi(rec, baseUrl) {
   await sendEmail({ to, subject: `[FYI] International travel approved — ${id} (${rec[COL.NAME]})`, html });
 }
 
+// Migration for the policy change that removed CEO approval on international trips: advance any
+// ticket still parked at the 'ceo' stage to its correct next step (Finance if policy-broken, else
+// Admin), notify the right party, and send the CEO the FYI. Idempotent — safe to run repeatedly
+// (only touches rows currently at 'ceo'). Called from the daily cron regardless of the reminder toggle.
+export async function migrateCeoStageTickets(baseUrl) {
+  await ensureHeaders();
+  const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+  const all = await readAll();
+  const stuck = all.filter((r) => String(r[COL.STAGE]) === 'ceo');
+  let moved = 0;
+  for (const rec of stuck) {
+    const brk = String(rec[COL.FLAG] || '').startsWith('POLICY BREAK');
+    const next = brk ? 'finance' : 'arrange';
+    const token = randomUUID();
+    const upd = [
+      [COL.CEO_DEC, 'Not required — CEO approval removed for international'],
+      [COL.CEO_TIME, new Date().toISOString()], [COL.TOKEN, token],
+      [COL.LAST_REMINDER, ''], [COL.REMINDER_COUNT, 0], [COL.HOLD, ''],
+    ];
+    if (next === 'finance') upd.push([COL.STAGE, 'finance'], [COL.STATUS, 'Pending Finance Approval']);
+    else upd.push([COL.STAGE, 'arrange'], [COL.STATUS, 'Approved — With Admin for Arrangements'], [COL.ADMIN, 'Pending']);
+    try {
+      await updateCells(rec.__row, upd);
+      const fresh = { ...rec, [COL.STAGE]: next, [COL.TOKEN]: token };
+      if (next === 'finance') { try { await emailApprover('finance', fresh, base); } catch (e) { /* non-fatal */ } }
+      else {
+        try { await sendEmail({ to: adminTo(), subject: `[Approved — for arrangements] ${rec[COL.ID]} (${rec[COL.NAME]})`, html: adminEmailHtml(fresh, base) }); } catch (e) { /* non-fatal */ }
+        if (Number(rec[COL.FOREX] || 0) > 0) { try { await emailForexHeadsUp(fresh, base); } catch (e) { /* non-fatal */ } }
+      }
+      try { await emailCeoFyi(fresh, base); } catch (e) { /* non-fatal */ }
+      moved++;
+    } catch (e) { /* skip this row; retry next run */ }
+  }
+  return { ok: true, found: stuck.length, migrated: moved };
+}
+
 // ---- forex officer (Jasvinder) view + actions ----
 export async function forexData() {
   const all = await readAll();
