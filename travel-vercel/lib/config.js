@@ -193,6 +193,9 @@ export const COL = {
   // Traveller already holds a company forex card → the Forex officer only LOADS the amount onto the
   // existing card (no new card / KYC / passport handover). 'Yes' when set.
   FOREX_EXISTING:'Existing Forex Card',
+  // Post-approval amendment: when an approved request is sent back to the requester to amend, we store
+  // the approved total here. On resubmit, re-approval is required ONLY if the new total exceeds it.
+  AMEND_BASE:'Amend Base Total',
 };
 
 export const HEADERS = [
@@ -223,6 +226,7 @@ export const HEADERS = [
   COL.CLARIFY_NOTE,
   COL.ADVANCE_REMINDER,
   COL.FOREX_EXISTING,
+  COL.AMEND_BASE,
 ];
 
 // ---------------------------------------------------------------------------

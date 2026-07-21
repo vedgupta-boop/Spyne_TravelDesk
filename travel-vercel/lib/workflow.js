@@ -473,19 +473,46 @@ export async function editRequest(id, p, email, baseUrl) {
   if (!p.empId) p.empId = rec[COL.EMPID];
   const { trip, costs } = await computeTripFields(p);
   const who = String(email || '').split('@')[0];
-  // The CEO's own trip resubmits straight to Finance (no HOD/CEO self-approval); everyone else → HOD.
   const ceoReq = ceoIsRequester(rec);
+  const token = randomUUID();
+
+  // Post-approval AMENDMENT (request was sent back from Admin with an approved baseline): re-approval
+  // is required ONLY if the new total exceeds the approved amount (or the currency changed). Otherwise
+  // it goes straight back to Admin — the existing approval still covers it.
+  const amendBase = Number(rec[COL.AMEND_BASE] || 0);
+  const sameCur = String(costs.currency) === String(rec[COL.CURRENCY] || costs.currency);
+  const amendNoReapprove = amendBase > 0 && sameCur && Number(costs.total) <= amendBase;
+
+  if (amendNoReapprove) {
+    const updates = Object.entries(trip).concat([
+      [COL.STAGE, 'arrange'], [COL.STATUS, 'Amended (no cost increase) — with Admin for arrangements'],
+      [COL.ADMIN, 'Pending'], [COL.TOKEN, token], [COL.HOLD, ''], [COL.BOOKINGS, ''], [COL.DOC_TICKET, ''],
+      [COL.LAST_REMINDER, ''], [COL.REMINDER_COUNT, 0], [COL.CLARIFY_NOTE, ''], [COL.AMEND_BASE, ''],
+      [COL.COMMENTS, appendComment(rec, 'arrange', who, 'Amended by requester (no cost increase) — approval unchanged, back with Admin')],
+    ]);
+    await updateCells(rec.__row, updates);
+    const fresh = { ...rec, ...trip, [COL.STAGE]: 'arrange', [COL.TOKEN]: token };
+    try { await sendEmail({ to: adminTo(), subject: `[Amended — for arrangements] ${id} (${rec[COL.NAME]})`, html: adminEmailHtml(fresh, baseUrl) }); } catch (e) { /* non-fatal */ }
+    const reqTo = requesterEmail(rec);
+    if (reqTo) await sendEmail({ to: reqTo, subject: `Travel Request ${id} — amended`,
+      html: emailShell({ title: 'Amendment saved ✅', subtitle: `Spyne TravelDesk · ${id}`, statusText: 'No cost increase · approval unchanged', statusColor: '#0F9D58',
+        body: `<p style="color:#3D506A;margin:0;">Your changes to <b>${id}</b> are saved. As the estimated cost didn't increase, no re-approval was needed — it's back with Admin for booking.</p>` }) });
+    return { ok: true, id, status: 'Amended — back with Admin (no re-approval)', currency: costs.currency, total: costs.total };
+  }
+
+  // Normal clarify/edit, or an amendment whose cost went UP → (re-)enter the approval chain from HOD
+  // (CEO's own trip → Finance). Prior approval decisions are cleared.
   const reStage = ceoReq ? 'finance' : 'dept';
   const updates = Object.entries(trip).concat([
-    [COL.STATUS, ceoReq ? ('Pending ' + stageLabel('finance') + ' Approval') : 'Pending HOD Approval'], [COL.STAGE, reStage], [COL.TOKEN, randomUUID()],
-    [COL.DEPT_DEC, ''], [COL.DEPT_TIME, ''], [COL.FIN_DEC, ''], [COL.FIN_TIME, ''], [COL.HOLD, ''], [COL.BOOKINGS, ''], [COL.DOC_TICKET, ''],
-    [COL.LAST_REMINDER, ''], [COL.REMINDER_COUNT, 0], [COL.DELEGATE_EMAIL, ''], [COL.CLARIFY_NOTE, ''],
-    [COL.COMMENTS, appendComment(rec, reStage, who, (stage === 'clarify' ? 'Clarification provided — resubmitted by requester' : 'Request edited & resubmitted by requester'))],
+    [COL.STATUS, ceoReq ? ('Pending ' + stageLabel('finance') + ' Approval') : 'Pending HOD Approval'], [COL.STAGE, reStage], [COL.TOKEN, token],
+    [COL.DEPT_DEC, ''], [COL.DEPT_TIME, ''], [COL.CEO_DEC, ''], [COL.CEO_TIME, ''], [COL.FIN_DEC, ''], [COL.FIN_TIME, ''], [COL.HOLD, ''], [COL.BOOKINGS, ''], [COL.DOC_TICKET, ''],
+    [COL.LAST_REMINDER, ''], [COL.REMINDER_COUNT, 0], [COL.DELEGATE_EMAIL, ''], [COL.CLARIFY_NOTE, ''], [COL.AMEND_BASE, ''],
+    [COL.COMMENTS, appendComment(rec, reStage, who, (amendBase > 0 ? 'Amended by requester (cost increased) — re-sent for approval' : (stage === 'clarify' ? 'Clarification provided — resubmitted by requester' : 'Request edited & resubmitted by requester')))],
   ]);
   await updateCells(rec.__row, updates);
-  const fresh = { ...rec, ...trip, [COL.TOKEN]: updates.find((u) => u[0] === COL.TOKEN)[1] };
+  const fresh = { ...rec, ...trip, [COL.TOKEN]: token };
   await emailApprover(reStage, fresh, baseUrl, { edited: true }); // notify the approver it was edited & resubmitted
-  return { ok: true, id, status: 'Updated — resent for HOD approval', currency: costs.currency, total: costs.total };
+  return { ok: true, id, status: 'Updated — resent for approval', currency: costs.currency, total: costs.total };
 }
 
 export async function withdrawRequest(id, email) {
@@ -821,6 +848,40 @@ export async function requestClarification({ id, comment, email, roles }, baseUr
     });
   }
   return { ok: true, id, title: 'Sent back', msg: `${id} sent back to the requester for clarification.` };
+}
+
+// Admin/Finance sends an APPROVED request (at the Admin arrangement step) back to the requester to
+// amend (fix traveller, change days, add a stay/flight). It becomes editable (stage 'clarify') and the
+// approved total is stored as the amend baseline — on resubmit, re-approval is needed only if the new
+// total exceeds it (see editRequest). Only allowed before booking (stage 'arrange').
+export async function sendBackForAmendment({ id, comment, email, roles }, baseUrl) {
+  await ensureHeaders();
+  const rec = await findById(id);
+  if (!rec) return { ok: false, error: 'Request not found' };
+  const r = roles || [];
+  if (!r.includes('admin') && !r.includes('finance')) return { ok: false, error: 'Only Admin or Finance can send a request back to amend.' };
+  const stage = String(rec[COL.STAGE]);
+  if (stage !== 'arrange') return { ok: false, error: `You can only send back an approved request that's awaiting arrangements (current step: ${stageLabel(stage)}).` };
+  const q = String(comment || '').trim();
+  const who = String(email || '').split('@')[0];
+  await updateCells(rec.__row, [
+    [COL.STAGE, 'clarify'], [COL.STATUS, 'Sent back to requester to amend'],
+    [COL.HOLD, ''], [COL.DELEGATE_EMAIL, ''], [COL.CLARIFY_NOTE, q || 'Please review and amend the trip details.'],
+    [COL.AMEND_BASE, String(Number(rec[COL.C_TOTAL] || 0))], [COL.ADMIN, ''],
+    [COL.LAST_REMINDER, ''], [COL.REMINDER_COUNT, 0],
+    [COL.COMMENTS, appendComment(rec, stage, who, 'Sent back to requester to amend' + (q ? ': ' + q : ''))],
+  ]);
+  const to = rec[COL.REQUESTED_BY] || rec[COL.EMAIL];
+  if (to) {
+    const link = (baseUrl || '') + '/?edit=' + encodeURIComponent(id);
+    await sendEmail({ to, subject: `Travel Request ${id} — please amend`,
+      html: emailShell({ title: 'Please amend your request ✏️', subtitle: `Spyne TravelDesk · ${id}`, statusText: 'Sent back to you to edit', statusColor: '#B45309',
+        body: `<p style="color:#3D506A;margin:0 0 12px;">Your approved request <b>${id}</b> has been sent back so you can correct or amend it (e.g. traveller details, number of days, add a stay or flight).</p>`
+          + (q ? `<blockquote style="border-left:3px solid #e11d48;margin:10px 0;padding:6px 14px;color:#334;">${q}</blockquote>` : '')
+          + `<p style="color:#3D506A;margin:0 0 14px;">Update and resubmit — if the estimated cost doesn't increase it goes straight back to Admin; if it goes up it will be re-approved from your HOD.</p>`
+          + `<p style="margin:0;">${btn(link, 'Open & amend request →', '#e11d48')}</p>` }) });
+  }
+  return { ok: true, id, title: 'Sent back to amend', msg: `${id} sent back to the requester to amend.` };
 }
 
 // ---- Approvals dashboard data, scoped to what the signed-in approver may act on ----

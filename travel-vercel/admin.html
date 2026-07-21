@@ -285,8 +285,17 @@ function actions(r,done){
   html+='<div class="act-row" style="margin-top:8px;">'
       +'<button class="btn btn-book" onclick="saveBk(\''+esc(r.id)+'\')">💾 Save Bookings</button>'
       +'<button class="btn btn-done" onclick="mark(\''+esc(r.id)+'\',\'Completed\')">✓ Mark Booking Completed</button>'
+      +'<button class="btn btn-clear" style="border-color:#F59E0B;color:#B45309;" onclick="amendBack(\''+esc(r.id)+'\')" title="Send back to the requester to correct/amend (days, stay, flight, traveller) before booking">✏️ Send back to amend</button>'
     +'</div>';
   return html;
+}
+function amendBack(id){
+  var note=prompt('Send '+id+' back to the requester to amend (fix traveller, change days, add stay/flight)?\n\nOptional note for the requester:','');
+  if(note===null) return; // cancelled
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'amend-back',comment:note})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast(res.msg||('Sent back '+id)); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(e){ toast('Error: '+(e.message||e)); });
 }
 function uploadLeg(id,kind,i,inp){
   var f=inp.files[0]; var st=document.getElementById('bkst-'+kind+'-'+id+'-'+i);
