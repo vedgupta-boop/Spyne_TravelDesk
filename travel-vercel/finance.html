@@ -719,11 +719,16 @@ function openCost(i){
     +(r.pnr?'<tr><td><div class="li">PNR / Ticket</div></td><td class="av">'+esc(r.pnr)+(r.ticketUploadDate?(' · '+esc(r.ticketUploadDate)):'')+'</td></tr>':'')
     +((r.forexStatus&&r.forexStatus!=='N/A')?'<tr><td><div class="li">Forex card</div></td><td class="av">'+esc(r.forexStatus)+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</td></tr>':'')
     +'</tbody></table>';
+  // Amend: send an approved / in-progress request back to the requester to correct (days/stay/flight/
+  // traveller). Not shown once forex is issued or the trip is closed (server also enforces this).
+  var amendable = /approv|arrangement|with admin|\badmin\b|booking|forex|completed|confirmed/i.test(r.status||'') && !/reject|withdraw/i.test(r.status||'') && !r.forexIssueDate && !(r.actuals&&r.actuals.status==='Closed');
+  var amendHtml = amendable ? '<div style="margin-top:12px;"><button class="pol-edit" style="background:#fff;color:#B45309;border:1px solid #F59E0B;" onclick="amendFin(\''+esc(r.id)+'\')">✏️ Send back to amend</button></div>' : '';
   var html='<table class="bd-tbl"><tbody>'+rows.join('')
     +'<tr class="tot"><td class="li">Total estimated cost'+(r.pax>1?' (× '+r.pax+' travellers)':'')+'</td><td class="av">'+fmt(cur,r.total)+'</td></tr></tbody></table>'
     +wf+advHtml+reconHtml+actHtml+flagHtml
     +'<div class="bd-note">Figures are computed automatically from the travel policy (hotel caps, meal per-diem, transport &amp; local-conveyance estimates) at the time of submission. Amounts are shown to approvers only — not to the traveller.</div>'
-    +'<div style="margin-top:10px;color:#8B0000;font-weight:700;font-size:12px;">Note: Actual expense reimbursement or Forex allocation will be done as per Travel Policy limits.</div>';
+    +'<div style="margin-top:10px;color:#8B0000;font-weight:700;font-size:12px;">Note: Actual expense reimbursement or Forex allocation will be done as per Travel Policy limits.</div>'
+    +amendHtml;
   html = itineraryHtml(r) + html; // flight/hotel routing at the top — where→where before deciding
   document.getElementById('cd-body').innerHTML=html;
   document.getElementById('cost-drawer').classList.add('open');
@@ -740,6 +745,14 @@ function closeTripFin(id){
     .then(function(r){return r.json();})
     .then(function(d){ if(d&&d.ok){ set('✓ closed','var(--green)'); load(); } else set('✗ '+((d&&d.error)||'error'),'#DC2626'); })
     .catch(function(e){ set('✗ '+(e&&e.message||'failed'),'#DC2626'); });
+}
+function amendFin(id){
+  var note=prompt('Send '+id+' back to the requester to amend (fix traveller, change days, add stay/flight)?\n\nIf the new cost isn\'t higher it returns to Admin; if it goes up it re-approves from HOD.\n\nOptional note for the requester:','');
+  if(note===null) return; // cancelled
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'amend-back',comment:note})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ alert(res.msg||('Sent back '+id)); closeCost(); load(); } else alert('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(e){ alert('Error: '+(e.message||e)); });
 }
 function closeCost(){
   document.getElementById('cost-drawer').classList.remove('open');
