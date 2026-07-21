@@ -266,9 +266,12 @@ function actions(r,done){
     flights.forEach(function(leg,i){ var b=(bk.flights||[])[i]||{}; h+='<div class="hint">✈️ '+esc(leg.label)+': '+esc((b.airline?b.airline+' · ':'')+(b.info||'—'))+(leg.timeLabel?' · 🕒 '+esc(leg.timeLabel):'')+(b.doc?' <a class="lnk" href="'+esc(b.doc)+'" target="_blank">📎</a>':'')+'</div>'; });
     hotels.forEach(function(leg,i){ var b=(bk.hotels||[])[i]||{}; h+='<div class="hint">🏨 '+esc(leg.label)+': '+esc(b.info||'—')+(b.doc?' <a class="lnk" href="'+esc(b.doc)+'" target="_blank">📎</a>':'')+'</div>'; });
     h+=(r.isForex?'<div class="hint" style="color:var(--green);">→ Routed to Forex (Jasvinder)</div>':'<div class="hint ok">✓ Completed</div>');
+    h+='<div class="act-row" style="margin-top:8px;">';
     if(r.recallable){
-      h+='<div class="act-row" style="margin-top:8px;"><button class="btn btn-clear" style="border-color:#F59E0B;color:#B45309;" onclick="recallAdm(\''+esc(r.id)+'\')" title="Reopen this booking to redo it — only before it\'s further processed (forex card issued / reimbursement closed)">↩ Recall booking</button></div>';
+      h+='<button class="btn btn-clear" style="border-color:#F59E0B;color:#B45309;" onclick="recallAdm(\''+esc(r.id)+'\')" title="Reopen this booking to redo it — only before it\'s further processed (forex card issued / reimbursement closed)">↩ Recall booking</button>';
     }
+    h+='<button class="btn btn-clear" style="border-color:#F59E0B;color:#B45309;" onclick="amendBack(\''+esc(r.id)+'\')" title="Send back to the requester to correct/amend (days, stay, flight, traveller)">✏️ Send back to amend</button>';
+    h+='</div>';
     // Manual route to Forex for international trips that weren't auto-routed (forex toggle missed at submit).
     if(r.type==='international' && !/forex|jasvinder|issued/i.test(r.status||'')){
       h+='<div class="act-row" style="margin-top:8px;"><button class="btn btn-book" onclick="sendForex(\''+esc(r.id)+'\')">💱 Send to Forex officer</button></div>';

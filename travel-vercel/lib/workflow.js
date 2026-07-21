@@ -861,7 +861,11 @@ export async function sendBackForAmendment({ id, comment, email, roles }, baseUr
   const r = roles || [];
   if (!r.includes('admin') && !r.includes('finance')) return { ok: false, error: 'Only Admin or Finance can send a request back to amend.' };
   const stage = String(rec[COL.STAGE]);
-  if (stage !== 'arrange') return { ok: false, error: `You can only send back an approved request that's awaiting arrangements (current step: ${stageLabel(stage)}).` };
+  // Amendable from any approved / in-progress step (incl. older completed bookings), but NOT once the
+  // forex card is issued (funds released) or Finance has closed the reimbursement.
+  if (!['arrange', 'admin', 'forex', 'done'].includes(stage)) return { ok: false, error: `This request can't be amended at its current step (${stageLabel(stage)}).` };
+  if (rec[COL.FOREX_ISSUE_DATE]) return { ok: false, error: 'The forex card is already issued for this trip — it can’t be amended here. Recall it from the Forex step first, or contact Finance.' };
+  if (String(rec[COL.ACTUALS_STATUS]) === 'Closed') return { ok: false, error: 'This trip is closed by Finance — it can no longer be amended.' };
   const q = String(comment || '').trim();
   const who = String(email || '').split('@')[0];
   await updateCells(rec.__row, [
