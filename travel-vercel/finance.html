@@ -583,9 +583,9 @@ function render(){
   function stPill(v){ var t=String(v||'—'); var c=/reject/i.test(t)?'rejected':(/approv|issued|completed|done|booked/i.test(t)?'approved':(/n\/a/i.test(t)?'':'pending')); return c?'<span class="st '+c+'">'+esc(t)+'</span>':'<span class="muted">'+esc(t)+'</span>'; }
   tbody.innerHTML = rows.map(function(r,i){
     var dates=esc(r.start)+(r.end&&r.end!=='One-way'?(' → '+esc(r.end)):(r.end==='One-way'?' (one-way)':''));
-    return '<tr>'
+    return '<tr onclick="openCost('+i+')" style="cursor:pointer;" title="Open details &amp; actions">'
       +'<td class="r muted">'+(i+1)+'</td>'
-      +'<td class="id">'+esc(r.id)+'</td>'
+      +'<td class="id">'+esc(r.id)+' <span class="caret">▸</span></td>'
       +'<td>'+esc(r.name)+(r.pax>1?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">+'+(r.pax-1)+' pax</span>':'')+'</td>'
       +'<td class="muted">'+esc(r.dept)+'</td>'
       +'<td class="muted" style="white-space:nowrap;">'+dates+'</td>'
@@ -610,7 +610,7 @@ function render(){
 // ---- policy breach column + reasons slide-out (server flag value is still "POLICY BREAK:") ----
 function isBroken(r){ return /^POLICY BREAK/i.test(String(r&&r.flag||'')); }
 function breakCell(r,i){
-  if(isBroken(r)) return '<span class="brk-yes" onclick="openBreak('+i+')" title="View policy breach reasons">⚠ Yes <span class="caret">▸</span></span>';
+  if(isBroken(r)) return '<span class="brk-yes" onclick="event.stopPropagation();openBreak('+i+')" title="View policy breach reasons">⚠ Yes <span class="caret">▸</span></span>';
   return '<span class="brk-no">No</span>';
 }
 function openBreak(i){
