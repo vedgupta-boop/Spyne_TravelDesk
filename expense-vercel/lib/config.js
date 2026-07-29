@@ -95,7 +95,24 @@ export const COL = {
   RATE: 'Rate per Unit', QTY: 'Quantity', EXPENSE_MONTH: 'Expense Month',
   // Optional link to a TravelDesk request (TRF-…) so trip spend reconciles against its estimate.
   TRAVEL_ID: 'Linked Travel Request (TRF)',
+  // Invoice detail (GST + multiple attachments) and partial-payment ledger (all appended at the end).
+  INVOICE_DOCS: 'e-Invoices (JSON)', INVOICE_GST: 'Invoice Tax Amount', INVOICE_GSTIN: 'Invoice GSTIN / Tax ID',
+  PAYMENTS: 'Payments (JSON)',
+  // Vendor compliance (US W-9) — captured at request time.
+  VENDOR_COUNTRY: 'Vendor Country', VENDOR_ENTITY: 'Vendor Entity Type', W9_DOC: 'Doc: W-9',
+  // Richer invoice capture (US or India).
+  INVOICE_REGION: 'Invoice Region', INVOICE_BASE: 'Invoice Base Amount', INVOICE_TOTAL: 'Invoice Total Amount',
+  INVOICE_NUMBER: 'Invoice Number', INVOICE_VDATE: 'Vendor Invoice Date', INVOICE_CATEGORY: 'Invoice Category',
 };
+
+// Vendor compliance vocab
+export const VENDOR_COUNTRIES = ['India', 'United States', 'Other'];
+// US entity types; Corporations (C/S-corp) are generally 1099-exempt → W-9 optional. All others → W-9 required.
+export const US_ENTITY_TYPES = ['Individual / Sole proprietor', 'Partnership', 'LLC', 'Corporation (C-corp)', 'Corporation (S-corp)', 'Other'];
+export function w9Required(country, entity) {
+  if (String(country || '') !== 'United States') return false;
+  return !/corp/i.test(String(entity || '')); // Corporations exempt; everyone else must provide a W-9
+}
 
 export const HEADERS = [
   COL.ID, COL.TS, COL.EMAIL, COL.NAME, COL.EMPID, COL.DEPT, COL.HOD,
@@ -112,6 +129,9 @@ export const HEADERS = [
   COL.BUDGET_ID, COL.BUDGET_LINE_ID, COL.NATURE,
   COL.VENDOR_GST, COL.VENDOR_PHONE, COL.VENDOR_EMAIL, COL.RATE, COL.QTY, COL.EXPENSE_MONTH,
   COL.TRAVEL_ID,
+  COL.INVOICE_DOCS, COL.INVOICE_GST, COL.INVOICE_GSTIN, COL.PAYMENTS,
+  COL.VENDOR_COUNTRY, COL.VENDOR_ENTITY, COL.W9_DOC,
+  COL.INVOICE_REGION, COL.INVOICE_BASE, COL.INVOICE_TOTAL, COL.INVOICE_NUMBER, COL.INVOICE_VDATE, COL.INVOICE_CATEGORY,
 ];
 
 // ---------------------------------------------------------------------------
@@ -128,7 +148,39 @@ export const AUTH = {
 };
 
 // Heads of department — anyone whose email is a department head gets the 'hod' role.
-const HOD_EMAILS = Object.values(CONFIG.DEPARTMENTS).map((d) => String(d.email).toLowerCase());
+let HOD_EMAILS = Object.values(CONFIG.DEPARTMENTS).map((d) => String(d.email).toLowerCase());
+
+// Snapshot of the original (env/config) assignments so an empty override map == defaults.
+const ROLE_DEFAULTS = {
+  ceo: String(CONFIG.CEO_EMAIL).toLowerCase(),
+  finance: AUTH.FINANCE_EMAILS.slice(),
+  depts: Object.fromEntries(Object.keys(CONFIG.DEPARTMENTS).map((d) => [d, String(CONFIG.DEPARTMENTS[d].email || '').toLowerCase()])),
+};
+export const ROLE_KINDS = ['ceo', 'finance'];
+export function departmentNames() { return Object.keys(CONFIG.DEPARTMENTS); }
+
+// Apply a store-backed override map ON TOP of defaults (resets to defaults first, so an empty
+// map == original behaviour). Mutates CONFIG/AUTH in place so sync rolesFor + routing pick it up.
+// Keys: ceo (single email), finance (comma-separated), dept:<DeptName> (single head email).
+export function setRoleOverrides(map) {
+  map = map || {};
+  CONFIG.CEO_EMAIL = map.ceo ? String(map.ceo).toLowerCase() : ROLE_DEFAULTS.ceo;
+  AUTH.FINANCE_EMAILS = map.finance ? emailList(map.finance, '') : ROLE_DEFAULTS.finance.slice();
+  CONFIG.FINANCE_SPOC = AUTH.FINANCE_EMAILS[0] || ROLE_DEFAULTS.finance[0] || CONFIG.FINANCE_SPOC;
+  Object.keys(CONFIG.DEPARTMENTS).forEach((d) => {
+    const ov = map['dept:' + d];
+    CONFIG.DEPARTMENTS[d].email = ov ? String(ov).toLowerCase() : ROLE_DEFAULTS.depts[d];
+  });
+  HOD_EMAILS = Object.values(CONFIG.DEPARTMENTS).map((d) => String(d.email).toLowerCase());
+}
+// Current effective assignments (for the User Access UI).
+export function roleAssignments() {
+  return {
+    ceo: CONFIG.CEO_EMAIL,
+    finance: AUTH.FINANCE_EMAILS.slice(),
+    depts: Object.fromEntries(Object.keys(CONFIG.DEPARTMENTS).map((d) => [d, CONFIG.DEPARTMENTS[d].email])),
+  };
+}
 
 // Departments a given email is the HOD of (usually one). Used to scope the HOD dashboard
 // so each HOD sees ONLY their own department's requests.
@@ -144,6 +196,55 @@ export function rolesFor(email) {
   if (e === String(CONFIG.CEO_EMAIL).toLowerCase()) roles.push('ceo');
   if (AUTH.FINANCE_EMAILS.includes(e)) roles.push('finance');
   return roles;
+}
+
+// ---------------------------------------------------------------------------
+//  Delegation / out-of-office (store-backed, applied on top of roles at request time).
+//  A delegation lets a stand-in act with the SAME approval authority as the principal
+//  approver for a date window. Applied by delegationstore.applyDelegations().
+// ---------------------------------------------------------------------------
+let DELEGATIONS = []; // [{ approver, delegate, from, to, note }]
+export function setDelegations(list) {
+  DELEGATIONS = Array.isArray(list) ? list.map((d) => ({
+    approver: String(d.approver || '').toLowerCase(),
+    delegate: String(d.delegate || '').toLowerCase(),
+    from: String(d.from || ''), to: String(d.to || ''), note: String(d.note || ''),
+    by: String(d.by || ''), at: String(d.at || ''),
+  })).filter((d) => d.approver && d.delegate && d.approver !== d.delegate) : [];
+}
+function delegationActive(d, now) {
+  const t = now || Date.now();
+  const f = d.from ? Date.parse(d.from + 'T00:00:00') : null;
+  const u = d.to ? Date.parse(d.to + 'T23:59:59') : null;
+  if (f != null && !isNaN(f) && t < f) return false;
+  if (u != null && !isNaN(u) && t > u) return false;
+  return true;
+}
+// Principal approver emails this user may currently act on behalf of.
+export function delegatePrincipals(email, now) {
+  const e = String(email || '').toLowerCase();
+  return DELEGATIONS.filter((d) => d.delegate === e && delegationActive(d, now)).map((d) => d.approver);
+}
+// Delegates currently standing in for this principal approver.
+export function delegatesOf(email, now) {
+  const e = String(email || '').toLowerCase();
+  return DELEGATIONS.filter((d) => d.approver === e && delegationActive(d, now)).map((d) => d.delegate);
+}
+export function allDelegations() {
+  const now = Date.now();
+  return DELEGATIONS.map((d) => ({ ...d, active: delegationActive(d, now) }));
+}
+
+// ---------------------------------------------------------------------------
+//  Vendor master helpers — normalise display + a canonical key for de-duplication
+//  ("Amazon", "amazon.in ", "AMAZON Pvt Ltd" → same key).
+// ---------------------------------------------------------------------------
+export function normalizeVendor(name) { return String(name || '').replace(/\s+/g, ' ').trim(); }
+export function vendorKey(name) {
+  return normalizeVendor(name).toLowerCase()
+    .replace(/[.,]/g, '')
+    .replace(/\b(pvt|private|ltd|limited|inc|incorporated|llp|llc|co|corp|corporation|technologies|technology|solutions|services|india|the)\b/g, '')
+    .replace(/\s+/g, ' ').trim();
 }
 
 // Roles that get the Approvals dashboard.

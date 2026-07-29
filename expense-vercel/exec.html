@@ -56,7 +56,7 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
     <div id="exp-userbar"></div>
     <span class="updated" id="updated"></span>
-    <button class="btn-refresh" onclick="printReport()">🖨 Print / PDF</button>
+
     <button class="btn-refresh" onclick="load()">↻ Refresh</button>
   </div>
 </div>
@@ -127,7 +127,7 @@ function trendRows(){var bm={};REQ.forEach(function(r){if(!inRange(r)||/reject/i
 function render(){
   $('range-note').textContent=RANGE==='all'?'· all time':(RANGE==='q'?'· this quarter':'· this month');
   var inr=0,paid=0,pend=0,esc1=0;
-  REQ.forEach(function(r){if(!inRange(r))return;var rej=/reject/i.test(r.status||'');if(rej)return;inr+=Number(r.amountINR||0);if(/paid/i.test(r.status||''))paid+=Number(r.amountINR||0);if(['dept','finance','mgmt'].indexOf(r.stage)>-1)pend++;if(r.escalated)esc1++;});
+  REQ.forEach(function(r){if(!inRange(r))return;var rej=/reject/i.test(r.status||'');if(rej)return;inr+=Number(r.amountINR||0);if(r.stage==='done')paid+=Number(r.amountINR||0);if(['dept','finance','mgmt'].indexOf(r.stage)>-1)pend++;if(r.escalated)esc1++;});
   var alloc=0,used=0;BUD.forEach(function(b){alloc+=tINR(b.total,b.currency);used+=tINR(b.spent,b.currency);});
   var util=alloc>0?Math.round(used/alloc*100):0;
   function k(c,lb,num,sub){return '<div class="kpi '+(c||'')+'"><div class="lb">'+lb+'</div><div class="num">'+num+'</div>'+(sub?'<div class="sub">'+sub+'</div>':'')+'</div>';}

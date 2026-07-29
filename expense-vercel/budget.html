@@ -89,6 +89,17 @@ table.lt td{padding:7px 8px;border-bottom:1px solid var(--gray-2);vertical-align
 .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px;flex-wrap:wrap;}
 .pager .pginfo{font-size:12px;color:var(--gray-5);}.pgbtns{display:flex;gap:6px;align-items:center;}
 .pgbtn{border:1.5px solid var(--gray-3);background:#fff;color:var(--gray-7);border-radius:7px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}.pgbtn:disabled{opacity:.4;cursor:default;}
+.viewtog{display:inline-flex;border:1.5px solid var(--gray-3);border-radius:8px;overflow:hidden;}
+.viewtog button{border:none;background:#fff;color:var(--gray-7);padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.viewtog button.on{background:var(--navy);color:#fff;}
+.b-summary{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--gray-7);}.b-summary b{color:var(--navy);}
+.b-toggle{color:var(--sky);font-size:12px;font-weight:700;cursor:pointer;margin-top:8px;display:inline-block;}
+.btbl-wrap{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:auto;}
+.btbl{border-collapse:collapse;width:100%;font-size:12.5px;min-width:1040px;}
+.btbl th{background:var(--navy);color:#fff;text-align:left;padding:10px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;position:sticky;top:0;}
+.btbl td{padding:9px 11px;border-bottom:1px solid var(--gray-2);white-space:nowrap;vertical-align:middle;}
+.btbl tr:hover td{background:var(--gray-1);}.btbl .r{text-align:right;}.btbl .id{font-weight:800;color:var(--navy);}
+.ubar{display:inline-block;width:80px;height:7px;background:var(--gray-2);border-radius:4px;overflow:hidden;vertical-align:middle;margin-left:6px;}.ubar i{display:block;height:100%;}
 @media(max-width:680px){.charts{grid-template-columns:1fr;}.lrow{grid-template-columns:1fr 80px 28px;}.lrow .l-freq{grid-column:1/3;}.wrap{padding:16px 12px 50px;}table.lt{font-size:12px;}.modal{max-width:96vw;}}
 @media print{.topbar,.tools,.actions,#charts-wrap,#pager,.ov,.btn-refresh,.chainmini{display:none!important;}.budget,.kpi,.chart{break-inside:avoid;border-color:#ccc;}.wrap{max-width:none;padding:0;}body{background:#fff;}}
 </style>
@@ -101,7 +112,7 @@ table.lt td{padding:7px 8px;border-bottom:1px solid var(--gray-2);vertical-align
     <div id="exp-userbar"></div>
     <span class="updated" id="updated"></span>
     <button class="btn-refresh" id="auto-btn" onclick="toggleAuto()">⏱ Auto: Off</button>
-    <button class="btn-refresh" onclick="printReport()">🖨 Print / PDF</button>
+
     <button class="btn-refresh" onclick="load()">↻ Refresh</button>
   </div>
 </div>
@@ -120,6 +131,7 @@ table.lt td{padding:7px 8px;border-bottom:1px solid var(--gray-2);vertical-align
   <div class="bar">
     <div class="title">Department Budgets</div>
     <div class="tools">
+      <span class="viewtog"><button id="vt-cards" class="on" onclick="setView('cards')">▦ Cards</button><button id="vt-table" onclick="setView('table')">☰ Table</button></span>
       <input id="search" class="search" placeholder="Search id / title / dept" oninput="applyFilters()">
       <select id="f-dept" class="sel" onchange="applyFilters()"><option value="">All departments</option></select>
       <select id="f-period" class="sel" onchange="applyFilters()"><option value="">All periods</option></select>
@@ -148,6 +160,7 @@ table.lt td{padding:7px 8px;border-bottom:1px solid var(--gray-2);vertical-align
     <div class="field"><label>Line items</label><div id="c-lines"></div>
       <button class="btn btn-v" style="margin-top:4px;" onclick="addLine()">+ Add line item</button></div>
     <div style="text-align:right;margin-top:8px;">Total: <span class="tot" id="c-total">0</span></div>
+    <div id="c-err" style="display:none;margin-top:10px;background:var(--red2-l);border:1px solid #F3B4B4;color:var(--red2);border-radius:8px;padding:10px 12px;font-size:12.5px;line-height:1.45;font-weight:600;"></div>
   </div>
   <div class="modal-f"><button class="btn" style="background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);" onclick="closeM('ov-create')">Cancel</button><button class="btn btn-ap" onclick="submitCreate()">Submit for approval</button></div>
 </div></div>
@@ -205,7 +218,10 @@ table.lt td{padding:7px 8px;border-bottom:1px solid var(--gray-2);vertical-align
 </div></div>
 
 <script>
-var DATA={rows:[],periods:[]},CFG=null,RMAP={},PAGE=1,PAGESIZE=8,AUTO=false,AUTOID=null,PRINTING=false;
+var DATA={rows:[],periods:[]},CFG=null,RMAP={},PAGE=1,PAGESIZE=8,AUTO=false,AUTOID=null,PRINTING=false,VIEW='cards';
+// Client-side fallback so the Period dropdown is ALWAYS populated, even if /api/budget is slow/errored.
+function defaultPeriods(){var now=new Date();var fyStart=(now.getMonth()>=3)?now.getFullYear():now.getFullYear()-1;var out=[];[fyStart,fyStart+1].forEach(function(s){var tag='FY'+s+'-'+String(s+1).slice(2);out.push('FY '+s+'-'+String(s+1).slice(2));for(var q=1;q<=4;q++)out.push('Q'+q+' '+tag);});return out;}
+function periodOptions(){var p=(DATA.periods&&DATA.periods.length)?DATA.periods:defaultPeriods();return p.map(function(x){return'<option>'+esc(x)+'</option>';}).join('');}
 function nfmt(x){x=Number(x)||0;if(x>=1e7)return '₹'+(x/1e7).toFixed(2)+' Cr';if(x>=1e5)return '₹'+(x/1e5).toFixed(2)+' L';if(x>=1e3)return '₹'+Math.round(x/1e3)+'k';return '₹'+Math.round(x);}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function n(x){return Number(x||0).toLocaleString('en-IN');}
@@ -289,8 +305,25 @@ function render(){
   $('empty').classList.add('hidden');
   var pages=Math.max(1,Math.ceil(nn/PAGESIZE));if(PAGE>pages)PAGE=pages;if(PAGE<1)PAGE=1;
   var start=PRINTING?0:(PAGE-1)*PAGESIZE,end=PRINTING?nn:Math.min(nn,start+PAGESIZE);
-  $('list').innerHTML=rows.slice(start,end).map(function(r,i){try{return r.type==='realloc'?reallocCard(r,i):(r.type==='claim'?claimCard(r,i):budgetCard(r,i));}catch(e){console.error('card render failed',r&&r.id,e);return '<div class="budget"><div class="b-id">'+esc((r&&r.id)||'?')+'</div><div class="b-sub" style="color:var(--red2);">This card could not render — '+esc(e&&e.message||e)+'</div></div>';}}).join('');
+  var pageRows=rows.slice(start,end);
+  if(VIEW==='table'){ $('list').innerHTML=tableView(pageRows); }
+  else { $('list').innerHTML=pageRows.map(function(r,i){try{return r.type==='realloc'?reallocCard(r,i):(r.type==='claim'?claimCard(r,i):budgetCard(r,i));}catch(e){console.error('card render failed',r&&r.id,e);return '<div class="budget"><div class="b-id">'+esc((r&&r.id)||'?')+'</div><div class="b-sub" style="color:var(--red2);">This card could not render — '+esc(e&&e.message||e)+'</div></div>';}}).join(''); }
   renderPager(nn,start,end,pages);
+}
+function setView(v){VIEW=v;$('vt-cards').classList.toggle('on',v==='cards');$('vt-table').classList.toggle('on',v==='table');render();}
+function toggleCard(id,el){var b=$(id);if(!b)return;var show=b.style.display==='none';b.style.display=show?'':'none';el.textContent=show?'Hide details ▴':'Details ▾';}
+function tableView(rows){
+  var body=rows.map(function(r){
+    var typ=r.type==='realloc'?'Realloc':(r.type==='claim'?'Claim':'Budget');var d=r.detail||{};
+    var hasFig=r.type==='budget';var alloc=hasFig?r.total:(d.amount!=null?d.amount:'');var spent=hasFig?r.spent:'';var rem=hasFig?r.remaining:'';
+    var pct=(hasFig&&r.total>0)?Math.round(r.spent/r.total*100):null;var col=pct>=100?'var(--red2)':(pct>=90?'var(--amber)':'var(--sky)');
+    var used=pct==null?'—':(pct+'%<span class="ubar"><i style="width:'+Math.min(100,pct)+'%;background:'+col+';"></i></span>');
+    var act=r.canApprove?('<button class="btn btn-ap" style="padding:4px 9px;" onclick="decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" style="padding:4px 9px;" onclick="decide(\''+esc(r.id)+'\',\'reject\')">Reject</button>'):(r.locked?'<span class="muted" style="font-size:11px;">manage in Cards</span>':'<span class="muted">—</span>');
+    return '<tr><td class="id">'+esc(r.id)+'</td><td>'+typ+'</td><td>'+esc(r.dept)+'</td><td class="muted">'+esc(r.period)+'</td><td>'+esc(r.currency||'INR')+'</td>'
+      +'<td class="r">'+(alloc!==''?m(alloc,r.currency):'—')+'</td><td class="r">'+(spent!==''?m(spent,r.currency):'—')+'</td><td class="r" style="font-weight:700;">'+(rem!==''?m(rem,r.currency):'—')+'</td>'
+      +'<td>'+used+'</td><td>'+statusPill(r)+'</td><td style="white-space:nowrap;">'+act+'</td></tr>';
+  }).join('');
+  return '<div class="btbl-wrap"><table class="btbl"><thead><tr><th>ID</th><th>Type</th><th>Department</th><th>Period</th><th>Cur</th><th class="r">Allocated</th><th class="r">Spent</th><th class="r">Remaining</th><th>Used</th><th>Status</th><th>Action</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function barPct(obj){var keys=Object.keys(obj);if(!keys.length)return '<div class="cempty">No locked budgets yet.</div>';
   return keys.map(function(k){var o=obj[k];var pct=o.alloc>0?Math.round(o.spent/o.alloc*100):0;var col=pct>=100?'var(--red2)':(pct>=90?'var(--amber)':'#0077CC');
@@ -341,7 +374,7 @@ function approveBtns(r){
   return'<button class="btn btn-ap" onclick="decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="decide(\''+esc(r.id)+'\',\'reject\')">Reject</button>';
 }
 function budgetCard(r,i){
-  var lt='<table class="lt"><thead><tr><th>Line item</th><th class="r">Budget</th><th class="r">Spent</th><th class="r">Remaining</th></tr></thead><tbody>'
+  var lt='<table class="lt"><thead><tr><th>Line item</th><th class="r">Budget</th><th class="r">Spent</th><th class="r" title="Approved but not yet paid (in-flight expense requests)">Committed</th><th class="r" title="Budget − Spent − Committed">Available</th></tr></thead><tbody>'
     +r.lines.map(function(l){
       var pct=l.amount>0?Math.min(100,Math.round((l.spent/l.amount)*100)):0;
       var vend=(l.vendors||[]).map(function(v){var nm=v.vendor||v.note||'spend';return esc(nm)+' ('+m(v.amount,r.currency)+')'+(v.expense?' ·'+esc(v.expense):'');}).join(', ');
@@ -355,15 +388,35 @@ function budgetCard(r,i){
         if(r.canClose)la+='<a onclick="openClose(\''+esc(r.id)+'\',\''+esc(l.id)+'\')">⏹ Close line</a>';
       }
       var lactBar=la?'<div class="lact"><span class="lact-lbl">Line actions:</span>'+la+'</div>':'';
-      return'<tr'+(l.closed?' style="opacity:.6;"':'')+'><td>'+esc(l.head)+fl+cl+(vend?'<div class="vend">'+vend+'</div>':'')+(l.closed?'':raise)+lactBar+'</td><td class="r">'+m(l.amount,r.currency)+'</td><td class="r">'+m(l.spent,r.currency)+'<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div></td><td class="r" style="font-weight:700;">'+m(l.remaining,r.currency)+'</td></tr>';
+      var lcommit=Number(l.committed||0),lavail=(l.available!=null?Number(l.available):(Number(l.amount||0)-Number(l.spent||0)-lcommit));
+      var cmtCell=lcommit>0?'<td class="r" style="color:var(--amber);">'+m(lcommit,r.currency)+(l.committedCount?' <span class="muted" style="font-size:10px;">('+l.committedCount+')</span>':'')+'</td>':'<td class="r muted">—</td>';
+      var avCol=lavail<0?'var(--red2)':'inherit';
+      return'<tr'+(l.closed?' style="opacity:.6;"':'')+'><td>'+esc(l.head)+fl+cl+(vend?'<div class="vend">'+vend+'</div>':'')+(l.closed?'':raise)+lactBar+'</td><td class="r">'+m(l.amount,r.currency)+'</td><td class="r">'+m(l.spent,r.currency)+'<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div></div></td>'+cmtCell+'<td class="r" style="font-weight:700;color:'+avCol+';">'+m(lavail,r.currency)+'</td></tr>';
     }).join('')
-    +'</tbody><tfoot><tr><td style="font-weight:800;">Total</td><td class="r" style="font-weight:800;">'+m(r.total,r.currency)+'</td><td class="r" style="font-weight:800;">'+m(r.spent,r.currency)+'</td><td class="r" style="font-weight:800;">'+m(r.remaining,r.currency)+'</td></tr></tfoot></table>';
+    +'</tbody><tfoot><tr><td style="font-weight:800;">Total</td><td class="r" style="font-weight:800;">'+m(r.total,r.currency)+'</td><td class="r" style="font-weight:800;">'+m(r.spent,r.currency)+'</td><td class="r" style="font-weight:800;color:var(--amber);">'+m(r.committed||0,r.currency)+'</td><td class="r" style="font-weight:800;">'+m((r.available!=null?r.available:r.remaining),r.currency)+'</td></tr></tfoot></table>';
   var act=approveBtns(r);
   if(r.locked)act+='<button class="btn btn-v" onclick="openVendor(\''+esc(r.id)+'\')">＋ Map vendor</button><button class="btn btn-r" onclick="openRealloc(\''+esc(r.id)+'\')">⇄ Reallocate</button>';
   if(r.canFinanceAdd)act+='<button class="btn" style="background:var(--sky);color:#fff;" onclick="openFinAdd(\''+esc(r.id)+'\')">＋ Add expense (Finance)</button>';
   if(r.canClose)act+='<button class="btn" style="background:var(--gray-7);color:#fff;" onclick="openClose(\''+esc(r.id)+'\')">⏹ Close / carry-forward</button>';
+  var util=r.total>0?Math.round(r.spent/r.total*100):0;
+  var cmtChip=(r.committed>0)?'<span>Committed <b style="color:var(--amber);">'+m(r.committed,r.currency)+'</b></span>':'';
+  var summary='<div class="b-summary"><span>Total <b>'+m(r.total,r.currency)+'</b></span><span>Spent <b>'+m(r.spent,r.currency)+'</b></span>'+cmtChip+'<span>Available <b>'+m((r.available!=null?r.available:r.remaining),r.currency)+'</b></span><span><b>'+util+'%</b> used · '+(r.lines||[]).length+' line(s)</span></div>';
+  var bodyId='bd-'+String(r.id).replace(/[^A-Za-z0-9_-]/g,'');
+  var body='<div id="'+bodyId+'" style="display:none;">'+lt+historyHtml(r)+tlHtml(r)+'</div>';
+  var tog='<span class="b-toggle" onclick="toggleCard(\''+bodyId+'\',this)">Details ▾</span>';
   return'<div class="budget'+(isOverdue(r)?' overdue':'')+'"><div class="b-h"><div><div class="b-id">'+esc(r.id)+' · '+esc(r.title)+paceBadge(r)+'</div><div class="b-sub">'+esc(r.dept)+' · '+esc(r.period)+' · created '+esc(r.submission)+'</div>'+lineageHtml(r)+'</div><div style="text-align:right;white-space:nowrap;">'+ageBadge(r)+statusPill(r)+'</div></div>'
-    +chainmini(r)+lt+tlHtml(r)+(act?'<div class="actions">'+act+'</div>':'')+'</div>';
+    +chainmini(r)+summary+tog+body+(act?'<div class="actions">'+act+'</div>':'')+'</div>';
+}
+function historyHtml(r){
+  var h=r.history||[];
+  if(!h.length)return'';
+  var items=h.map(function(e){
+    return '<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--gray-2);">'
+      +'<div style="min-width:96px;font-size:11px;color:var(--gray-5);white-space:nowrap;">'+esc(e.at||'')+'</div>'
+      +'<div style="flex:1;"><div style="font-size:12.5px;font-weight:700;color:var(--navy);">'+esc(e.label||'')+'</div>'
+      +(e.detail?'<div style="font-size:12px;color:var(--gray-7);">'+esc(e.detail)+'</div>':'')+'</div></div>';
+  }).join('');
+  return '<div style="margin-top:12px;"><div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:4px;">🕘 Revision history <span style="font-weight:500;color:var(--gray-5);">('+h.length+' event'+(h.length===1?'':'s')+')</span></div>'+items+'</div>';
 }
 function reallocCard(r,i){
   var d=r.detail||{};var drop=!!d.drop;
@@ -398,8 +451,8 @@ function decide(id,decision){
 // ---- create ----
 function openCreate(){
   $('c-dept').innerHTML=Object.keys(CFG.departments).map(function(d){return'<option>'+esc(d)+'</option>';}).join('');
-  $('c-period').innerHTML=(DATA.periods||[]).map(function(p){return'<option>'+esc(p)+'</option>';}).join('');
-  $('c-title').value='';$('c-lines').innerHTML='';addLine();addLine();calcTotal();
+  $('c-period').innerHTML=periodOptions();
+  $('c-title').value='';$('c-lines').innerHTML='';addLine();addLine();calcTotal();if(typeof cErr==='function')cErr('');
   openM('ov-create');
 }
 function addLine(){
@@ -410,16 +463,23 @@ function addLine(){
   $('c-lines').appendChild(d);
 }
 function calcTotal(){var t=0;document.querySelectorAll('#c-lines .l-amt').forEach(function(e){t+=Number(e.value)||0;});$('c-total').textContent=n(t);}
+function cErr(msg){var e=$('c-err');if(!e)return;if(!msg){e.style.display='none';e.textContent='';return;}
+  var friendly=/permission|forbidden|not have access/i.test(msg)?'The app can’t save right now — its service account has lost access to the Google Sheet. Ask an admin to re-share the sheet with the service account, then try again.':msg;
+  e.textContent='⚠ '+friendly;e.style.display='';}
 function submitCreate(){
+  cErr('');
   var lines=[];document.querySelectorAll('#c-lines .lrow').forEach(function(row){var h=row.querySelector('.l-head').value.trim(),a=Number(row.querySelector('.l-amt').value)||0,f=row.querySelector('.l-freq').value;if(h&&a>0)lines.push({head:h,amount:a,frequency:f});});
-  if(!lines.length){toast('Add at least one line item with an amount.');return;}
+  if(!lines.length){cErr('Add at least one line item with an amount.');return;}
   doCreate(lines,false);
 }
 function doCreate(lines,force){
+  var btn=document.querySelector('#ov-create .btn-ap');if(btn){btn.disabled=true;btn.textContent='Submitting…';}
+  function done(){if(btn){btn.disabled=false;btn.textContent='Submit for approval';}}
   fetch('/api/budget',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'create',dept:$('c-dept').value,period:$('c-period').value,currency:$('c-currency').value,title:$('c-title').value.trim(),lines:lines,allowDuplicate:force})})
-    .then(function(r){return r.json();}).then(function(res){
-      if(res&&res.duplicate){if(confirm('⚠ '+res.error+'\n\nClick OK to create anyway, or Cancel to review.')){doCreate(lines,true);}else{toast('Cancelled — '+res.dupId+' already covers this.');}return;}
-      if(res.ok){toast('Budget submitted');closeM('ov-create');load();}else toast('Error: '+(res.error||'failed'));}).catch(function(){toast('Error');});
+    .then(function(r){return r.json();}).then(function(res){done();
+      if(res&&res.duplicate){if(confirm('⚠ '+res.error+'\n\nClick OK to create anyway, or Cancel to review.')){doCreate(lines,true);}else{cErr((res.dupId||'A budget')+' already covers this — cancelled.');}return;}
+      if(res.ok){toast('Budget submitted');closeM('ov-create');load();}else cErr(res.error||'Could not submit. Please try again.');})
+    .catch(function(){done();cErr('Network error — could not reach the server. Check your connection and try again.');});
 }
 // ---- vendor ----
 var curBudget=null;
@@ -451,7 +511,7 @@ function openClose(id,lineId){closeId=id;var r=DATA.rows.find(function(x){return
   var open=(r.lines||[]).filter(function(l){return !l.closed;});
   $('cl-scope').innerHTML='<option value="">Entire budget</option>'+open.map(function(l){return'<option value="'+esc(l.id)+'">Line: '+esc(l.head)+' ('+m(l.remaining,r.currency)+' left)</option>';}).join('');
   if(lineId)$('cl-scope').value=lineId;
-  $('cl-carry').checked=false;$('cl-period-wrap').style.display='none';$('cl-period').innerHTML=(DATA.periods||[]).map(function(p){return'<option>'+esc(p)+'</option>';}).join('');
+  $('cl-carry').checked=false;$('cl-period-wrap').style.display='none';$('cl-period').innerHTML=periodOptions();
   closeScopeInfo();openM('ov-close');}
 function closeScopeInfo(){var r=DATA.rows.find(function(x){return x.id===closeId;});if(!r)return;var lid=$('cl-scope').value;
   if(lid){var l=r.lines.find(function(x){return x.id===lid;});$('close-info').textContent=l?('Closes just "'+l.head+'" — '+m(l.remaining,r.currency)+' remaining.'):'';$('cl-desc').firstChild.textContent='Closes this line item only; the rest of the budget stays open. ';$('cl-submit').textContent='Close line';}

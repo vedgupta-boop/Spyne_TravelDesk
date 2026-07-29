@@ -4,7 +4,7 @@ import { AUTH, rolesFor } from './config.js';
 
 const SESSION_COOKIE = 'trf_session';
 const STATE_COOKIE = 'trf_oauth_state';
-const MAX_AGE = 8 * 3600; // seconds
+const MAX_AGE = 7 * 24 * 3600; // 7 days (long enough to fill a form / resume a saved draft next day)
 
 // ---- base URL ----
 export function baseUrl(req) {

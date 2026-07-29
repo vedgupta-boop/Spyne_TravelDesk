@@ -6,6 +6,7 @@ import { applyRoleOverrides } from '../lib/rolesstore.js';
 
 export default async function handler(req, res) {
   await applyRoleOverrides(); // re-derive the caller's roles from current assignments
+  res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate'); // never cache auth state (stale = wrongly "signed in")
   const s = getSession(req);
   if (!s) { res.status(200).json({ authenticated: false }); return; }
 

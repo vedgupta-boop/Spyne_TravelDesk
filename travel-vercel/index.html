@@ -796,8 +796,10 @@ function uploadDoc(inputId, key, statusId){
     var base64=String(reader.result).split(',')[1];
     fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
       body:JSON.stringify({filename:f.name, mimeType:f.type, base64:base64})})
-      .then(function(r){ return r.json(); })
-      .then(function(d){ if(d.ok){ state.docs[key]=d.link; st.className='hint ok'; st.textContent='✓ Uploaded'; }
+      .then(function(r){ if(r.status===401) return {ok:false, authExpired:true}; return r.json(); })
+      .then(function(d){
+        if(d.authExpired || d.authRequired){ state.docs[key]=''; st.className='hint bad'; st.innerHTML='Session expired — <a href="/login.html?next='+encodeURIComponent(location.pathname+location.search)+'">sign in again</a> to upload (your draft is saved).'; return; }
+        if(d.ok){ state.docs[key]=d.link; st.className='hint ok'; st.textContent='✓ Uploaded'; }
         else { state.docs[key]=''; st.className='hint bad'; st.textContent='Upload failed: '+(d.error||'error'); } })
       .catch(function(){ state.docs[key]=''; st.className='hint bad'; st.textContent='Upload failed.'; });
   };

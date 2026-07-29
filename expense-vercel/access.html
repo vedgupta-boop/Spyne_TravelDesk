@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne Expense Approval · User Access</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--red-d:#B01820;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 20px 60px;}
+.title{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:14px;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;margin-bottom:18px;}
+.panel-h{padding:13px 16px;font-weight:800;color:var(--navy);border-bottom:1px solid var(--gray-2);font-size:14px;}
+.panel-h .sub{font-weight:500;font-size:12px;color:var(--gray-5);}
+.pbody{padding:14px 16px;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:640px;}
+th{background:var(--gray-1);color:var(--gray-7);text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid var(--gray-2);white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid var(--gray-2);vertical-align:middle;}
+.muted{color:var(--gray-5);}
+.loading,.empty{padding:40px;text-align:center;color:var(--gray-5);}
+.hidden{display:none!important;}
+.role{display:inline-block;background:var(--sky-l);color:var(--sky);border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700;margin:1px 3px 1px 0;}
+.role.fin{background:#F3E8FF;color:#7C3AED;}.role.ceo{background:var(--amb-l);color:#B45309;}.role.hod{background:var(--grn-l);color:#065F46;}.role.req{background:var(--gray-2);color:var(--gray-7);}
+.rrow{display:flex;gap:8px;align-items:center;margin-bottom:9px;flex-wrap:wrap;}
+.rrow .lbl{min-width:180px;font-weight:700;color:var(--navy);}
+.rrow input{flex:1;min-width:230px;padding:8px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-family:inherit;font-size:13px;}
+.rrow input:focus{border-color:var(--red);outline:none;}
+.btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn.sec{background:#fff;border:1.5px solid var(--gray-3);color:var(--gray-7);}
+.st{font-size:12px;font-weight:700;min-width:60px;}
+.note{font-size:11px;color:var(--gray-5);margin-top:8px;}
+textarea{width:100%;min-height:110px;padding:10px;border:1px solid var(--gray-3);border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;}.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne Expense Approval Dashboard</div><div class="logo-sub">User Access</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="exp-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div class="title">User access &amp; roles</div>
+
+  <div class="panel">
+    <div class="panel-h">🛡️ Roles &amp; Approvers <span class="sub">— who holds each role / department head. Changes apply on the person's next sign-in (no redeploy).</span></div>
+    <div class="pbody" id="roles-body"><div class="muted">Loading roles…</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h">🔁 Delegation / out-of-office <span class="sub">— let a stand-in approve for someone during a date range. The stand-in can act on those approvals and gets the emails. Empty dates = open-ended.</span></div>
+    <div class="pbody">
+      <div class="rrow">
+        <div class="lbl">Approver going away</div>
+        <input id="dlg-approver" list="approver-list" placeholder="person@spyne.ai">
+        <datalist id="approver-list"></datalist>
+      </div>
+      <div class="rrow">
+        <div class="lbl">Stand-in (delegate)</div>
+        <input id="dlg-delegate" placeholder="standin@spyne.ai">
+      </div>
+      <div class="rrow">
+        <div class="lbl">From → To (optional)</div>
+        <input id="dlg-from" type="date" style="min-width:150px;max-width:180px;">
+        <input id="dlg-to" type="date" style="min-width:150px;max-width:180px;">
+      </div>
+      <div class="rrow">
+        <div class="lbl">Note (optional)</div>
+        <input id="dlg-note" placeholder="e.g. Annual leave">
+        <button class="btn" onclick="saveDelegation()">Add delegation</button>
+        <span class="st" id="dlg-st"></span>
+      </div>
+      <div class="tbl-scroll" style="margin-top:12px;"><table>
+        <thead><tr><th>Approver</th><th>Stand-in</th><th>Window</th><th>Note</th><th>State</th><th></th></tr></thead>
+        <tbody id="dlg-rows"><tr><td colspan="6" class="muted">No delegations set.</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h" onclick="toggleScrap()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <span>🧹 Scrap test requests <span class="sub">— hide junk/test requests from every dashboard. Reversible (clear the Stage cell in the sheet).</span></span>
+      <span id="scrap-toggle" style="color:#0077CC;font-size:12px;font-weight:700;white-space:nowrap;">Show ▾</span>
+    </div>
+    <div class="pbody hidden" id="scrap-body">
+      <div class="note" style="margin-bottom:8px;">Paste request IDs (one per line or comma-separated). ONLY these exact IDs are scrapped.</div>
+      <textarea id="scrap-ids" placeholder="EXP-20260620-AB12&#10;EXP-20260620-CD34"></textarea>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="btn" onclick="scrapTests()">🧹 Scrap listed requests</button>
+        <span id="scrap-st" class="st"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h">👥 Users <span class="sub">— everyone who has used the app + their effective roles.</span></div>
+    <div id="loading" class="loading">Loading users…</div>
+    <div class="tbl-scroll hidden" id="tbl-wrap"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Roles</th><th class="r">Requests</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div id="empty" class="empty hidden">No users yet.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-h">🏷️ Vendor master <span class="sub">— unique vendors across all requests, de-duplicated (spelling variants merged). ⚠ marks vendors with more than one spelling to normalise.</span></div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>Vendor</th><th class="r">Requests</th><th>GST / PAN</th><th>Contact</th><th>Spellings</th></tr></thead>
+      <tbody id="vendor-rows"><tr><td colspan="5" class="muted">Loading vendors…</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function $(id){return document.getElementById(id);}
+function roleChip(r){var c=r==='finance'?'fin':(r==='ceo'?'ceo':(r==='hod'?'hod':'req'));return '<span class="role '+c+'">'+esc(r)+'</span>';}
+var DATA={};
+function load(){
+  $('loading').classList.remove('hidden');$('tbl-wrap').classList.add('hidden');$('empty').classList.add('hidden');
+  fetch('/api/finance?view=access',{credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('access '+r.status);return r.json();}).then(render)
+    .catch(function(e){$('loading').textContent='Could not load: '+(e&&e.message||e);$('roles-body').innerHTML='<div class="muted">Could not load roles.</div>';});
+}
+function render(d){
+  DATA=d||{};
+  renderRoles(d);
+  renderDelegations(d);
+  renderVendors(d);
+  var users=(d&&d.users)||[];
+  $('loading').classList.add('hidden');
+  if(!users.length){$('empty').classList.remove('hidden');}
+  else{$('tbl-wrap').classList.remove('hidden');
+    $('rows').innerHTML=users.map(function(u){
+      return '<tr><td>'+esc(u.name||'—')+'</td><td>'+esc(u.email)+'</td><td>'+(u.roles||[]).map(roleChip).join('')+'</td><td class="r">'+(u.count||0)+'</td></tr>';
+    }).join('');}
+}
+function approverEmails(d){
+  var a=(d&&d.assignments)||{};var out=[];
+  if(a.ceo)out.push(a.ceo);(a.finance||[]).forEach(function(e){out.push(e);});
+  Object.keys(a.depts||{}).forEach(function(k){if(a.depts[k])out.push(a.depts[k]);});
+  return out.filter(function(v,i){return v&&out.indexOf(v)===i;});
+}
+function fmtD(s){if(!s)return'';var d=new Date(s);return isNaN(d)?String(s):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+function renderDelegations(d){
+  var opts=approverEmails(d).map(function(e){return '<option value="'+esc(e)+'">';}).join('');
+  var dl=$('approver-list');if(dl)dl.innerHTML=opts;
+  var rows=(d&&d.delegations)||[];
+  var body=$('dlg-rows');if(!body)return;
+  if(!rows.length){body.innerHTML='<tr><td colspan="6" class="muted">No delegations set.</td></tr>';return;}
+  body.innerHTML=rows.map(function(x){
+    var win=(x.from||x.to)?((x.from?fmtD(x.from):'…')+' → '+(x.to?fmtD(x.to):'…')):'Open-ended';
+    var state=x.active?'<span class="st" style="color:var(--green)">● Active</span>':'<span class="st muted">Scheduled/expired</span>';
+    return '<tr><td>'+esc(x.approver)+'</td><td>'+esc(x.delegate)+'</td><td>'+esc(win)+'</td><td>'+esc(x.note||'—')+'</td><td>'+state
+      +'</td><td><button class="btn sec" onclick="removeDelegation(\''+esc(x.approver)+'\',\''+esc(x.delegate)+'\')">Remove</button></td></tr>';
+  }).join('');
+}
+function saveDelegation(){
+  var approver=($('dlg-approver').value||'').trim(),delegate=($('dlg-delegate').value||'').trim();
+  var st=$('dlg-st');
+  if(!approver||!delegate){st.textContent='Enter both emails.';st.style.color='var(--red2)';return;}
+  st.textContent='Saving…';st.style.color='var(--gray-5)';
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+    body:JSON.stringify({action:'delegate',approver:approver,delegate:delegate,from:$('dlg-from').value,to:$('dlg-to').value,note:$('dlg-note').value})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.ok){st.textContent='✓ Saved';st.style.color='var(--green)';$('dlg-delegate').value='';$('dlg-note').value='';toast('Delegation saved');load();}
+      else{st.textContent=(res&&res.error)||'Error';st.style.color='var(--red2)';}
+    }).catch(function(){st.textContent='Failed';st.style.color='var(--red2)';});
+}
+function removeDelegation(approver,delegate){
+  if(!confirm('Remove delegation: '+delegate+' standing in for '+approver+'?'))return;
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+    body:JSON.stringify({action:'undelegate',approver:approver,delegate:delegate})})
+    .then(function(r){return r.json();}).then(function(res){if(res&&res.ok){toast('Removed');load();}else{alert((res&&res.error)||'Error');}})
+    .catch(function(){alert('Failed');});
+}
+function renderVendors(d){
+  var rows=(d&&d.vendors)||[];var body=$('vendor-rows');if(!body)return;
+  if(!rows.length){body.innerHTML='<tr><td colspan="5" class="muted">No vendors yet.</td></tr>';return;}
+  body.innerHTML=rows.map(function(v){
+    var contact=[v.phone,v.email].filter(Boolean).join(' · ');
+    var dupe=(v.variants||1)>1?' <span class="st" style="color:var(--amber)" title="Multiple spellings merged">⚠ '+v.variants+'</span>':'';
+    return '<tr><td><b>'+esc(v.vendor)+'</b>'+dupe+'</td><td class="r">'+(v.count||0)+'</td><td>'+esc(v.gst||'—')+'</td><td>'+esc(contact||'—')+'</td><td class="muted">'+(v.variants||1)+'</td></tr>';
+  }).join('');
+}
+function rrow(key,label,val,multi){
+  return '<div class="rrow"><div class="lbl">'+esc(label)+'</div>'
+    +'<input id="role-'+esc(key)+'" value="'+esc(val||'')+'" placeholder="'+(multi?'email1@spyne.ai, email2@…':'person@spyne.ai')+'">'
+    +'<button class="btn" onclick="saveRole(\''+esc(key)+'\')">Save</button>'
+    +'<span class="st" id="rolest-'+esc(key)+'"></span></div>';
+}
+function renderRoles(d){
+  var a=(d&&d.assignments)||{};var html='';
+  html+=rrow('ceo','CEO', a.ceo, false);
+  html+=rrow('finance','Finance team', (a.finance||[]).join(', '), true);
+  html+='<div style="font-weight:800;margin:14px 0 9px;color:var(--navy);border-top:1px solid var(--gray-2);padding-top:12px;">Department heads (HOD)</div>';
+  (d&&d.departments||[]).forEach(function(dep){ html+=rrow('dept:'+dep, dep, (a.depts||{})[dep], false); });
+  html+='<div class="note">CEO &amp; each department head take a single email. Finance accepts multiple, comma-separated. Leave blank to revert to the default. The person must sign out &amp; back in for a new role to take effect.</div>';
+  $('roles-body').innerHTML=html;
+}
+function saveRole(key){
+  var inp=$('role-'+key), st=$('rolest-'+key);if(!inp)return;
+  st.textContent='Saving…';st.style.color='var(--gray-5)';
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'role',key:key,value:inp.value})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.ok){st.textContent='✓ Saved';st.style.color='var(--green)';load();}
+      else{st.textContent=(res&&res.error)||'Error';st.style.color='var(--red2)';}
+    }).catch(function(){st.textContent='Failed';st.style.color='var(--red2)';});
+}
+function toggleScrap(){var b=$('scrap-body'),t=$('scrap-toggle');var h=b.classList.toggle('hidden');t.textContent=h?'Show ▾':'Hide ▴';}
+function scrapTests(){
+  var ta=$('scrap-ids'),st=$('scrap-st');
+  var ids=(ta.value||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+  if(!ids.length){st.textContent='Enter at least one ID.';st.style.color='var(--red2)';return;}
+  if(!confirm('Scrap '+ids.length+' request(s)? They will be hidden from every dashboard (reversible in the sheet).'))return;
+  st.textContent='Scrapping…';st.style.color='var(--gray-5)';
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'scrap',ids:ids})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res&&res.ok){st.textContent='✓ Scrapped '+res.scrapped+(res.notFound&&res.notFound.length?(' · '+res.notFound.length+' not found'):'');st.style.color='var(--green)';ta.value='';}
+      else{st.textContent=(res&&res.error)||'Error';st.style.color='var(--red2)';}
+    }).catch(function(e){st.textContent='Failed';st.style.color='var(--red2)';});
+}
+var toastT;function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},2800);}
+requireView('finance', function(me){renderUserbar(me);load();});
+</script>
+</body>
+</html>

@@ -124,7 +124,7 @@ th.sortable{cursor:pointer;user-select:none;}th.sortable:hover{background:#13263
     <div id="exp-userbar"></div>
     <span class="updated" id="updated"></span>
     <button class="btn-refresh" id="auto-btn" onclick="toggleAuto()">⏱ Auto: Off</button>
-    <button class="btn-refresh" onclick="printReport()">🖨 Print / PDF</button>
+
     <button class="btn-refresh" onclick="load()">↻ Refresh</button>
   </div>
 </div>
@@ -173,7 +173,7 @@ th.sortable{cursor:pointer;user-select:none;}th.sortable:hover{background:#13263
   <div class="bar">
     <div class="title">All Expense Requests</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <input id="search" placeholder="Search id / name / dept / item / vendor" oninput="applyFilters()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;min-width:200px;">
+      <input id="search" placeholder="Search anything — id, name, vendor, amount, PO, status…" oninput="applyFilters()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;min-width:200px;">
       <select id="f-dept" onchange="applyFilters()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">All departments</option></select>
       <select id="f-nat" onchange="applyFilters()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">All natures</option><option>Expense</option><option>Capex</option></select>
       <select id="f-cur" onchange="applyFilters()" style="padding:7px 11px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:12px;font-family:inherit;"><option value="">All currencies</option><option>INR</option><option>USD</option></select>
@@ -302,7 +302,9 @@ function filteredRows(){
     if(curf&&String(r.currency)!==curf)return false;
     if(df&&String(r.dept)!==df)return false;
     if(nf&&String(r.nature||'Expense')!==nf)return false;
-    if(q){var hay=(r.id+' '+r.name+' '+r.dept+' '+r.item+' '+r.vendor+' '+r.reqType).toLowerCase();if(hay.indexOf(q)<0)return false;}
+    if(q){var hay=[r.id,r.name,r.email,r.dept,r.item,r.vendor,r.reqType,r.category,r.nature,r.status,r.finalStatus,r.purpose,r.budgetLine,r.poNumber,r.amount,r.amountINR].filter(function(x){return x!=null&&x!=='';}).join(' ').toLowerCase();
+      // space-separated terms → all must match (AND search)
+      var terms=q.split(/\s+/);for(var ti=0;ti<terms.length;ti++){if(hay.indexOf(terms[ti])<0)return false;}}
     if(FILTER==='overdue'){if(!isOverdue(r))return false;}
     else if(FILTER==='oob'){if(!r.outOfBudget||/reject/i.test(String(r.status||'')))return false;}
     else if(FILTER==='dup'){if(!DUPSET[r.id])return false;}
@@ -353,10 +355,31 @@ function openCost(i){
     +kv('Quotations',d.quotesAvail==='Yes'?(d.quotes.length+' attached'):(d.quotesAvail==='No'?('Fewer than 3 — '+d.quotesReason):'Not required'))
     +kv('Approval tier',d.tier)+'</div>';
   var docs='';(d.quotes||[]).forEach(function(u,k){docs+='<a class="bd-doc" href="'+esc(u)+'" target="_blank">📎 Quotation '+(k+1)+'</a>';});
-  if(d.doc)docs+='<a class="bd-doc" href="'+esc(d.doc)+'" target="_blank">📎 Proforma</a>';if(d.invoiceDoc)docs+='<a class="bd-doc" href="'+esc(d.invoiceDoc)+'" target="_blank">📎 e-Invoice</a>';
+  if(d.doc)docs+='<a class="bd-doc" href="'+esc(d.doc)+'" target="_blank">📎 Proforma</a>';
+  var invDocs=(r.invoiceDocs&&r.invoiceDocs.length)?r.invoiceDocs:(d.invoiceDoc?[d.invoiceDoc]:[]);
+  invDocs.forEach(function(u,k){docs+='<a class="bd-doc" href="'+esc(u)+'" target="_blank">📎 e-Invoice'+(invDocs.length>1?' '+(k+1):'')+'</a>';});
+  if(d.w9Doc)docs+='<a class="bd-doc" href="'+esc(d.w9Doc)+'" target="_blank">📎 W-9</a>';
   if(docs)html+='<div class="bd-sec">Documents</div><div>'+docs+'</div>';
+  // Vendor compliance (country / entity / W-9)
+  if(d.vendorCountry||d.vendorEntity){
+    var w9txt=d.w9Doc?'On file':(/united states/i.test(d.vendorCountry||'')&&!/corp/i.test(d.vendorEntity||'')?'⚠ Missing (required)':'Not required');
+    html+='<div class="bd-sec">Vendor compliance</div><div class="kvbox">'+kv('Country',d.vendorCountry||'—')+kv('Entity type',d.vendorEntity||'—')+kv('W-9',w9txt)+'</div>';
+  }
+  // Invoice detail (base / tax / total, region, number, date, category)
+  var hasInv=d.invoiceBase||d.invoiceTax||d.invoiceTotal||d.invoiceNumber||r.invoiceGst;
+  if(hasInv){
+    var taxLbl=(d.invoiceRegion==='US')?'Sales tax':'GST';
+    html+='<div class="bd-sec">Invoice detail</div><div class="kvbox">'
+      +kv('Region',d.invoiceRegion||'India')+kv('Invoice no.',d.invoiceNumber)+kv('Invoice date',d.invoiceVDate)
+      +kv('Base amount',d.invoiceBase>0?fmt(cur,d.invoiceBase):'')
+      +kv(taxLbl+' amount',(d.invoiceTax||r.invoiceGst)>0?fmt(cur,d.invoiceTax||r.invoiceGst):'')
+      +kv('Total amount',d.invoiceTotal>0?fmt(cur,d.invoiceTotal):'')
+      +kv(d.invoiceRegion==='US'?'US Tax ID':'GSTIN',d.invoiceGstin||r.invoiceGstin)
+      +kv('Category',d.invoiceCategory)+'</div>';
+  }
   var life=kv('PO number',d.poNumber?(d.poNumber+(d.poDate?' · '+d.poDate:'')):'')+kv('Delivery',d.delivery?(d.delivery+(d.deliveryDate?' · '+d.deliveryDate:'')):'')+kv('Invoice date',d.invoiceDate);
   if(life.trim())html+='<div class="bd-sec">Lifecycle</div><div class="kvbox">'+life+'</div>';
+  html+=paymentsHtml(r,cur);
   html+='<div class="bd-sec">Approval timeline</div>'+timelineHtml(r);
   html+='<div class="bd-sec">Purpose / justification</div><div class="bd-cmt">'+esc(d.purpose||'—')+'</div>';
   if(r.canPO)html+='<div style="margin-top:16px;"><button class="btn-po" style="padding:9px 16px;font-size:13px;" onclick="issuePO(\''+esc(r.id)+'\')">＋ Issue Purchase Order</button></div>';
@@ -383,6 +406,43 @@ function timelineHtml(r){
     var rk=remarks[s.h]?('<div class="tl-txt">“'+esc(remarks[s.h])+'”</div>'):(s.txt?('<div class="tl-txt">'+esc(s.txt)+'</div>'):'');
     return '<div class="tl-item"><span class="tl-dot '+dot+'"></span><div class="tl-h">'+esc(s.h)+'</div>'+(meta?'<div class="tl-meta">'+esc(meta)+'</div>':'')+rk+'</div>';
   }).join('')+'</div>';
+}
+// Partial-payment ledger + Finance disbursement form (shown when a request is approved for payment).
+function fmtTs(v){if(!v)return'';var d=new Date(v);return isNaN(d)?String(v):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+function paymentsHtml(r,cur){
+  var pays=r.payments||[];
+  if(!pays.length && !r.canRecordPayment) return '';
+  var h='<div class="bd-sec">Payments</div>';
+  var paid=r.paidToDate||0,total=r.paymentTotal||0,bal=(r.paymentBalance!=null?r.paymentBalance:Math.max(0,total-paid));
+  h+='<div class="kvbox">'+kv('Paid to date',fmt(cur,paid)+' of '+fmt(cur,total))+kv('Balance',fmt(cur,bal))+'</div>';
+  if(pays.length){
+    h+='<div style="margin-top:8px;">'+pays.map(function(p,k){
+      var meta=[p.date?fmtTs(p.date):'',p.mode,p.ref?('ref '+p.ref):''].filter(Boolean).join(' · ');
+      return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--gray-2);font-size:12.5px;"><span>#'+(k+1)+' '+esc(meta||'—')+(p.doc?' <a href="'+esc(p.doc)+'" target="_blank">📎</a>':'')+'</span><b>'+esc(fmt(cur,p.amount))+'</b></div>';
+    }).join('')+'</div>';
+  }
+  if(r.canRecordPayment){
+    h+='<div style="margin-top:12px;padding:12px;border:1.5px dashed var(--gray-3);border-radius:10px;">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">Record a payment (leave amount blank to pay the full '+esc(fmt(cur,bal))+' balance)</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      +'<input id="pay-amt" type="number" min="0" placeholder="Amount ('+esc(cur)+')" style="flex:1;min-width:120px;padding:8px 10px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:13px;">'
+      +'<input id="pay-mode" placeholder="Mode (NEFT/UPI…)" style="flex:1;min-width:120px;padding:8px 10px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:13px;">'
+      +'<input id="pay-ref" placeholder="UTR / reference" style="flex:1;min-width:120px;padding:8px 10px;border:1.5px solid var(--gray-3);border-radius:8px;font-size:13px;">'
+      +'</div><div style="margin-top:8px;display:flex;align-items:center;gap:10px;">'
+      +'<button class="btn-po" style="padding:8px 14px;font-size:13px;" onclick="recordPayment(\''+esc(r.id)+'\')">💸 Record payment</button>'
+      +'<span id="pay-st" style="font-size:12px;"></span></div></div>';
+  }
+  return h;
+}
+function recordPayment(id){
+  var st=document.getElementById('pay-st');
+  var amt=document.getElementById('pay-amt').value,mode=document.getElementById('pay-mode').value,ref=document.getElementById('pay-ref').value;
+  st.style.color='var(--gray-5)';st.textContent='Recording…';
+  fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'pay',id:id,amount:amt,mode:mode,ref:ref})})
+    .then(function(r){return r.json();}).then(function(res){
+      if(res.ok){st.style.color='var(--green)';st.textContent=res.msg||'Recorded';setTimeout(function(){closeCost();load();},700);}
+      else{st.style.color='var(--red2)';st.textContent=res.error||'Failed';}
+    }).catch(function(){st.style.color='var(--red2)';st.textContent='Failed';});
 }
 function closeCost(){document.getElementById('cost-drawer').classList.remove('open');document.getElementById('cost-drawer').setAttribute('aria-hidden','true');document.getElementById('cost-ov').classList.remove('open');}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCost();});

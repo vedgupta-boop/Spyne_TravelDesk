@@ -6,6 +6,7 @@ export default async function handler(req, res) {
   const session = requireRole(req, res, 'requester');
   if (!session) return;
   try {
+    try { const { applyRoleOverrides } = await import('../lib/rolesstore.js'); await applyRoleOverrides(); } catch (e) { /* defaults */ }
     const payload = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     payload.email = session.email; // trust the signed-in identity, not client input
     const result = await submitRequest(payload, baseUrl(req));

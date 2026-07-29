@@ -91,7 +91,7 @@ th.sortable{cursor:pointer;user-select:none;}th.sortable:hover{background:#13263
     <div id="exp-userbar"></div>
     <span class="updated" id="updated"></span>
     <button class="btn-refresh" id="auto-btn" onclick="toggleAuto()">⏱ Auto: Off</button>
-    <button class="btn-refresh" onclick="printReport()">🖨 Print / PDF</button>
+
     <button class="btn-refresh" onclick="load()">↻ Refresh</button>
   </div>
 </div>
@@ -99,6 +99,13 @@ th.sortable{cursor:pointer;user-select:none;}th.sortable:hover{background:#13263
 
 <div class="wrap">
   <div id="kpis" class="cards"></div>
+  <div class="panel" id="analytics-panel" style="display:none;margin-bottom:16px;">
+    <div class="title" style="padding:12px 16px;border-bottom:1px solid var(--gray-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;" onclick="toggleAnalytics()">
+      <span>📊 Analytics <span class="scopechip" id="an-scope">—</span></span>
+      <span id="an-caret" style="color:var(--sky);font-size:12px;">Hide ▴</span>
+    </div>
+    <div id="an-body" style="padding:14px 16px;"></div>
+  </div>
   <div class="bar">
     <div class="title">Expense Requests <span class="scopechip" id="scopechip">—</span></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -215,9 +222,47 @@ function onData(d){
   document.getElementById('scopechip').textContent=(DATA.scope||'Approvals')+(RO?' (read-only)':'');
   document.getElementById('actCol').textContent=RO?'Decision':'Action';
   if(RO&&FILTER==='todo'){FILTER='all';document.querySelectorAll('#filters .chip').forEach(function(c){c.classList.toggle('active',c.dataset.f==='all');});}
-  document.getElementById('loading').classList.add('hidden');renderKpis();render();
+  document.getElementById('loading').classList.add('hidden');renderKpis();renderAnalytics();render();
   var u=document.getElementById('updated');if(u)u.textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 }
+function nfmt(n){n=Number(n)||0;if(n>=1e7)return '₹'+(n/1e7).toFixed(2)+'Cr';if(n>=1e5)return '₹'+(n/1e5).toFixed(2)+'L';if(n>=1e3)return '₹'+Math.round(n/1e3)+'k';return '₹'+Math.round(n);}
+function barChart(obj,color){
+  var keys=Object.keys(obj||{}).filter(function(k){return obj[k]>0;}).sort(function(a,b){return obj[b]-obj[a];}).slice(0,8);
+  if(!keys.length)return '<div class="muted" style="font-size:12px;color:var(--gray-5);">No data yet.</div>';
+  var max=Math.max.apply(null,keys.map(function(k){return obj[k];}));
+  return keys.map(function(k){var pct=max>0?Math.round(obj[k]/max*100):0;
+    return '<div style="margin:5px 0;font-size:12px;"><div style="display:flex;justify-content:space-between;gap:8px;"><span style="color:var(--gray-7);">'+esc(k)+'</span><b>'+nfmt(obj[k])+'</b></div>'
+      +'<div style="background:var(--gray-2);border-radius:5px;height:8px;overflow:hidden;margin-top:2px;"><div style="width:'+pct+'%;height:100%;background:'+(color||'#0077CC')+';"></div></div></div>';
+  }).join('');
+}
+function countChart(obj){
+  var keys=Object.keys(obj||{}).filter(function(k){return obj[k]>0;}).sort(function(a,b){return obj[b]-obj[a];});
+  if(!keys.length)return '<div class="muted" style="font-size:12px;color:var(--gray-5);">No data yet.</div>';
+  var max=Math.max.apply(null,keys.map(function(k){return obj[k];}));
+  return keys.map(function(k){var pct=max>0?Math.round(obj[k]/max*100):0;
+    return '<div style="margin:5px 0;font-size:12px;"><div style="display:flex;justify-content:space-between;gap:8px;"><span style="color:var(--gray-7);">'+esc(k)+'</span><b>'+obj[k]+'</b></div>'
+      +'<div style="background:var(--gray-2);border-radius:5px;height:8px;overflow:hidden;margin-top:2px;"><div style="width:'+pct+'%;height:100%;background:#7C3AED;"></div></div></div>';
+  }).join('');
+}
+function renderAnalytics(){
+  var a=DATA.analytics; var panel=document.getElementById('analytics-panel');
+  if(!a||RO){panel.style.display='none';return;}
+  panel.style.display='';
+  document.getElementById('an-scope').textContent=a.showDept?'all departments':'your department';
+  var kpis='<div class="cards" style="margin-bottom:14px;">'
+    +'<div class="kpi"><div class="lb">Requests</div><div class="num">'+a.count+'</div></div>'
+    +'<div class="kpi amber"><div class="lb">In pipeline</div><div class="num" style="font-size:18px;">'+nfmt(a.pipelineINR)+'</div></div>'
+    +'<div class="kpi green"><div class="lb">Paid</div><div class="num" style="font-size:18px;">'+nfmt(a.paidINR)+'</div></div>'
+    +'<div class="kpi sky"><div class="lb">Out of budget</div><div class="num">'+a.oob+'</div></div>'
+    +'<div class="kpi'+(a.overdue?' amber':'')+'"><div class="lb">Overdue (SLA)</div><div class="num">'+a.overdue+'</div></div></div>';
+  var cols='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;">'
+    +'<div><div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:6px;">Spend by category (₹)</div>'+barChart(a.byCategory,'#0077CC')+'</div>'
+    +(a.showDept?'<div><div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:6px;">Spend by department (₹)</div>'+barChart(a.byDept,'#0F9D58')+'</div>':'')
+    +'<div><div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:6px;">Pipeline by stage (count)</div>'+countChart(a.byStage)+'</div>'
+    +'</div>';
+  document.getElementById('an-body').innerHTML=kpis+cols;
+}
+function toggleAnalytics(){var b=document.getElementById('an-body'),c=document.getElementById('an-caret');var h=b.style.display==='none';b.style.display=h?'':'none';c.textContent=h?'Hide ▴':'Show ▾';}
 function renderKpis(){
   var rows=DATA.rows||[];
   var todo=rows.filter(function(r){return r.pending||r.canPO;}).length;
@@ -275,9 +320,9 @@ function render(){
 }
 function cardHtml(r,i){
   var act;
-  if(r.pending){act='<button class="btn btn-ap" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'reject\')">Reject</button>'+(r.held?'':'<button class="btn btn-hold" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'hold\')">Hold</button>');}
+  if(r.pending){act='<button class="btn btn-ap" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'reject\')">Reject</button><button class="btn" style="background:var(--amber);color:#fff;" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'sendback\')">↩ Send back</button>'+(r.held?'':'<button class="btn btn-hold" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'hold\')">Hold</button>');}
   else if(r.canPO){act='<button class="btn btn-po" onclick="event.stopPropagation();issuePO(\''+esc(r.id)+'\')">＋ Issue PO</button>';}
-  else{act=/reject/i.test(r.decision)?'<span class="st rejected">Rejected</span>':(/approv/i.test(r.decision)?'<span class="st approved">Approved</span>':'<span class="muted">—</span>');}
+  else{act=/reject/i.test(r.decision)?'<span class="st rejected">Rejected</span>':(/approv/i.test(r.decision)?'<span class="st approved">Approved</span>':'<span class="muted">—</span>');if(r.canRecallApproval)act+='<button class="btn" style="background:var(--amber);color:#fff;" onclick="event.stopPropagation();decide(\''+esc(r.id)+'\',\'recall-approval\')">↩ Recall</button>';}
   var freq=(r.frequency&&r.frequency!=='One-time')?' / '+esc(r.frequency.toLowerCase()):'';
   var sb=(!RO&&r.pending)?'<input type="checkbox" class="selbox" data-id="'+esc(r.id)+'" '+(SEL[r.id]?'checked':'')+' onclick="toggleSel(\''+esc(r.id)+'\',this.checked,event)" style="margin-right:6px;">':'';
   return '<div class="ecard">'
@@ -293,11 +338,12 @@ function row(r,i){
   var budget=esc(r.nature||'Expense')+(r.budgeted?' <span class="muted">· budgeted</span>':'');
   var act;
   if(r.pending){
-    act='<button class="btn btn-ap" onclick="decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="decide(\''+esc(r.id)+'\',\'reject\')">Reject</button>'+(r.held?'':'<button class="btn btn-hold" onclick="decide(\''+esc(r.id)+'\',\'hold\')">Hold</button>');
+    act='<button class="btn btn-ap" onclick="decide(\''+esc(r.id)+'\',\'approve\')">Approve</button><button class="btn btn-rj" onclick="decide(\''+esc(r.id)+'\',\'reject\')">Reject</button><button class="btn" style="background:var(--amber);color:#fff;" onclick="decide(\''+esc(r.id)+'\',\'sendback\')">↩ Send back</button>'+(r.held?'':'<button class="btn btn-hold" onclick="decide(\''+esc(r.id)+'\',\'hold\')">Hold</button>');
   } else if(r.canPO){
     act='<button class="btn btn-po" onclick="issuePO(\''+esc(r.id)+'\')">＋ Issue PO</button>';
   } else {
     act=/reject/i.test(r.decision)?'<span class="st rejected">Rejected</span>':(/approv/i.test(r.decision)?'<span class="st approved">Approved</span>':'<span class="muted">—</span>');
+    if(r.canRecallApproval)act+='<button class="btn" style="background:var(--amber);color:#fff;margin-left:6px;" onclick="decide(\''+esc(r.id)+'\',\'recall-approval\')">↩ Recall</button>';
   }
   var cmt=r.comments?'<div class="cmt" onclick="openCost('+i+')">💬 remarks</div>':'';
   var freq=(r.frequency&&r.frequency!=='One-time')?' <span class="muted">/ '+esc(r.frequency.toLowerCase())+'</span>':'';
@@ -344,12 +390,19 @@ function openCost(i){
 function closeCost(){document.getElementById('cost-drawer').classList.remove('open');document.getElementById('cost-drawer').setAttribute('aria-hidden','true');document.getElementById('cost-ov').classList.remove('open');}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCost();});
 function decide(id,decision){
-  var label=decision==='hold'?'put on hold':decision;
-  if(decision!=='hold'&&!confirm((decision==='approve'?'Approve':'Reject')+' '+id+'?'))return;
-  var comment=prompt('Add a remark for this '+label+' (optional):','');
+  var verb={approve:'Approve',reject:'Reject',hold:'Hold',sendback:'Send back','recall-approval':'Recall approval'}[decision]||decision;
+  if(decision==='recall-approval'){
+    if(!confirm('Recall your approval of '+id+'?\n\nIt returns to you for re-review and clears any later approvals / PO.'))return;
+    fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,decision:'recall-approval'})})
+      .then(function(r){return r.json();}).then(function(res){if(res&&res.ok){toast(res.title||'Recalled');load();}else toast('Error: '+((res&&res.error)||'failed'));}).catch(function(){toast('Error');});
+    return;
+  }
+  if(decision!=='hold'&&decision!=='sendback'&&!confirm(verb+' '+id+'?'))return;
+  var comment=prompt(decision==='sendback'?('Reason to send '+id+' back for amendment (required):'):('Add a remark for this '+verb.toLowerCase()+' (optional):'),'');
   if(comment===null)return;
+  if(decision==='sendback'&&!comment.trim()){toast('A reason is required to send back.');return;}
   fetch('/api/decision',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,decision:decision,comment:comment})})
-    .then(function(r){return r.json();}).then(function(res){if(res&&res.ok){toast(res.title||(id+' '+decision+'d'));load();}else toast('Error: '+((res&&res.error)||'failed'));}).catch(function(){toast('Error');});
+    .then(function(r){return r.json();}).then(function(res){if(res&&res.ok){toast(res.title||(id+' '+decision));load();}else toast('Error: '+((res&&res.error)||'failed'));}).catch(function(){toast('Error');});
 }
 function issuePO(id){
   var po=prompt('Enter the Purchase Order (PO) number for '+id+':','');

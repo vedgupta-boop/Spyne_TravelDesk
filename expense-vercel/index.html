@@ -151,13 +151,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
           </div>
           <div class="grid">
             <div class="field"><label>Nature of spend <span class="req">*</span></label><select id="f-nature" onchange="recalc()"></select></div>
-            <div class="field"><label>Category</label><select id="f-category"><option value="">Select category</option></select></div>
-            <div class="field"><label>Linked Travel Request <span class="tag">Optional</span></label><input id="f-travelid" placeholder="TRF-… (for trip expenses)"></div>
+            <div class="field"><label>Category</label><select id="f-category" onchange="onCategory()"><option value="">Select category</option></select></div>
+            <div class="field hidden" id="cat-other-wrap"><label>Specify category <span class="req">*</span></label><input id="f-category-other" placeholder="Type the category"></div>
             <div class="field"><label>Vendor / Supplier <span class="req">*</span></label><input id="f-vendor" list="vendor-list" autocomplete="off" placeholder="e.g. Figma, AWS, Dell" oninput="vendorLookup()" onchange="vendorLookup()"><datalist id="vendor-list"></datalist></div>
             <div class="field span2"><label>Item / Service <span class="req">*</span></label><input id="f-item" placeholder="What exactly is being bought / subscribed?"></div>
+            <div class="field"><label>Vendor Country <span class="req">*</span></label><select id="f-vcountry" onchange="onVendorCountry()"><option>India</option><option>United States</option><option>Other</option></select></div>
             <div class="field"><label>Vendor GST / PAN</label><input id="f-vgst" placeholder="GSTIN / PAN (optional)"></div>
             <div class="field"><label>Vendor Phone</label><input id="f-vphone" placeholder="Contact number (optional)"></div>
-            <div class="field span2"><label>Vendor Email</label><input id="f-vemail" type="email" placeholder="Vendor email (optional)"></div>
+            <div class="field span2"><label>Vendor Email <span class="req">*</span></label><input id="f-vemail" type="email" placeholder="Vendor email address"></div>
+            <!-- US vendor compliance (W-9) -->
+            <div class="field span2 hidden" id="us-vendor-wrap" style="background:#F7F9FC;border:1px solid var(--gray-3,#D6DCE8);border-radius:10px;padding:12px;">
+              <div style="font-size:12px;font-weight:800;color:#0D1B2A;margin-bottom:8px;">🇺🇸 US vendor compliance</div>
+              <div class="grid">
+                <div class="field"><label>Vendor entity type <span class="req">*</span></label><select id="f-ventity" onchange="onVendorEntity()"><option value="">Select entity type</option></select></div>
+                <div class="field"><label id="w9-label">W-9 form</label><input type="file" id="f-w9" accept="image/*,.pdf" onchange="uploadDoc('f-w9','w9','up-w9')"><div class="hint" id="up-w9"></div></div>
+              </div>
+              <div class="hint" id="w9-note" style="margin-top:6px;"></div>
+            </div>
           </div>
           <div class="hint" id="nature-note" style="margin-top:8px;"></div>
         </div>
@@ -270,7 +280,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 </div>
 
 <script>
-var CFG=null, POL=null;
+var CFG=null, POL=null, EDIT_ID='';
 var state={reqType:'',currency:'INR',budget:'',quotes:'',docs:{}};
 function $(id){return document.getElementById(id);}
 function val(id){var e=$(id);return e?(e.value||'').trim():'';}
@@ -288,7 +298,36 @@ function boot(cfg){
   if(cfg.userEmail){var fe=$('f-email');fe.value=cfg.userEmail;fe.readOnly=true;}
   fillNature(); loadVendors();
   $('loading').classList.add('hidden'); $('app').classList.remove('hidden');
-  recalc(); applyDeepLink();
+  recalc(); applyDeepLink(); applyEditLink();
+}
+function applyEditLink(){
+  var id=new URLSearchParams(location.search).get('edit'); if(!id) return;
+  fetch('/api/me?mine=1',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    var r=((d&&d.rows)||[]).find(function(x){return x.id===id;});
+    if(!r){showErr('Could not load '+id+' for editing.');return;}
+    EDIT_ID=id; prefillFromRequest(r);
+    var b=$('submit-btn'); if(b)b.textContent='Resubmit amended request →';
+    var bn=document.createElement('div'); bn.style.cssText='background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;font-weight:600;';
+    bn.textContent='✏ Editing '+id+' — make your changes and resubmit; it re-enters approval at the Department Head.';
+    var app=$('app'); app.insertBefore(bn, app.firstChild);
+  }).catch(function(){showErr('Could not load the request for editing.');});
+}
+function prefillFromRequest(r){
+  var d=r.detail||{};
+  function set(id,v){var e=$(id); if(e!=null && v!=null && v!=='') e.value=v; }
+  set('f-name',r.name);
+  if(r.dept){$('f-dept').value=r.dept; onDept();}
+  var catSel=$('f-category'); var known=[].some.call(catSel.options,function(o){return o.value===d.category;});
+  if(d.category&&!known){ catSel.value='Other'; onCategory(); $('f-category-other').value=d.category; }
+  else { set('f-category',d.category); onCategory(); }
+  if(d.nature){var ns=$('f-nature'); if([].some.call(ns.options,function(o){return o.value===d.nature;}))ns.value=d.nature;}
+  set('f-item',d.item); set('f-vendor',d.vendor); set('f-vgst',d.vendorGst); set('f-vphone',d.vendorPhone); set('f-vemail',d.vendorEmail);
+  if(d.vendorCountry){$('f-vcountry').value=d.vendorCountry; onVendorCountry(); if(d.vendorEntity){$('f-ventity').value=d.vendorEntity; onVendorEntity();} }
+  if(d.w9Doc){state.docs.w9=d.w9Doc; $('up-w9').className='hint ok'; $('up-w9').textContent='✓ On file';}
+  set('f-currency',d.currency); set('f-rate',d.rate); set('f-qty',d.qty); set('f-frequency',d.frequency); set('f-month',d.expenseMonth); set('f-purpose',d.purpose); set('f-notes',d.notes);
+  if(d.reqType)onReqType(d.reqType);
+  if(d.budgetTaken==='No'){onBudget('No'); set('f-oob',d.oob);} else if(d.budgetTaken==='Yes'){onBudget('Yes');}
+  recalc();
 }
 function fillNature(){
   var dept=val('f-dept');
@@ -439,16 +478,25 @@ function budgetLineLabel(){
   if(b){ var l=b.lines.find(function(x){return x.id===val('f-budget-line');}); return b.id+' · '+(l?l.head:''); }
   return val('f-budgetline');
 }
+var US_ENTITY_TYPES=['Individual / Sole proprietor','Partnership','LLC','Corporation (C-corp)','Corporation (S-corp)','Other'];
+function w9Required(){ return val('f-vcountry')==='United States' && !/corp/i.test(val('f-ventity')||''); }
+function onCategory(){ var wrap=$('cat-other-wrap'); var other=val('f-category')==='Other'; wrap.classList.toggle('hidden',!other); if(!other)$('f-category-other').value=''; }
+function fillEntityOptions(){ var s=$('f-ventity'); if(!s||s.options.length>1)return; US_ENTITY_TYPES.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;s.appendChild(o);}); }
+function onVendorCountry(){ var us=val('f-vcountry')==='United States'; var wrap=$('us-vendor-wrap'); wrap.classList.toggle('hidden',!us); if(us)fillEntityOptions(); else{$('f-ventity').value='';state.docs.w9='';$('f-w9').value='';$('up-w9').textContent='';} onVendorEntity(); }
+function onVendorEntity(){ var note=$('w9-note'),lbl=$('w9-label'); if(val('f-vcountry')!=='United States'){if(note)note.textContent='';return;}
+  if(w9Required()){ lbl.innerHTML='W-9 form <span class="req">*</span>'; note.className='hint'; note.textContent='A W-9 is required for this US vendor (only Corporations are exempt).'; }
+  else{ lbl.textContent='W-9 form (optional)'; note.className='hint ok'; note.textContent='Corporation — W-9 not required per compliance.'; } }
 function buildPayload(){
   return {
     name:val('f-name'),empId:val('f-empid'),dept:val('f-dept'),email:val('f-email'),
-    reqType:state.reqType,category:val('f-category'),travelId:val('f-travelid'),item:val('f-item'),vendor:val('f-vendor'),
+    reqType:state.reqType,category:(val('f-category')==='Other'&&val('f-category-other'))?val('f-category-other'):val('f-category'),item:val('f-item'),vendor:val('f-vendor'),
     currency:val('f-currency'),amount:Number(val('f-amount'))||0,rate:Number(val('f-rate'))||0,qty:Number(val('f-qty'))||0,frequency:val('f-frequency'),needBy:val('f-needby'),expenseMonth:val('f-month'),
     vendorGst:val('f-vgst'),vendorPhone:val('f-vphone'),vendorEmail:val('f-vemail'),
+    vendorCountry:val('f-vcountry')||'India',vendorEntity:val('f-ventity'),w9Doc:state.docs.w9||'',
     nature:val('f-nature')||'Expense',budgetTaken:state.budget,oobJustification:val('f-oob'),budgetId:val('f-budget'),lineId:val('f-budget-line'),budgetLine:budgetLineLabel(),
     quotesAvailable:state.quotes,quotations:[state.docs.q1||'',state.docs.q2||'',state.docs.q3||''].filter(Boolean),
     quotesReason:val('f-qreason'),docQuote:state.docs.proforma||'',
-    purpose:val('f-purpose'),notes:val('f-notes')
+    purpose:val('f-purpose'),notes:val('f-notes'),editId:EDIT_ID||undefined
   };
 }
 function submitForm(){
@@ -460,7 +508,12 @@ function submitForm(){
   if(!val('f-dept'))miss.push('Department');
   if(!state.reqType)miss.push('Request Type');
   if(!val('f-vendor'))miss.push('Vendor');
+  if(!val('f-vemail'))miss.push('Vendor Email');
+  else if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('f-vemail')))miss.push('a valid Vendor Email');
   if(!val('f-item'))miss.push('Item / Service');
+  if(val('f-category')==='Other'&&!val('f-category-other'))miss.push('Specify category');
+  if(val('f-vcountry')==='United States'&&!val('f-ventity'))miss.push('Vendor entity type');
+  if(w9Required()&&!state.docs.w9)miss.push('W-9 form (required for US vendors — Corporations exempt)');
   if(!state.budget)miss.push('Budget taken (Yes/No)');
   if(state.budget==='No'&&!val('f-oob'))miss.push('Out-of-budget justification');
   if(state.budget==='Yes'&&BUDGETS.length&&(!val('f-budget')||!val('f-budget-line')))miss.push('Approved budget & line item');

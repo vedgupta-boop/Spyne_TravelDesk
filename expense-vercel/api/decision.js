@@ -1,11 +1,12 @@
-import { handleDecision, approverData, approverDecision } from '../lib/workflow.js';
-import { CONFIG, isApprover } from '../lib/config.js';
+import { handleDecision, approverData, approverDecision, recallApproval } from '../lib/workflow.js';
+import { CONFIG, isApprover, delegatePrincipals } from '../lib/config.js';
 import { getSession, baseUrl } from '../lib/auth.js';
 
 function requireApprover(req, res) {
   const s = getSession(req);
   if (!s) { res.status(401).json({ ok: false, error: 'Not signed in', authRequired: true }); return null; }
-  if (!isApprover(s.roles || [])) { res.status(403).json({ ok: false, error: 'Not an approver' }); return null; }
+  // Approver by role, OR an active delegate standing in for an approver (delegations applied above).
+  if (!isApprover(s.roles || []) && delegatePrincipals(s.email).length === 0) { res.status(403).json({ ok: false, error: 'Not an approver' }); return null; }
   return s;
 }
 
@@ -21,11 +22,14 @@ h1{color:${color};margin:0 0 12px;font-size:22px;}p{color:#444;font-size:15px;li
 }
 
 export default async function handler(req, res) {
+  try { const { applyRoleOverrides } = await import('../lib/rolesstore.js'); await applyRoleOverrides(); } catch (e) { /* defaults */ }
+  try { const { applyDelegations } = await import('../lib/delegationstore.js'); await applyDelegations(); } catch (e) { /* none */ }
   // Authenticated approver action (HOD / CEO / Finance) — approve / reject / hold + comment.
   if (req.method === 'POST') {
     const s = requireApprover(req, res); if (!s) return;
     try {
       const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      if (b.decision === 'recall-approval') { res.status(200).json(await recallApproval({ id: b.id, email: s.email, roles: s.roles }, baseUrl(req))); return; }
       res.status(200).json(await approverDecision({ id: b.id, decision: b.decision, comment: b.comment, email: s.email, roles: s.roles }, baseUrl(req)));
     } catch (err) {
       console.error('approver decision error:', err);

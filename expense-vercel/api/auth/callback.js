@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     const allowed = payload.email_verified && (payload.hd === domain || email.endsWith('@' + domain));
     if (!allowed) return fail(res, `Access is restricted to @${AUTH.ALLOWED_DOMAIN} accounts.`);
 
+    try { const { applyRoleOverrides } = await import('../../lib/rolesstore.js'); await applyRoleOverrides(); } catch (e) { /* fall back to config defaults */ }
     const roles = rolesFor(email);
     setSessionCookie(res, makeSessionToken({ email, roles, name: payload.name || '' }));
     res.writeHead(302, { Location: safeNext(state.next) || homeFor(roles) });

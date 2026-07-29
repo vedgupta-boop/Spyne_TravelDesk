@@ -1,5 +1,19 @@
 /* Shared client-side auth guard. Server APIs enforce roles too — this is for UX. */
 (function () {
+  // Accessibility layer — additive, no colour/token changes (so it can't break any page's look).
+  // Visible keyboard focus, comfortable tap targets, and a reduced-motion guard.
+  (function injectA11y(){
+    if (document.getElementById('exp-a11y-css')) return;
+    var css = ''
+      + 'a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{'
+      +   'outline:2px solid #E8232A;outline-offset:2px;border-radius:6px;}'
+      + 'button,select,input[type=checkbox],input[type=radio],a[role=button]{min-height:24px;}'
+      + '@media (max-width:640px){button,.btn,a[role=button]{min-height:40px;}}'
+      + '::selection{background:#E8232A;color:#fff;}'
+      + '@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important;}}';
+    var s = document.createElement('style'); s.id = 'exp-a11y-css'; s.textContent = css;
+    (document.head || document.documentElement).appendChild(s);
+  })();
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function login(){ location.href = '/api/auth/login?next=' + encodeURIComponent(location.pathname); }
 
@@ -21,6 +35,7 @@
       nav.push(navlink('/approvals','Approvals', onAppr && !asParam));
       nav.push(navlink('/finance','Finance', p.indexOf('finance')>-1));
       nav.push(navlink('/exec','Exec', p.indexOf('exec')>-1));
+      nav.push(navlink('/access','User Access', p.indexOf('access')>-1));
     } else {
       if (isHOD) nav.push(navlink('/approvals','Department Head', onAppr));
       if (isCEO) { nav.push(navlink('/approvals','CEO', onAppr)); nav.push(navlink('/exec','Exec', p.indexOf('exec')>-1)); }

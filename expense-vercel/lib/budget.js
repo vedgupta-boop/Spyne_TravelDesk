@@ -428,20 +428,32 @@ function myStage(rec, email, roles) {
 }
 
 // ---- dashboard data ----
-export async function budgetData({ email, roles }) {
+export async function budgetData({ email, roles, commitments }) {
   const e = String(email || '').toLowerCase(); const r = roles || [];
   const isHOD = r.includes('hod'), isCEO = r.includes('ceo') || e === String(CONFIG.CEO_EMAIL).toLowerCase(), isFin = r.includes('finance');
   const myDeptsSet = new Set(Object.keys(CONFIG.DEPARTMENTS).filter((d) => String(CONFIG.DEPARTMENTS[d].email).toLowerCase() === e).map((d) => d.toLowerCase()));
+  const commit = commitments || {}; // { budgetLineId: { committedINR, count } } — approved-but-unpaid spend
   await ensureTab();
   const all = await readAll();
+  // Index child records (realloc/claim/drop) by their parent budget for the revision history.
+  const childrenByParent = {};
+  all.forEach((c) => { const p = String(c[BCOL.PARENT] || ''); if (p && String(c[BCOL.TYPE]) !== 'budget') (childrenByParent[p] = childrenByParent[p] || []).push(c); });
   const rows = all.map((rec) => {
     const type = String(rec[BCOL.TYPE] || 'budget');
-    const lines = type === 'budget' ? lineTotals(parseJSON(rec[BCOL.LINES], [])) : [];
+    const cur0 = rec[BCOL.CURRENCY] || 'INR';
+    let lines = type === 'budget' ? lineTotals(parseJSON(rec[BCOL.LINES], [])) : [];
+    // Commitment tracking (Point 5): reserve approved-but-unpaid expense against each line.
+    lines = lines.map((l) => {
+      const c = commit[l.id];
+      const committed = c ? convert(c.committedINR || 0, 'INR', cur0) : 0;
+      return { ...l, committed, committedCount: c ? c.count : 0, available: (Number(l.amount) || 0) - (l.spent || 0) - committed };
+    });
     const detail = (type === 'realloc' || type === 'claim') ? parseJSON(rec[BCOL.DETAIL], {}) : null;
     const stage = String(rec[BCOL.STAGE]);
     const mine = myStage(rec, email, roles);
     const total = budgetTotal(lines);
     const spent = lines.reduce((a, l) => a + (l.spent || 0), 0);
+    const committed = lines.reduce((a, l) => a + (l.committed || 0), 0);
     const sinceISO = rec[BCOL.MGMT_TIME] || rec[BCOL.FIN_TIME] || rec[BCOL.DEPT_TIME] || rec[BCOL.TS];
     const ageDays = ['dept', 'finance', 'mgmt'].includes(stage) && sinceISO ? Math.max(0, Math.floor((Date.now() - Date.parse(sinceISO)) / 86400000)) : null;
     return {
@@ -449,10 +461,11 @@ export async function budgetData({ email, roles }) {
       currency: rec[BCOL.CURRENCY] || 'INR', ageDays,
       title: rec[BCOL.TITLE], status: rec[BCOL.STATUS], stage, submission: fmtDate(rec[BCOL.TS]),
       hod: dec(rec[BCOL.DEPT_DEC]), finance: dec(rec[BCOL.FIN_DEC]), mgmt: dec(rec[BCOL.MGMT_DEC]),
-      lines, detail, total, spent, remaining: total - spent, comments: rec[BCOL.COMMENTS] || '',
+      lines, detail, total, spent, committed, remaining: total - spent, available: total - spent - committed, comments: rec[BCOL.COMMENTS] || '',
       pending: mine === stage, canApprove: mine === stage, mine,
       isMine: String(rec[BCOL.CREATOR] || '').toLowerCase() === e,
       locked: stage === 'locked', canClose: isFin && stage === 'locked', canFinanceAdd: isFin && stage === 'locked', closed: stage === 'closed',
+      history: type === 'budget' ? budgetHistory(rec, childrenByParent[rec[BCOL.ID]]) : [],
       // can this user see/scope it? HOD → own dept; others → all
       inScope: isFin || isCEO || (isHOD && myDeptsSet.has(String(rec[BCOL.DEPT] || '').toLowerCase())) || String(rec[BCOL.CREATOR] || '').toLowerCase() === e,
     };
@@ -461,5 +474,31 @@ export async function budgetData({ email, roles }) {
   return { rows, periods: PERIODS, isApprover: isHOD || isCEO || isFin };
 }
 
+// Revision history for a budget — a chronological log of allocation-changing events
+// (approvals, spends, claims, reallocations/drops, closes). Computed from existing data; read-only.
+function budgetHistory(rec, children) {
+  const cur = rec[BCOL.CURRENCY] || 'INR';
+  const money = (a) => cur + ' ' + Number(a || 0).toLocaleString(cur === 'USD' ? 'en-US' : 'en-IN', { maximumFractionDigits: 0 });
+  const ev = [];
+  const push = (when, label, detail) => { if (when) ev.push({ when: String(when), at: fmtDate(when), label, detail: detail || '' }); };
+  push(rec[BCOL.TS], 'Created', 'Budget raised for approval');
+  if (rec[BCOL.DEPT_TIME]) push(rec[BCOL.DEPT_TIME], 'Department Head — ' + (dec(rec[BCOL.DEPT_DEC]) || 'reviewed'), '');
+  if (rec[BCOL.MGMT_TIME]) push(rec[BCOL.MGMT_TIME], 'CEO — ' + (dec(rec[BCOL.MGMT_DEC]) || 'reviewed'), '');
+  if (rec[BCOL.FIN_TIME]) push(rec[BCOL.FIN_TIME], 'Finance — ' + (dec(rec[BCOL.FIN_DEC]) || 'reviewed') + (String(rec[BCOL.STAGE]) !== 'rejected' ? ' · budget locked' : ''), '');
+  // per-line spends (vendor mappings / finance-added / claims / linked expenses)
+  parseJSON(rec[BCOL.LINES], []).forEach((l) => (l.vendors || []).forEach((v) => {
+    const kind = v.financeAdd ? 'Finance expense' : (v.claim ? 'Claim drawn down' : (v.expense ? 'Linked expense' : 'Spend logged'));
+    push(v.date, kind + ' — "' + l.head + '"', [v.vendor, money(v.amount), (v.note || v.expense || '')].filter(Boolean).join(' · '));
+  }));
+  // child reallocation / claim / drop records
+  (children || []).forEach((c) => {
+    const t = String(c[BCOL.TYPE]); const st = String(c[BCOL.STAGE]);
+    const state = ['applied', 'recorded'].includes(st) ? 'applied' : (st === 'rejected' ? 'rejected' : 'pending');
+    const kind = t === 'realloc' ? 'Reallocation' : (t === 'claim' ? 'Claim' : 'Change');
+    push(c[BCOL.TS], kind + ' ' + c[BCOL.ID] + ' — ' + state, c[BCOL.TITLE] || '');
+  });
+  ev.sort((a, b) => (Date.parse(a.when) || 0) - (Date.parse(b.when) || 0));
+  return ev;
+}
 function dec(v) { if (!v) return ''; if (/reject/i.test(v)) return 'Rejected'; if (/approv/i.test(v)) return 'Approved'; return String(v); }
 function stamp() { const d = new Date(); const p = (x) => String(x).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`; }

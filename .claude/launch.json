@@ -79,6 +79,14 @@
       "env": { "PREVIEW_PAGE": "/exec.html" }
     },
     {
+      "name": "expense-access",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],
+      "port": 8732,
+      "autoPort": true,
+      "env": { "PREVIEW_PAGE": "/access.html" }
+    },
+    {
       "name": "expense-department",
       "runtimeExecutable": "node",
       "runtimeArgs": ["expense-vercel/.claude/mock-server.mjs"],

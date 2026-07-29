@@ -121,3 +121,18 @@ export function reminderEmailHtml(rec, stageLabel, approverName, approveUrl, rej
     reminderBanner(stageLabel, hours) + approvalEmailHtml(rec, stageLabel, approverName, approveUrl, rejectUrl) + `</div>`;
 }
 export function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// Weekly digest: a compact table of the recipient's pending items (rows already formatted).
+// cols: array of header strings; rows: array of arrays (cells, plain strings).
+export function digestEmailHtml(heading, intro, cols, rows, link, linkLabel) {
+  const th = cols.map((c) => `<th style="text-align:left;padding:7px 10px;border-bottom:2px solid #0D1B2A;font-size:12px;color:#0D1B2A;">${esc(c)}</th>`).join('');
+  const body = rows.length
+    ? rows.map((r, i) => `<tr style="background:${i % 2 ? '#f7f8fa' : '#fff'};">` + r.map((cell, ci) => `<td style="padding:7px 10px;border-bottom:1px solid #eee;font-size:13px;${ci === 0 ? 'font-weight:700;color:#0D1B2A;' : 'color:#333;'}">${esc(String(cell == null ? '' : cell))}</td>`).join('') + '</tr>').join('')
+    : `<tr><td colspan="${cols.length}" style="padding:14px;text-align:center;color:#0a8a0a;font-size:14px;">🎉 Nothing pending — you're all caught up.</td></tr>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto;color:#1a2332;">` +
+    `<h2 style="margin:0 0 4px;color:#0D1B2A;">${esc(heading)}</h2>` +
+    `<p style="color:#555;margin:0 0 14px;font-size:14px;">${intro || ''}</p>` +
+    `<table style="border-collapse:collapse;width:100%;"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>` +
+    (link ? `<p style="margin:18px 0;"><a href="${esc(link)}" style="display:inline-block;padding:12px 24px;background:#0D1B2A;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">${esc(linkLabel || 'Open Dashboard')} →</a></p>` : '') +
+    `<p style="color:#aaa;font-size:11px;margin-top:18px;">${esc(CONFIG.COMPANY_NAME)} ${esc(CONFIG.APP_NAME)} · weekly digest. Reply to Finance to opt out.</p></div>`;
+}

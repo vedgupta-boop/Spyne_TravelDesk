@@ -1,17 +1,22 @@
 import { createBudget, createReallocation, addVendorMapping, createClaim, budgetDecision, budgetData, lockedBudgetsFor, closeBudget, financeAddExpense } from '../lib/budget.js';
+import { commitmentsByBudgetLine } from '../lib/workflow.js';
 import { getSession, baseUrl } from '../lib/auth.js';
 
 export default async function handler(req, res) {
   const s = getSession(req);
   if (!s) { res.status(401).json({ ok: false, error: 'Not signed in', authRequired: true }); return; }
   try {
+    try { const { applyRoleOverrides } = await import('../lib/rolesstore.js'); await applyRoleOverrides(); } catch (e) { /* defaults */ }
+    try { const { applyDelegations } = await import('../lib/delegationstore.js'); await applyDelegations(); } catch (e) { /* none */ }
     if (req.method === 'GET') {
       // Picker mode for the expense form: locked budgets (+ line items) for a department.
       if (req.query && req.query.dept !== undefined) {
         res.status(200).json({ budgets: await lockedBudgetsFor(req.query.dept) });
         return;
       }
-      res.status(200).json(await budgetData({ email: s.email, roles: s.roles }));
+      let commitments = {};
+      try { commitments = await commitmentsByBudgetLine(); } catch (e) { commitments = {}; }
+      res.status(200).json(await budgetData({ email: s.email, roles: s.roles, commitments }));
       return;
     }
     if (req.method === 'POST') {
