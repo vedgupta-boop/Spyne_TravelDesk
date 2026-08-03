@@ -1,5 +1,5 @@
 import { getSession, baseUrl } from '../lib/auth.js';
-import { myData, editRequest, withdrawRequest, saveActuals, saveFlightDoc, saveForexCardDoc, notifications, travellerProfile } from '../lib/workflow.js';
+import { myData, editRequest, withdrawRequest, saveActuals, saveFlightDoc, saveForexCardDoc, notifications, travellerProfile, eventsData } from '../lib/workflow.js';
 import { kekaEmployeeByEmail } from '../lib/keka.js';
 import { searchFlights, pickOptions, flightsAvailable } from '../lib/flights.js';
 import { applyRoleOverrides } from '../lib/rolesstore.js';
@@ -32,6 +32,14 @@ export default async function handler(req, res) {
   if (req.query && req.query.counts) {
     try { res.status(200).json(await notifications({ email: s.email, roles: s.roles || [] })); }
     catch (err) { console.error('notifications error:', err); res.status(200).json({ approvals: 0, department: 0, finance: 0, admin: 0, forex: 0, items: [] }); }
+    return;
+  }
+
+  // ?view=events → Conference / Event watcher list (cost-free, read-only). 'events' role only.
+  if (req.query && req.query.view === 'events') {
+    if (!(s.roles || []).includes('events')) { res.status(403).json({ ok: false, error: 'Forbidden' }); return; }
+    try { res.status(200).json(await eventsData()); }
+    catch (err) { console.error('events data error:', err); res.status(500).json({ ok: false, error: String(err.message || err) }); }
     return;
   }
 

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spyne TravelDesk · Conferences &amp; Events</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#E8232A;--navy:#0D1B2A;--sky:#0077CC;--sky-l:#EBF5FF;--green:#0F9D58;--grn-l:#E6F4EA;--amber:#F59E0B;--amb-l:#FFFBEB;
+--red2:#DC2626;--red2-l:#FEE2E2;--gray-1:#F7F9FC;--gray-2:#EDF1F7;--gray-3:#D6DCE8;--gray-5:#8A97AA;--gray-7:#3D506A;--ink:#1A2332;--white:#fff;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--gray-1);color:var(--ink);min-height:100vh;}
+.topbar{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
+.logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
+.btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.wrap{max-width:1100px;margin:0 auto;padding:22px 20px 60px;}
+.head{margin-bottom:6px;}
+.title{font-size:18px;font-weight:900;color:var(--navy);}
+.sub{font-size:12.5px;color:var(--gray-5);margin-top:3px;max-width:70ch;line-height:1.5;}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 18px;}
+.kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:12px 18px;min-width:150px;}
+.kpi .lb{font-size:11px;font-weight:800;color:var(--gray-5);text-transform:uppercase;letter-spacing:.4px;}
+.kpi .num{font-size:24px;font-weight:900;color:var(--navy);margin-top:2px;}
+.panel{background:#fff;border:1px solid var(--gray-3);border-radius:12px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:820px;}
+thead th{background:var(--navy);color:#fff;text-align:left;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:11px 14px;white-space:nowrap;}
+tbody td{padding:12px 14px;border-bottom:1px solid var(--gray-2);vertical-align:top;}
+tbody tr:last-child td{border-bottom:none;}
+.r{text-align:right;}.muted{color:var(--gray-5);}
+.id{font-weight:800;color:var(--navy);}
+.st{display:inline-block;padding:4px 10px;border-radius:7px;font-size:11px;font-weight:800;white-space:nowrap;}
+.st.pending{background:var(--amb-l);color:#B45309;}.st.approved{background:var(--grn-l);color:#065F46;}.st.rejected{background:var(--red2-l);color:var(--red2);}.st.done{background:var(--grn-l);color:#065F46;}
+.pax{background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;}
+.empty,.loading{padding:50px;text-align:center;color:var(--gray-5);}
+.note{font-size:12px;color:var(--gray-5);margin-top:14px;}
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo"><div class="logo-sq">S</div>
+    <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Conferences &amp; Events</div></div></div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+    <div id="trf-userbar"></div>
+    <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<script src="/auth-guard.js"></script>
+
+<div class="wrap">
+  <div class="head">
+    <div class="title">Conference &amp; Event travel</div>
+    <div class="sub">Every travel request raised for a <b>Conference / Event</b> — for your visibility. This is notification only: no approvals and no costs are shown here.</div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+
+  <div id="loading" class="loading">Loading…</div>
+  <div id="empty" class="empty hidden">No Conference / Event travel has been raised yet.</div>
+  <div class="panel hidden" id="tbl-wrap">
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th class="r">Sr.</th><th>Request ID</th><th>Employee</th><th>Department</th>
+          <th>Purpose / Event</th><th>Route</th><th>Dates</th><th>Status</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="note">You also receive an email for each new Conference / Event request. Nothing else — no other travel requests, approvals or dashboards are shown to you.</div>
+</div>
+
+<script>
+var DATA={rows:[]};
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function stClass(s){ s=String(s||''); if(/reject/i.test(s))return 'rejected'; if(/completed|confirmed|issued|done/i.test(s))return 'done'; if(/approv|admin|arrangement|booking|forex/i.test(s))return 'approved'; return 'pending'; }
+function shortStatus(s){ s=String(s||''); if(/reject/i.test(s))return 'Rejected'; if(/pending hod/i.test(s))return 'Awaiting HOD'; if(/pending ceo/i.test(s))return 'At CEO'; if(/pending finance/i.test(s))return 'At Finance'; if(/with admin|arrangement/i.test(s))return 'With Admin'; if(/forex/i.test(s))return 'Forex'; if(/completed|confirmed/i.test(s))return 'Completed'; if(/approv/i.test(s))return 'Approved'; return s||'—'; }
+function load(){
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('tbl-wrap').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+  fetch('/api/me?view=events',{credentials:'same-origin'}).then(function(r){return r.json();}).then(render).catch(function(){ document.getElementById('loading').textContent='Could not load — please refresh.'; });
+}
+function render(d){
+  DATA=d||{rows:[]}; var rows=DATA.rows||[];
+  document.getElementById('loading').classList.add('hidden');
+  var open=rows.filter(function(r){return !/reject|completed|confirmed|issued|done/i.test(r.status||'');}).length;
+  document.getElementById('kpis').innerHTML=
+    '<div class="kpi"><div class="lb">Conference / Event trips</div><div class="num">'+rows.length+'</div></div>'
+   +'<div class="kpi"><div class="lb">In progress</div><div class="num">'+open+'</div></div>';
+  if(!rows.length){ document.getElementById('empty').classList.remove('hidden'); return; }
+  document.getElementById('tbl-wrap').classList.remove('hidden');
+  document.getElementById('rows').innerHTML=rows.map(function(r,i){
+    var dates=esc(r.start)+(r.end&&r.end!=='One-way'?(' → '+esc(r.end)):(r.type&&r.trip&&/one-way/i.test(r.trip)?' (one-way)':''));
+    return '<tr>'
+      +'<td class="r muted">'+(i+1)+'</td>'
+      +'<td class="id">'+esc(r.id)+'</td>'
+      +'<td>'+esc(r.name)+(r.pax>1?' <span class="pax">+'+(r.pax-1)+' pax</span>':'')+'<div class="muted" style="font-size:11px;">'+esc(r.email)+'</div>'+(r.pax>1&&r.passengers&&r.passengers.length?'<div class="muted" style="font-size:10px;">👥 '+esc(r.passengers.join(', '))+'</div>':'')+'</td>'
+      +'<td class="muted">'+esc(r.dept)+'</td>'
+      +'<td>'+esc(r.purpose)+'</td>'
+      +'<td class="muted">'+esc(r.route)+'</td>'
+      +'<td class="muted" style="white-space:nowrap;">'+dates+'</td>'
+      +'<td><span class="st '+stClass(r.status)+'">'+esc(shortStatus(r.status))+'</span></td>'
+    +'</tr>';
+  }).join('');
+}
+requireView('events', function(me){ renderUserbar(me); load(); });
+</script>
+</body>
+</html>

@@ -24,18 +24,27 @@
     var el = document.getElementById('trf-userbar'); if(!el) return;
     var p = location.pathname;
     var isFin = me.roles.indexOf('finance')>-1; // finance = superuser: sees all dashboards
-    var nav = [ navlink('/','Form', p==='/'||p==='/index.html') ];
-    nav.push(navlink('/my','My Requests', p.indexOf('/my')>-1));
-    nav.push(navlink('/reimbursement','Trip Reimbursement', p.indexOf('reimburs')>-1));
-    if (['hod','ceo','finance'].some(function(r){return me.roles.indexOf(r)>-1;})) nav.push(navlink('/hod','Approvals', p.indexOf('hod')>-1));
-    if (me.roles.indexOf('hod')>-1 || me.roles.indexOf('ceo')>-1) nav.push(navlink('/department','Department', p.indexOf('department')>-1));
-    if (isFin) nav.push(navlink('/finance','Finance', p.indexOf('finance')>-1));
-    if (isFin) nav.push(navlink('/budget-actual','Budget vs Actual', p.indexOf('budget-actual')>-1));
-    if (isFin) nav.push(navlink('/reconciliation','Reconcile', p.indexOf('reconcil')>-1));
-    // Admin & Forex: shown to their role holders AND to Finance (superuser, e.g. accounts@spyne.ai) — but NOT to pure HOD/CEO. Users: Finance only.
-    if (me.roles.indexOf('admin')>-1 || isFin) nav.push(navlink('/admin','Admin', p.indexOf('admin')>-1 && p.indexOf('admin-users')<0));
-    if (me.roles.indexOf('forex')>-1 || isFin) nav.push(navlink('/forex','Forex', p.indexOf('forex')>-1));
-    if (isFin) nav.push(navlink('/admin-users','Users', p.indexOf('admin-users')>-1));
+    var isEvents = me.roles.indexOf('events')>-1; // Conference / Event watcher (notification-only)
+    var elevated = ['hod','ceo','finance','admin','forex'].some(function(r){return me.roles.indexOf(r)>-1;});
+    var nav = [];
+    if (isEvents && !elevated) {
+      // Events watcher (e.g. Anurag) — locked to a single tab; no form, requests or other dashboards.
+      nav.push(navlink('/events','Conferences', p.indexOf('events')>-1));
+    } else {
+      nav.push(navlink('/','Form', p==='/'||p==='/index.html'));
+      nav.push(navlink('/my','My Requests', p.indexOf('/my')>-1));
+      nav.push(navlink('/reimbursement','Trip Reimbursement', p.indexOf('reimburs')>-1));
+      if (['hod','ceo','finance'].some(function(r){return me.roles.indexOf(r)>-1;})) nav.push(navlink('/hod','Approvals', p.indexOf('hod')>-1));
+      if (me.roles.indexOf('hod')>-1 || me.roles.indexOf('ceo')>-1) nav.push(navlink('/department','Department', p.indexOf('department')>-1));
+      if (isFin) nav.push(navlink('/finance','Finance', p.indexOf('finance')>-1));
+      if (isFin) nav.push(navlink('/budget-actual','Budget vs Actual', p.indexOf('budget-actual')>-1));
+      if (isFin) nav.push(navlink('/reconciliation','Reconcile', p.indexOf('reconcil')>-1));
+      // Admin & Forex: shown to their role holders AND to Finance (superuser, e.g. accounts@spyne.ai) — but NOT to pure HOD/CEO. Users: Finance only.
+      if (me.roles.indexOf('admin')>-1 || isFin) nav.push(navlink('/admin','Admin', p.indexOf('admin')>-1 && p.indexOf('admin-users')<0));
+      if (me.roles.indexOf('forex')>-1 || isFin) nav.push(navlink('/forex','Forex', p.indexOf('forex')>-1));
+      if (isEvents) nav.push(navlink('/events','Conferences', p.indexOf('events')>-1)); // watchers who also hold an elevated role
+      if (isFin) nav.push(navlink('/admin-users','Users', p.indexOf('admin-users')>-1));
+    }
     el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">'
       + nav.join('')
       + '<div style="position:relative;">'

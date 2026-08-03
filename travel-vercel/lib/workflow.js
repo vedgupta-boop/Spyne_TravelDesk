@@ -327,6 +327,11 @@ export async function submitRequest(p, baseUrl) {
   await ensureHeaders();
   await appendRecord(rec);
   await emailApprover(firstStage, rec, baseUrl);
+  // Conference / Event travel → notify the events watcher (Anurag) for visibility. Notification only —
+  // no approval and no cost shown.
+  if (/^Conference \/ Event/i.test(String(rec[COL.PURPOSE] || ''))) {
+    try { await emailEventsWatcher(rec, baseUrl); } catch (e) { /* non-fatal */ }
+  }
   // Cost-free confirmation to the requester (travellers never see the estimate).
   const confTo = requesterEmail(rec);
   if (confTo) await sendEmail({ to: confTo, subject: `Travel Request ${id} — received`,
@@ -1744,6 +1749,50 @@ async function emailCeoFyi(rec, baseUrl) {
     footerNote: 'You are receiving this as CEO, for visibility of international travel. It also appears on your dashboard.',
   });
   await sendEmail({ to, subject: `[FYI] International travel approved — ${id} (${rec[COL.NAME]})`, html });
+}
+
+// Notify the Conference / Event watcher(s) when such a request is raised. Notification only — no
+// approval, no cost shown.
+async function emailEventsWatcher(rec, baseUrl) {
+  const to = (AUTH.EVENTS_EMAILS || []).filter(Boolean);
+  if (!to.length) return;
+  const id = rec[COL.ID];
+  const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+  const kv = [
+    ['Traveller', rec[COL.NAME]],
+    ['Department', rec[COL.DEPT]],
+    ['Purpose', rec[COL.PURPOSE] || ''],
+    ['Route', String(rec[COL.FROM]) + ' → ' + String(rec[COL.TO])],
+    ['Dates', fmtDate(rec[COL.START]) + (rec[COL.RET] ? ' → ' + fmtDate(rec[COL.RET]) : '')],
+  ];
+  const tbl = '<table style="border-collapse:collapse;width:100%;font-size:14px;font-family:Arial,sans-serif;">' +
+    kv.map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #eee;color:#667;">${k}</td><td style="padding:6px 10px;border:1px solid #eee;font-weight:600;">${String(v == null ? '' : v)}</td></tr>`).join('') +
+    '</table>';
+  const html = emailShell({
+    title: 'Conference / Event travel — for your information 📅',
+    subtitle: `Spyne TravelDesk · ${id}`,
+    statusText: 'New request · notification only',
+    statusColor: '#2563EB',
+    body: `<p style="color:#3D506A;margin:0 0 14px;">A <b>Conference / Event</b> travel request has just been raised. Sharing for your visibility — <b>no action is needed from you.</b></p>` + tbl +
+      `<p style="margin:16px 0 0;">${btn((base || '') + '/events', 'Open the Conferences view', '#2563EB')}</p>`,
+    footerNote: 'You receive this for all Conference / Event travel. No approval or cost is involved.',
+  });
+  await sendEmail({ to: to.join(','), subject: `[Conference/Event] ${id} — ${rec[COL.NAME]}`, html });
+}
+
+// Conference / Event watcher view — every Conference / Event request, cost-free and read-only.
+export async function eventsData() {
+  const all = await readAll();
+  const rows = all
+    .filter((r) => /^Conference \/ Event/i.test(String(r[COL.PURPOSE] || '')))
+    .map((r) => ({
+      id: r[COL.ID], date: fmtDate(r[COL.TS]), name: r[COL.NAME], email: r[COL.EMAIL], dept: r[COL.DEPT],
+      type: r[COL.TYPE], trip: r[COL.TRIP], purpose: r[COL.PURPOSE] || '',
+      route: `${r[COL.FROM]} → ${r[COL.TO]}`, start: fmtDate(r[COL.START]), end: fmtDate(r[COL.RET]),
+      days: Number(r[COL.DAYS] || 0), status: r[COL.STATUS], stage: String(r[COL.STAGE] || ''), ...paxInfo(r),
+    }));
+  rows.reverse();
+  return { rows };
 }
 
 // Migration for the policy change that removed CEO approval on international trips: advance any

@@ -242,6 +242,8 @@ export const AUTH = {
   FINANCE_EMAILS: emailList(process.env.FINANCE_EMAILS, `${CONFIG.FINANCE_SPOC},finance.head@spyne.ai`),
   ADMIN_EMAILS:   emailList(process.env.ADMIN_EMAILS, CONFIG.ADMIN_TEAM + ',bhavesh.singla@spyne.ai'), // Admins: Shankul + Bhavesh (override via ADMIN_EMAILS env or the Roles panel)
   FOREX_EMAILS:   emailList(process.env.FOREX_EMAILS, 'jasvinder.singh@spyne.ai'), // Forex Card officer(s)
+  // Conference / Event watchers: notified of (and see only) Conference / Event travel. No approval, no cost.
+  EVENTS_EMAILS:  emailList(process.env.EVENTS_EMAILS, 'anurag.kumar@spyne.ai'),
 };
 // Forex officer who receives the card-issuance task after booking.
 CONFIG.FOREX_OFFICER = AUTH.FOREX_EMAILS[0] || 'jasvinder.singh@spyne.ai';
@@ -307,6 +309,7 @@ export function rolesFor(email) {
   if (AUTH.FINANCE_EMAILS.includes(e)) roles.push('finance');
   if (AUTH.ADMIN_EMAILS.includes(e)) roles.push('admin');
   if (AUTH.FOREX_EMAILS.includes(e)) roles.push('forex');
+  if ((AUTH.EVENTS_EMAILS || []).includes(e)) roles.push('events'); // Conference / Event watcher (notification-only)
   return roles;
 }
 

@@ -332,6 +332,10 @@ http.createServer((req, res) => {
     const more = [ mk('', Math.round(base * 1.05), 210, 1, 'Vistara', '2026-09-30T13:00:00', '2026-09-30T16:30:00'), mk('', Math.round(base * 1.2), 320, 1, 'SpiceJet', '2026-09-30T19:45:00', '2026-09-30T01:05:00') ];
     return json(res, { ok: true, configured: true, currency: cur, count: 4, options, more });
   }
+  if (url === '/api/me' && /view=events/.test(qs)) return json(res, { rows: [
+    { id: 'TRF-20260805-DN44', date: '12 Jun 2026', name: 'Anita Rao', email: 'anita@spyne.ai', dept: 'Product', type: 'international', trip: 'Round trip', purpose: 'Conference / Event — Web Summit', route: 'Mumbai → Lisbon', start: '05 Nov 2026', end: '09 Nov 2026', days: 5, status: 'Pending HOD Approval', stage: 'dept', pax: 1, passengers: [] },
+    { id: 'TRF-20260901-AB12', date: '17 Jun 2026', name: 'Ved Prakash', email: 'ved.gupta@spyne.ai', dept: 'Technology', type: 'domestic', trip: 'Round trip', purpose: 'Conference / Event — NASSCOM', route: 'Delhi → Bengaluru', start: '01 Sep 2026', end: '03 Sep 2026', days: 3, status: 'Approved — With Admin for Arrangements', stage: 'arrange', pax: 2, passengers: ['Ved Prakash', 'Rohan Verma'] },
+  ] });
   if (url === '/api/me') return json(res, /mine/.test(qs) ? MINE : ME);
   if (url === '/api/config') { CONFIG_RES.policyVersions = mockVersions(); return json(res, CONFIG_RES); }
   if (url === '/api/finance') { FINANCE.policyVersions = mockVersions(); return json(res, FINANCE); }
