@@ -231,8 +231,8 @@ function legRow(id,kind,i,leg,booked,cur){
     +'<div class="act-row">'
       +inputs
       +'<input class="tkt-in" id="bk-act-'+kind+'-'+esc(id)+'-'+i+'" type="number" min="0" step="any" value="'+esc(actual)+'" placeholder="Actual '+esc(cur||'')+'" title="Actual amount paid (from invoice)" style="max-width:130px;">'
-      +'<label class="hint">📎 <input type="file" accept="image/*,.pdf" onchange="uploadLeg(\''+esc(id)+'\',\''+kind+'\','+i+',this)"></label>'
-      +'<span class="hint" id="bkst-'+kind+'-'+esc(id)+'-'+i+'">'+(doc?'<a class="lnk" href="'+esc(doc)+'" target="_blank">📎 View</a>':'')+'</span>'
+      +'<label class="hint">📎 Add file(s) <input type="file" accept="image/*,.pdf" multiple onchange="uploadLeg(\''+esc(id)+'\',\''+kind+'\','+i+',this)"></label>'
+      +'<span class="hint" id="bkst-'+kind+'-'+esc(id)+'-'+i+'">'+legDocsHtml(id,kind,i)+'</span>'
       +(kind==='f'?'<button type="button" class="btn btn-clear" style="padding:5px 11px;font-size:11px;" onclick=\'flyAdm('+JSON.stringify(JSON.stringify({id:id,i:i,from:leg.from||'',to:leg.to||'',date:leg.date||''}))+')\'>🔎 Live flights</button>':'')
     +'</div>'
     +(kind==='f'?'<div id="flyadm-'+esc(id)+'-'+i+'" style="margin-top:6px;"></div>':'')
@@ -263,8 +263,10 @@ function actions(r,done){
   var bk=r.bookings||{flights:[],hotels:[]};
   if(done){
     var h=prefFlightHtml(r);
-    flights.forEach(function(leg,i){ var b=(bk.flights||[])[i]||{}; h+='<div class="hint">✈️ '+esc(leg.label)+': '+esc((b.airline?b.airline+' · ':'')+(b.info||'—'))+(leg.timeLabel?' · 🕒 '+esc(leg.timeLabel):'')+(b.doc?' <a class="lnk" href="'+esc(b.doc)+'" target="_blank">📎</a>':'')+'</div>'; });
-    hotels.forEach(function(leg,i){ var b=(bk.hotels||[])[i]||{}; h+='<div class="hint">🏨 '+esc(leg.label)+': '+esc(b.info||'—')+(b.doc?' <a class="lnk" href="'+esc(b.doc)+'" target="_blank">📎</a>':'')+'</div>'; });
+    var docsOf=function(b){ return (b&&b.docs&&b.docs.length)?b.docs:((b&&b.doc)?[b.doc]:[]); };
+    var docLinks=function(ds){ return ds.map(function(x,n){ return ' <a class="lnk" href="'+esc(x)+'" target="_blank">📎'+(ds.length>1?(n+1):'')+'</a>'; }).join(''); };
+    flights.forEach(function(leg,i){ var b=(bk.flights||[])[i]||{}; h+='<div class="hint">✈️ '+esc(leg.label)+': '+esc((b.airline?b.airline+' · ':'')+(b.info||'—'))+(leg.timeLabel?' · 🕒 '+esc(leg.timeLabel):'')+docLinks(docsOf(b))+'</div>'; });
+    hotels.forEach(function(leg,i){ var b=(bk.hotels||[])[i]||{}; h+='<div class="hint">🏨 '+esc(leg.label)+': '+esc(b.info||'—')+docLinks(docsOf(b))+'</div>'; });
     h+=(r.isForex?'<div class="hint" style="color:var(--green);">→ Routed to Forex (Jasvinder)</div>':'<div class="hint ok">✓ Completed</div>');
     h+='<div class="act-row" style="margin-top:8px;">';
     if(r.recallable){
@@ -279,8 +281,9 @@ function actions(r,done){
     return h;
   }
   UP[r.id]={f:{},h:{}};
-  (bk.flights||[]).forEach(function(b,i){ if(b&&b.doc) UP[r.id].f[i]=b.doc; });
-  (bk.hotels||[]).forEach(function(b,i){ if(b&&b.doc) UP[r.id].h[i]=b.doc; });
+  var seed=function(b){ return (b&&b.docs&&b.docs.length)?b.docs.slice():((b&&b.doc)?[b.doc]:[]); };
+  (bk.flights||[]).forEach(function(b,i){ var d=seed(b); if(d.length) UP[r.id].f[i]=d; });
+  (bk.hotels||[]).forEach(function(b,i){ var d=seed(b); if(d.length) UP[r.id].h[i]=d; });
   var html=prefFlightHtml(r)+(r.isForex?'<div class="fx-note">💱 Intl + Forex — routes to Jasvinder after Completed</div>':'');
   flights.forEach(function(leg,i){ html+=legRow(r.id,'f',i,leg,(bk.flights||[])[i],r.currency); });
   hotels.forEach(function(leg,i){ html+=legRow(r.id,'h',i,leg,(bk.hotels||[])[i],r.currency); });
@@ -300,21 +303,39 @@ function amendBack(id){
     .then(function(res){ if(res&&res.ok){ toast(res.msg||('Sent back '+id)); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
     .catch(function(e){ toast('Error: '+(e.message||e)); });
 }
+// A leg can carry MULTIPLE attachments. UP[id][kind][i] is an array of Drive links.
+function legDocsHtml(id,kind,i){
+  var arr=(UP[id]&&UP[id][kind]&&UP[id][kind][i])||[];
+  if(!arr.length) return '';
+  return arr.map(function(link,n){
+    return '<a class="lnk" href="'+esc(link)+'" target="_blank">📎 '+(n+1)+'</a>'
+      +' <span onclick="removeLegDoc(\''+esc(id)+'\',\''+kind+'\','+i+','+n+')" style="cursor:pointer;color:#DC2626;font-weight:800;" title="Remove this file">✕</span>';
+  }).join(' &nbsp; ')+' <span style="color:#0F9D58;font-weight:700;">('+arr.length+' file'+(arr.length>1?'s':'')+')</span>';
+}
+function renderLegDocs(id,kind,i){ var st=document.getElementById('bkst-'+kind+'-'+id+'-'+i); if(st){ st.className='hint ok'; st.innerHTML=legDocsHtml(id,kind,i); } }
+function removeLegDoc(id,kind,i,n){ if(UP[id]&&UP[id][kind]&&UP[id][kind][i]){ UP[id][kind][i].splice(n,1); renderLegDocs(id,kind,i); } }
 function uploadLeg(id,kind,i,inp){
-  var f=inp.files[0]; var st=document.getElementById('bkst-'+kind+'-'+id+'-'+i);
-  if(!f) return; if(f.size>3*1024*1024){ st.className='hint bad'; st.textContent='Max 3 MB'; return; }
-  st.className='hint'; st.textContent='Uploading…';
-  var reader=new FileReader();
-  reader.onload=function(){
-    var base64=String(reader.result).split(',')[1];
-    if(kind==='f') st.textContent='Uploading & reading ticket…';
-    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:base64,parseTicket:(kind==='f')})})
-      .then(function(r){return r.json();})
-      .then(function(d){ if(!d.ok){ st.className='hint bad'; st.textContent='Upload failed'; return; } if(!UP[id]) UP[id]={f:{},h:{}}; UP[id][kind][i]=d.link; st.innerHTML='<a class="lnk" href="'+esc(d.link)+'" target="_blank">📎 View</a> ✓';
-        if(kind==='f' && d.extracted) applyTicket(id,i,d.extracted,st); })
-      .catch(function(){ st.className='hint bad'; st.textContent='Upload failed'; });
-  };
-  reader.readAsDataURL(f);
+  var files=Array.prototype.slice.call(inp.files||[]); if(!files.length) return;
+  var st=document.getElementById('bkst-'+kind+'-'+id+'-'+i);
+  if(!UP[id]) UP[id]={f:{},h:{}}; if(!UP[id][kind][i]) UP[id][kind][i]=[];
+  var list=UP[id][kind][i];
+  var parseFirst=(kind==='f' && list.length===0); // auto-read the ticket only for the first flight file
+  var pending=files.length;
+  if(st){ st.className='hint'; st.textContent='Uploading '+files.length+' file'+(files.length>1?'s':'')+'…'; }
+  files.forEach(function(f,bi){
+    if(f.size>3*1024*1024){ pending--; if(pending<=0) renderLegDocs(id,kind,i); return; }
+    var reader=new FileReader();
+    reader.onload=function(){
+      var base64=String(reader.result).split(',')[1];
+      var doParse=(parseFirst && bi===0);
+      fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:base64,parseTicket:doParse})})
+        .then(function(r){return r.json();})
+        .then(function(d){ if(d.ok){ list.push(d.link); if(doParse && d.extracted) applyTicket(id,i,d.extracted,st); } pending--; if(pending<=0) renderLegDocs(id,kind,i); })
+        .catch(function(){ pending--; if(pending<=0) renderLegDocs(id,kind,i); });
+    };
+    reader.readAsDataURL(f);
+  });
+  inp.value=''; // reset so the same file / more files can be added again
 }
 // Auto-fill the airline + flight-info inputs from the parsed ticket (only fills blanks; admin can edit).
 function applyTicket(id,i,t,st){
@@ -379,8 +400,8 @@ function saveBk(id){
   var r=(DATA.rows||[]).find(function(x){return x.id===id;}); if(!r) return;
   var up=UP[id]||{f:{},h:{}};
   var actv=function(kind,i){ var e=document.getElementById('bk-act-'+kind+'-'+id+'-'+i); return e?Number(e.value)||0:0; };
-  var flights=(r.flights||[]).map(function(leg,i){ var el=document.getElementById('bk-f-'+id+'-'+i); var ela=document.getElementById('bk-fa-'+id+'-'+i); return {airline:ela?ela.value:'', info:el?el.value:'', doc:up.f[i]||'', actual:actv('f',i)}; });
-  var hotels=(r.hotels||[]).map(function(leg,i){ var el=document.getElementById('bk-h-'+id+'-'+i); return {info:el?el.value:'', doc:up.h[i]||'', actual:actv('h',i)}; });
+  var flights=(r.flights||[]).map(function(leg,i){ var el=document.getElementById('bk-f-'+id+'-'+i); var ela=document.getElementById('bk-fa-'+id+'-'+i); var ds=(up.f[i]||[]); return {airline:ela?ela.value:'', info:el?el.value:'', docs:ds, doc:ds[0]||'', actual:actv('f',i)}; });
+  var hotels=(r.hotels||[]).map(function(leg,i){ var el=document.getElementById('bk-h-'+id+'-'+i); var ds=(up.h[i]||[]); return {info:el?el.value:'', docs:ds, doc:ds[0]||'', actual:actv('h',i)}; });
   fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'bookings',bookings:{flights:flights,hotels:hotels}})})
     .then(function(r2){return r2.json();})
     .then(function(res){ if(res&&res.ok){ toast('Bookings saved'); r.bookings={flights:flights,hotels:hotels}; } else toast('Error: '+((res&&res.error)||'failed')); })
@@ -389,7 +410,7 @@ function saveBk(id){
 function mark(id,status){
   if(/done|booked|arranged|complete/i.test(status)){
     var r=(DATA.rows||[]).find(function(x){return x.id===id;})||{}; var bk=r.bookings||{flights:[],hotels:[]};
-    var hasDoc=(bk.flights||[]).some(function(f){return f&&f.doc;})||(bk.hotels||[]).some(function(h){return h&&h.doc;});
+    var hasDoc=(bk.flights||[]).some(function(f){return f&&((f.docs&&f.docs.length)||f.doc);})||(bk.hotels||[]).some(function(h){return h&&((h.docs&&h.docs.length)||h.doc);});
     if(!hasDoc){ toast('Attach the flight ticket / hotel voucher and click “Save Bookings” before marking completed.'); return; }
   }
   fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,status:status})})

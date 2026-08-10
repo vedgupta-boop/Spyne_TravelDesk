@@ -172,8 +172,9 @@ function row(r,i){
   // Every booked flight ticket + hotel voucher (all attachments needed to issue the forex card).
   var bk=r.bookings||{}; var fl=(bk.flights||[]), ht=(bk.hotels||[]); var seen={};
   if(r.docTicket){ seen[r.docTicket]=1; }
-  fl.forEach(function(f,n){ if(f&&f.doc){ docs+=docLink('Flight ticket'+(fl.length>1?' '+(n+1):'')+(f.airline?' ('+f.airline+')':''),f.doc); seen[f.doc]=1; } });
-  ht.forEach(function(h,n){ if(h&&h.doc){ docs+=docLink('Hotel voucher'+(ht.length>1?' '+(n+1):''),h.doc); seen[h.doc]=1; } });
+  var legDocs=function(x){ return (x&&x.docs&&x.docs.length)?x.docs:((x&&x.doc)?[x.doc]:[]); };
+  fl.forEach(function(f,n){ legDocs(f).forEach(function(link,k){ docs+=docLink('Flight ticket'+(fl.length>1?' '+(n+1):'')+(legDocs(f).length>1?'.'+(k+1):'')+(f.airline?' ('+f.airline+')':''),link); seen[link]=1; }); });
+  ht.forEach(function(h,n){ legDocs(h).forEach(function(link,k){ docs+=docLink('Hotel voucher'+(ht.length>1?' '+(n+1):'')+(legDocs(h).length>1?'.'+(k+1):''),link); seen[link]=1; }); });
   if(r.docTicket && !fl.some(function(f){return f&&f.doc===r.docTicket;})) docs+=docLink('Air Ticket',r.docTicket);
   docs+=docLink('Forex Confirmation',r.docForexConfirm);
   if(r.docForexCard) docs+=docLink('Forex card (back)',r.docForexCard);

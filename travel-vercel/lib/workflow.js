@@ -1585,9 +1585,11 @@ export async function saveBookings(id, bookings) {
   const rec = await findById(id);
   if (!rec) throw new Error('Request not found: ' + id);
   const arr = (x) => (Array.isArray(x) ? x : []);
+  // A leg may carry MULTIPLE attachments (docs[]); keep doc = first for backward compatibility.
+  const docsOf = (x) => (Array.isArray(x && x.docs) ? x.docs.map(String).filter(Boolean) : ((x && x.doc) ? [String(x.doc)] : []));
   const safe = {
-    flights: arr(bookings && bookings.flights).map((f) => ({ airline: String((f && f.airline) || ''), info: String((f && f.info) || ''), doc: String((f && f.doc) || ''), actual: Number((f && f.actual) || 0) })),
-    hotels: arr(bookings && bookings.hotels).map((h) => ({ info: String((h && h.info) || ''), doc: String((h && h.doc) || ''), actual: Number((h && h.actual) || 0) })),
+    flights: arr(bookings && bookings.flights).map((f) => { const docs = docsOf(f); return { airline: String((f && f.airline) || ''), info: String((f && f.info) || ''), docs, doc: docs[0] || '', actual: Number((f && f.actual) || 0) }; }),
+    hotels: arr(bookings && bookings.hotels).map((h) => { const docs = docsOf(h); return { info: String((h && h.info) || ''), docs, doc: docs[0] || '', actual: Number((h && h.actual) || 0) }; }),
   };
   const updates = [[COL.BOOKINGS, JSON.stringify(safe)]];
   // Actual flight/hotel spend (company-paid) → ACTUALS, for budget-vs-actual.

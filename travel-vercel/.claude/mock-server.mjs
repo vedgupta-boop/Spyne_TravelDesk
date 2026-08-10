@@ -248,6 +248,12 @@ http.createServer((req, res) => {
   const qs = (req.url.split('?')[1] || '');
   // Mock mutations (edit/withdraw/delegate/admin/forex actions) — just acknowledge.
   if (req.method === 'POST') {
+    if (url === '/api/upload') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => { let b = {}; try { b = JSON.parse(body || '{}'); } catch {} return json(res, { ok: true, link: 'https://drive.example/file-' + encodeURIComponent(String(b.filename || 'doc').slice(0, 24)) }); });
+      return;
+    }
     if (url === '/api/auth/login') {
       let body = '';
       req.on('data', (c) => { body += c; });
