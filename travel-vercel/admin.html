@@ -248,6 +248,24 @@ function chainHtml(r){
     return '<span style="background:'+bg+';color:'+fg+';border-radius:5px;padding:1px 7px;font-size:10px;font-weight:800;white-space:nowrap;">'+ic+' '+esc(s.label)+(s.state==='current'?' · pending':'')+'</span>';
   }).join('<span style="color:#CBD5E1;font-size:10px;">→</span>')+'</div>';
 }
+// "Who approved and when" trail — visible to Admin once the trip reaches them (and while upcoming).
+function trailHtml(r){
+  var a=r.approvals||[]; if(!a.length) return '';
+  var items=a.map(function(s){
+    var isRej=/reject/i.test(s.decision||''), isAppr=/^approved/i.test(s.decision||'');
+    var col=isRej?'#DC2626':(isAppr?'#0F766E':'#8A97AA');
+    var label=(isRej?'✕ ':(isAppr?'✓ ':''))+esc(s.decision);
+    return '<div style="display:flex;gap:6px;align-items:baseline;font-size:11px;margin:1px 0;flex-wrap:wrap;">'
+      +'<span style="min-width:92px;color:#8A97AA;font-weight:700;">'+esc(s.stage)+'</span>'
+      +'<span style="color:'+col+';font-weight:800;">'+label+'</span>'
+      +(s.by?'<span style="color:#3D506A;">by '+esc(s.by)+'</span>':'')
+      +(s.time?'<span style="color:#8A97AA;">· '+esc(s.time)+'</span>':'')
+    +'</div>';
+  }).join('');
+  return '<div style="background:#F7F9FC;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;margin-bottom:8px;">'
+    +'<div style="font-size:10px;font-weight:800;color:#8A97AA;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Approval trail — who &amp; when</div>'
+    +items+'</div>';
+}
 function actions(r,done){
   if(r.upcoming){
     var b=r.breakdown||{}; var est=(b.transport||0)+(b.hotel||0);
@@ -255,6 +273,7 @@ function actions(r,done){
     var pendTxt=r.pendingClarify?'Sent back to requester for clarification':(pend?('Pending at '+esc(pend.label)+' approval'):esc(r.status||'in approval'));
     return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">'
       +'<div style="margin-bottom:7px;">'+chainHtml(r)+'</div>'
+      +trailHtml(r)
       +'⏳ <b>'+pendTxt+'</b> — not ready to book yet.<br>'
       +'Estimated booking cost (flight + hotel): <b>'+fmt(r.currency,est)+'</b>'+(r.forex>0?' · forex advance <b>'+fmt('USD',r.forex)+'</b>':'')+'.<br>'
       +'Shown early so you can arrange funds in advance — booking controls appear once it\'s fully approved.</div>';
@@ -262,7 +281,7 @@ function actions(r,done){
   var flights=r.flights||[], hotels=r.hotels||[];
   var bk=r.bookings||{flights:[],hotels:[]};
   if(done){
-    var h=prefFlightHtml(r);
+    var h=trailHtml(r)+prefFlightHtml(r);
     var docsOf=function(b){ return (b&&b.docs&&b.docs.length)?b.docs:((b&&b.doc)?[b.doc]:[]); };
     var docLinks=function(ds){ return ds.map(function(x,n){ return ' <a class="lnk" href="'+esc(x)+'" target="_blank">📎'+(ds.length>1?(n+1):'')+'</a>'; }).join(''); };
     flights.forEach(function(leg,i){ var b=(bk.flights||[])[i]||{}; h+='<div class="hint">✈️ '+esc(leg.label)+': '+esc((b.airline?b.airline+' · ':'')+(b.info||'—'))+(leg.timeLabel?' · 🕒 '+esc(leg.timeLabel):'')+docLinks(docsOf(b))+'</div>'; });
@@ -284,7 +303,7 @@ function actions(r,done){
   var seed=function(b){ return (b&&b.docs&&b.docs.length)?b.docs.slice():((b&&b.doc)?[b.doc]:[]); };
   (bk.flights||[]).forEach(function(b,i){ var d=seed(b); if(d.length) UP[r.id].f[i]=d; });
   (bk.hotels||[]).forEach(function(b,i){ var d=seed(b); if(d.length) UP[r.id].h[i]=d; });
-  var html=prefFlightHtml(r)+(r.isForex?'<div class="fx-note">💱 Intl + Forex — routes to Jasvinder after Completed</div>':'');
+  var html=trailHtml(r)+prefFlightHtml(r)+(r.isForex?'<div class="fx-note">💱 Intl + Forex — routes to Jasvinder after Completed</div>':'');
   flights.forEach(function(leg,i){ html+=legRow(r.id,'f',i,leg,(bk.flights||[])[i],r.currency); });
   hotels.forEach(function(leg,i){ html+=legRow(r.id,'h',i,leg,(bk.hotels||[])[i],r.currency); });
   if(!flights.length && !hotels.length) html+='<div class="hint">No flights/hotels to book.</div>';

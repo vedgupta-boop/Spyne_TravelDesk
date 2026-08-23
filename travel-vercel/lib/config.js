@@ -146,6 +146,9 @@ export const COL = {
   DEPT_DEC:'Dept Head Decision', DEPT_TIME:'Dept Head Time',
   CEO_DEC:'CEO Decision', CEO_TIME:'CEO Time',
   FIN_DEC:'Finance Decision', FIN_TIME:'Finance Time',
+  // Conference / Event approval (Anurag) — who/when captured for the trail.
+  EVENTS_DEC:'Event Approver Decision', EVENTS_TIME:'Event Approver Time', EVENTS_BY:'Event Approver By',
+  DEPT_BY:'Dept Head By', CEO_BY:'CEO By', FIN_BY:'Finance By',
   ADMIN:'Admin Status', FOREX:'Forex Required (USD)', RETFROM:'Return From',
   // Forex card (international) — personal details + uploaded document links
   NATIONALITY:'Nationality', PASSPORT_NO:'Passport No', PASSPORT_ISSUE:'Passport Issue (date & place)',
@@ -227,6 +230,7 @@ export const HEADERS = [
   COL.ADVANCE_REMINDER,
   COL.FOREX_EXISTING,
   COL.AMEND_BASE,
+  COL.EVENTS_DEC, COL.EVENTS_TIME, COL.EVENTS_BY, COL.DEPT_BY, COL.CEO_BY, COL.FIN_BY,
 ];
 
 // ---------------------------------------------------------------------------
@@ -309,13 +313,13 @@ export function rolesFor(email) {
   if (AUTH.FINANCE_EMAILS.includes(e)) roles.push('finance');
   if (AUTH.ADMIN_EMAILS.includes(e)) roles.push('admin');
   if (AUTH.FOREX_EMAILS.includes(e)) roles.push('forex');
-  if ((AUTH.EVENTS_EMAILS || []).includes(e)) roles.push('events'); // Conference / Event watcher (notification-only)
+  if ((AUTH.EVENTS_EMAILS || []).includes(e)) roles.push('events'); // Conference / Event approver (approves after HOD; cost hidden)
   return roles;
 }
 
 // Roles that get the Approvals dashboard.
 export function isApprover(roles) {
-  return ['hod', 'ceo', 'finance'].some((r) => roles.includes(r));
+  return ['hod', 'ceo', 'finance', 'events'].some((r) => roles.includes(r));
 }
 
 // Default landing view for a user's highest-privilege role.

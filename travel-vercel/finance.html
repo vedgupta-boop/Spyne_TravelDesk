@@ -709,12 +709,15 @@ function openCost(i){
       +'<span id="rbmsg-'+esc(r.id)+'" style="font-size:11px;font-weight:700;"></span></div>';
   }
   // Workflow status (moved out of the slimmed table — full approval/booking/forex trail).
+  // "who approved" — the approver's name/email captured per stage (shown next to date).
+  var byOf=function(lbl){var a=(r.approvals||[]).filter(function(s){return s.stage===lbl;})[0];return a&&a.by?(' · by '+esc(a.by)):'';};
   var wf='<div style="margin-top:16px;font-size:11px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;">Workflow status</div>'
     +'<table class="bd-tbl"><tbody>'
     +'<tr><td><div class="li">Submitted</div></td><td class="av">'+esc(r.submission||'—')+'</td></tr>'
-    +'<tr><td><div class="li">HOD</div></td><td class="av">'+esc(r.hodStatus||'—')+(r.hodDate?(' · '+esc(r.hodDate)):'')+'</td></tr>'
-    +((r.ceoStatus&&r.ceoStatus!=='N/A')?'<tr><td><div class="li">CEO</div></td><td class="av">'+esc(r.ceoStatus)+(r.ceoDate?(' · '+esc(r.ceoDate)):'')+'</td></tr>':'')
-    +'<tr><td><div class="li">Finance</div></td><td class="av">'+esc(r.financeStatus||'—')+(r.financeDate?(' · '+esc(r.financeDate)):'')+'</td></tr>'
+    +'<tr><td><div class="li">HOD</div></td><td class="av">'+esc(r.hodStatus||'—')+(r.hodDate?(' · '+esc(r.hodDate)):'')+byOf('HOD')+'</td></tr>'
+    +(r.isEvent?'<tr><td><div class="li">Event Approver</div></td><td class="av">'+esc(r.eventStatus||'—')+(r.eventDate?(' · '+esc(r.eventDate)):'')+byOf('Event Approver')+'</td></tr>':'')
+    +((r.ceoStatus&&r.ceoStatus!=='N/A')?'<tr><td><div class="li">CEO</div></td><td class="av">'+esc(r.ceoStatus)+(r.ceoDate?(' · '+esc(r.ceoDate)):'')+byOf('CEO')+'</td></tr>':'')
+    +'<tr><td><div class="li">Finance</div></td><td class="av">'+esc(r.financeStatus||'—')+(r.financeDate?(' · '+esc(r.financeDate)):'')+byOf('Finance')+'</td></tr>'
     +'<tr><td><div class="li">Booking</div></td><td class="av">'+esc(r.bookingStatus||'—')+(r.bookingDate?(' · '+esc(r.bookingDate)):'')+'</td></tr>'
     +(r.pnr?'<tr><td><div class="li">PNR / Ticket</div></td><td class="av">'+esc(r.pnr)+(r.ticketUploadDate?(' · '+esc(r.ticketUploadDate)):'')+'</td></tr>':'')
     +((r.forexStatus&&r.forexStatus!=='N/A')?'<tr><td><div class="li">Forex card</div></td><td class="av">'+esc(r.forexStatus)+(r.forexIssueDate?(' · '+esc(r.forexIssueDate)):'')+'</td></tr>':'')
@@ -796,7 +799,7 @@ function downloadCSV(){
     [function(r){return r.advance||0;},'Total Advance'],
     [function(r){return isBroken(r)?'Yes':'No';},'Policy Breach'],
     [function(r){return isBroken(r)?String(r.flag||'').replace(/^POLICY BREAK:\s*/i,''):'';},'Policy Breach Reasons'],
-    ['hodStatus','HOD Status'],['hodDate','HOD Approval Date'],['ceoStatus','CEO Status'],['ceoDate','CEO Approval Date'],['financeStatus','Finance Status'],['financeDate','Finance Approval Date'],
+    ['hodStatus','HOD Status'],['hodDate','HOD Approval Date'],['eventStatus','Event Approver Status'],['eventDate','Event Approver Date'],['ceoStatus','CEO Status'],['ceoDate','CEO Approval Date'],['financeStatus','Finance Status'],['financeDate','Finance Approval Date'],
     ['bookingStatus','Booking Status'],['bookingDate','Booking Date'],['pnr','PNR No.'],['ticketUploadDate','Ticket Upload Date'],
     ['forexStatus','Forex Status'],['forexIssueDate','Forex Issue Date'],['finalStatus','Final Status']
   ];

@@ -44,24 +44,28 @@ import { flightTimeLabel } from './tz.js';
 function requesterEmail(rec) {
   return String(rec[COL.REQUESTED_BY] || rec[COL.EMAIL] || '').trim();
 }
+// A Conference / Event trip → Anurag (events approver) is inserted into the chain after HOD.
+function isEventReq(rec) { return /^Conference \/ Event/i.test(String(rec[COL.PURPOSE] || '')); }
+// Conference/Event approver recipients (Anurag).
+function eventsTo() { const list = (AUTH.EVENTS_EMAILS || []).filter(Boolean); return list.length ? list.join(',') : ''; }
 
 // ---- approval chain ----
 export function chainFor(type) {
-  // Approval stages (each gets an Approve/Reject email). Finance is added ONLY when the
-  // request breaks policy. Local: Admin is the final approver. Domestic/Intl: Admin is
-  // notified for arrangements only (no approval).
+  // Approval stages (each gets an Approve/Reject email). CEO is no longer an approver (FYI only).
+  // Conference/Event trips add an 'events' step (Anurag) after HOD. Finance is added only when the
+  // request breaks policy. Admin then arranges (informational, no approval).
   const broken = arguments[1];
   const ceoReq = arguments[2]; // CEO's own trip → Finance approves (no HOD/CEO self-approval)
-  if (ceoReq) return ['finance'];
-  // International: HOD approves (+ Finance only if policy-broken). CEO is NO LONGER an approver — he's
-  // notified for information only (see emailCeoFyi). Admin then arranges.
-  if (type === 'international') return broken ? ['dept', 'finance'] : ['dept'];
-  // Local & domestic: HOD approves (+ Finance only if policy-broken). Admin then arranges (no approval).
-  return broken ? ['dept', 'finance'] : ['dept'];
+  const isEvent = arguments[3];
+  if (ceoReq) return isEvent ? ['events', 'finance'] : ['finance'];
+  const chain = ['dept'];
+  if (isEvent) chain.push('events'); // Conference/Event owner approves after HOD
+  if (broken) chain.push('finance');
+  return chain;
 }
-export function chainLabels(type, broken, ceoReq) {
-  const map = { dept: 'HOD', ceo: 'CEO', finance: 'Finance', admin: 'Admin' };
-  const steps = chainFor(type, broken, ceoReq).map((s) => map[s]);
+export function chainLabels(type, broken, ceoReq, isEvent) {
+  const map = { dept: 'HOD', events: 'Event Approver', ceo: 'CEO', finance: 'Finance', admin: 'Admin' };
+  const steps = chainFor(type, broken, ceoReq, isEvent).map((s) => map[s]);
   steps.push('Admin'); // Admin arranges/books (all trip types) — informational, no approval
   steps.push('Confirmed');
   return steps;
@@ -71,9 +75,8 @@ export function chainLabels(type, broken, ceoReq) {
 function approvalProgress(rec) {
   const type = String(rec[COL.TYPE]);
   const broken = /^POLICY BREAK/.test(String(rec[COL.FLAG] || ''));
-  const ceoReq = ceoIsRequester(rec);
-  const chain = chainFor(type, broken, ceoReq);
-  const labels = { dept: 'HOD', ceo: 'CEO', finance: 'Finance' };
+  const chain = chainFor(type, broken, ceoIsRequester(rec), isEventReq(rec));
+  const labels = { dept: 'HOD', events: 'Event Appr.', ceo: 'CEO', finance: 'Finance' };
   const cur = String(rec[COL.STAGE]);
   const ci = chain.indexOf(cur);
   return chain.map((s, idx) => ({
@@ -82,7 +85,7 @@ function approvalProgress(rec) {
   }));
 }
 function stageLabel(stage) {
-  return { dept: 'Department Head', ceo: 'CEO', finance: 'Finance SPOC', admin: 'Admin' }[stage] || stage;
+  return { dept: 'Department Head', events: 'Event Approver', ceo: 'CEO', finance: 'Finance SPOC', admin: 'Admin' }[stage] || stage;
 }
 // Every admin (role holder) — admin arrangement/reminder emails go to ALL admins, not just the first.
 function adminTo() {
@@ -92,13 +95,14 @@ function adminTo() {
 function approverEmailFor(stage, rec) {
   if (rec[COL.DELEGATE_EMAIL]) return rec[COL.DELEGATE_EMAIL]; // OOO delegation overrides the default approver for this stage
   if (stage === 'dept')    return deptHeadIsRequester(rec) ? CONFIG.CEO_EMAIL : (rec[COL.HOD] || CONFIG.FINANCE_SPOC); // dept head's own trip → CEO approves
+  if (stage === 'events')  return eventsTo();
   if (stage === 'ceo')     return CONFIG.CEO_EMAIL;
   if (stage === 'finance') return CONFIG.FINANCE_SPOC;
   return adminTo();
 }
 // Next APPROVAL stage, or null if the current stage was the last approval.
-function nextStage(type, current, broken, ceoReq) {
-  const chain = chainFor(type, broken, ceoReq);
+function nextStage(type, current, broken, ceoReq, isEvent) {
+  const chain = chainFor(type, broken, ceoReq, isEvent);
   const i = chain.indexOf(current);
   if (i === -1) return null;
   return (i + 1 < chain.length) ? chain[i + 1] : null;
@@ -115,9 +119,15 @@ async function emailApprover(stage, rec, baseUrl, extra = {}) {
   const to = approverEmailFor(stage, rec);
   const token = rec[COL.TOKEN];
   const id = rec[COL.ID];
-  let html = approvalEmailHtml(rec, stageLabel(stage),
-    actionUrl(baseUrl, id, stage, 'approve', token),
-    actionUrl(baseUrl, id, stage, 'reject', token));
+  // The Conference/Event approver (Anurag) must NEVER see the estimated cost — send a cost-free
+  // approve/reject email (no breakdown table) instead of the standard cost-carrying approver email.
+  let html = stage === 'events'
+    ? eventsApprovalHtml(rec,
+        actionUrl(baseUrl, id, stage, 'approve', token),
+        actionUrl(baseUrl, id, stage, 'reject', token))
+    : approvalEmailHtml(rec, stageLabel(stage),
+        actionUrl(baseUrl, id, stage, 'approve', token),
+        actionUrl(baseUrl, id, stage, 'reject', token));
   let subject = `[Action Needed] ${id} — ${stageLabel(stage)} approval`;
   if (extra.edited) {
     subject = `[Edited — please re-review] ${id} — ${stageLabel(stage)} approval`;
@@ -285,7 +295,7 @@ export async function submitRequest(p, baseUrl) {
     (now - Date.parse(x[COL.TS])) < 2 * 60 * 1000);
   if (dup) {
     return { ok: true, id: dup[COL.ID], duplicate: true, currency: dup[COL.CURRENCY],
-      total: Number(dup[COL.C_TOTAL] || 0), chain: chainLabels(dup[COL.TYPE], /^POLICY BREAK/.test(String(dup[COL.FLAG] || '')), ceoIsRequester(dup)) };
+      total: Number(dup[COL.C_TOTAL] || 0), chain: chainLabels(dup[COL.TYPE], /^POLICY BREAK/.test(String(dup[COL.FLAG] || '')), ceoIsRequester(dup), isEventReq(dup)) };
   }
 
   // Overlapping-trip warning — the same traveller already has an active trip on overlapping dates.
@@ -345,7 +355,7 @@ export async function submitRequest(p, baseUrl) {
         + `<tr><td style="padding:6px 10px;border:1px solid #eef1f5;color:#64748B;">Purpose</td><td style="padding:6px 10px;border:1px solid #eef1f5;">${rec[COL.PURPOSE] || '—'}</td></tr></table>`
         + `<p style="color:#8A97AA;font-size:12px;margin:12px 0 0;">Track it any time on your My Requests page.</p>` }) });
 
-  return { ok: true, id, currency: costs.currency, total: costs.total, chain: chainLabels(p.travelType, costs.broken, ceoReq) };
+  return { ok: true, id, currency: costs.currency, total: costs.total, chain: chainLabels(p.travelType, costs.broken, ceoReq, isEventReq(rec)) };
 }
 
 // ---- requester self-service: edit (while still at HOD) / withdraw ----
@@ -375,6 +385,7 @@ function ceoIsRequester(rec) {
 function ownerForStage(rec, stage) {
   if (stage === 'dept') return rec[COL.DELEGATE_EMAIL] || rec[COL.HOD] || CONFIG.FINANCE_SPOC;
   if (stage === 'ceo') return CONFIG.CEO_EMAIL;
+  if (stage === 'events') return rec[COL.DELEGATE_EMAIL] || eventsTo();
   if (stage === 'finance') return CONFIG.FINANCE_SPOC;
   if (stage === 'arrange' || stage === 'admin') return adminTo();
   if (stage === 'forex') return CONFIG.FOREX_OFFICER;
@@ -570,18 +581,21 @@ export async function handleDecision({ id, stage, decision, token }, baseUrl) {
 }
 
 // Core stage transition (shared by the email-link and the authenticated dashboard paths).
-async function applyDecision(rec, stage, decision, baseUrl) {
+// `by` = the approver's email (for the "who approved" trail); '' for token-link approvals.
+async function applyDecision(rec, stage, decision, baseUrl, by = '') {
   const id = rec[COL.ID];
   const row = rec.__row;
   const now = new Date().toISOString();
   const type = rec[COL.TYPE];
   const broken = String(rec[COL.FLAG] || '').startsWith('POLICY BREAK');
-  const decCol = { dept: COL.DEPT_DEC, ceo: COL.CEO_DEC, finance: COL.FIN_DEC, admin: COL.ADMIN }[stage];
-  const timeCol = { dept: COL.DEPT_TIME, ceo: COL.CEO_TIME, finance: COL.FIN_TIME }[stage]; // none for admin
+  const decCol = { dept: COL.DEPT_DEC, ceo: COL.CEO_DEC, finance: COL.FIN_DEC, events: COL.EVENTS_DEC, admin: COL.ADMIN }[stage];
+  const timeCol = { dept: COL.DEPT_TIME, ceo: COL.CEO_TIME, finance: COL.FIN_TIME, events: COL.EVENTS_TIME }[stage]; // none for admin
+  const byCol = { dept: COL.DEPT_BY, ceo: COL.CEO_BY, finance: COL.FIN_BY, events: COL.EVENTS_BY }[stage]; // who approved
 
   if (decision === 'reject') {
     const upd = [[COL.TOKEN, ''], [COL.STAGE, 'rejected'], [COL.STATUS, 'Rejected at ' + stageLabel(stage)], [decCol, 'Rejected'], [COL.HOLD, ''], [COL.DELEGATE_EMAIL, '']];
     if (timeCol) upd.push([timeCol, now]);
+    if (byCol && by) upd.push([byCol, by]);
     await updateCells(row, upd);
     const rejTo = requesterEmail(rec);
     if (rejTo) await sendEmail({ to: rejTo, subject: `Travel Request ${id} — REJECTED`,
@@ -592,10 +606,11 @@ async function applyDecision(rec, stage, decision, baseUrl) {
   }
   if (decision !== 'approve') return { title: 'Unknown Action', msg: 'Unrecognized decision.', color: '#b00' };
 
-  const next = nextStage(type, stage, broken, ceoIsRequester(rec));
+  const next = nextStage(type, stage, broken, ceoIsRequester(rec), isEventReq(rec));
   const newToken = randomUUID();
   const updates = [[decCol, 'Approved'], [COL.TOKEN, newToken], [COL.HOLD, ''], [COL.DELEGATE_EMAIL, '']];
   if (timeCol) updates.push([timeCol, now]);
+  if (byCol && by) updates.push([byCol, by]);
 
   if (next) {
     // advance to the next approver
@@ -647,7 +662,7 @@ function myStageFor(rec, email, roles) {
   if (ownsRequest(rec, email)) return null;
   // Delegated to me (OOO cover) → I own whatever approval stage it's currently at.
   const curStage = String(rec[COL.STAGE]);
-  if (rec[COL.DELEGATE_EMAIL] && String(rec[COL.DELEGATE_EMAIL]).toLowerCase() === e && ['dept', 'ceo', 'finance'].includes(curStage)) return curStage;
+  if (rec[COL.DELEGATE_EMAIL] && String(rec[COL.DELEGATE_EMAIL]).toLowerCase() === e && ['dept', 'ceo', 'finance', 'events'].includes(curStage)) return curStage;
   const dept = String(rec[COL.DEPT] || '');
   const deptHead = String((CONFIG.DEPARTMENTS[dept] || {}).email || '').toLowerCase();
   const isCEO = r.includes('ceo') || e === String(CONFIG.CEO_EMAIL).toLowerCase();
@@ -655,11 +670,13 @@ function myStageFor(rec, email, roles) {
   if (deptHeadIsRequester(rec) && isCEO) return 'dept';
   if ((r.includes('hod')) && (deptHead === e || String(rec[COL.HOD] || '').toLowerCase() === e)) return 'dept';
   if (isCEO) { if (String(rec[COL.TYPE]) === 'international') return 'ceo'; }
+  // Conference/Event approver (Anurag) owns the 'events' stage for event trips.
+  if (r.includes('events') && isEventReq(rec)) return 'events';
   if (r.includes('finance')) return 'finance';
   return null;
 }
-const decColFor = { dept: COL.DEPT_DEC, ceo: COL.CEO_DEC, finance: COL.FIN_DEC };
-const decTimeFor = { dept: COL.DEPT_TIME, ceo: COL.CEO_TIME, finance: COL.FIN_TIME };
+const decColFor = { dept: COL.DEPT_DEC, ceo: COL.CEO_DEC, finance: COL.FIN_DEC, events: COL.EVENTS_DEC };
+const decTimeFor = { dept: COL.DEPT_TIME, ceo: COL.CEO_TIME, finance: COL.FIN_TIME, events: COL.EVENTS_TIME };
 
 // Append an approver remark to the running comments log.
 function appendComment(rec, stage, who, text) {
@@ -695,14 +712,14 @@ export async function approverDecision({ id, decision, comment, email, roles }, 
   const note = verb + ' by ' + String(email || who) + (comment ? ' — ' + comment : '');
   const newComments = appendComment(rec, stage, who, note);
   await updateCells(rec.__row, [[COL.COMMENTS, newComments]]);
-  const r = await applyDecision({ ...rec, [COL.COMMENTS]: newComments }, stage, decision, baseUrl);
+  const r = await applyDecision({ ...rec, [COL.COMMENTS]: newComments }, stage, decision, baseUrl, String(email || ''));
   return { ok: true, id, title: r.title, msg: r.msg };
 }
 
 // ---- recall / pull-back ----
 // Human label for any stage (incl. the post-approval steps).
 function humanStage(s) {
-  return { dept: 'HOD', ceo: 'CEO', finance: 'Finance', arrange: 'Admin (booking)', admin: 'Admin (booking)', forex: 'Forex officer', done: 'Completed' }[s] || s;
+  return { dept: 'HOD', events: 'Event Approver', ceo: 'CEO', finance: 'Finance', arrange: 'Admin (booking)', admin: 'Admin (booking)', forex: 'Forex officer', done: 'Completed' }[s] || s;
 }
 // Where can this record be recalled TO (and FROM), or null if it isn't at a recallable step.
 // Only returns a target while the NEXT person hasn't acted — the record only sits at `cur` while
@@ -710,7 +727,7 @@ function humanStage(s) {
 function recallInfo(rec) {
   const type = String(rec[COL.TYPE]);
   const broken = String(rec[COL.FLAG] || '').startsWith('POLICY BREAK');
-  const chain = chainFor(type, broken, ceoIsRequester(rec));
+  const chain = chainFor(type, broken, ceoIsRequester(rec), isEventReq(rec));
   const cur = String(rec[COL.STAGE]);
   const forexIssued = !!rec[COL.FOREX_ISSUE_DATE];
   const closed = String(rec[COL.ACTUALS_STATUS]) === 'Closed';
@@ -739,6 +756,7 @@ function ownsStage(rec, email, roles, stage) {
   const isCEO = r.includes('ceo') || e === String(CONFIG.CEO_EMAIL).toLowerCase();
   if (stage === 'dept') { if (deptHeadIsRequester(rec) && isCEO) return true; return r.includes('hod') && (deptHead === e || String(rec[COL.HOD] || '').toLowerCase() === e); }
   if (stage === 'ceo') return isCEO;
+  if (stage === 'events') return r.includes('events');
   if (stage === 'finance') return r.includes('finance');
   if (stage === 'arrange' || stage === 'admin') return r.includes('admin');
   if (stage === 'forex') return r.includes('forex');
@@ -778,7 +796,7 @@ export async function recallRequest({ id, email, roles }, baseUrl) {
   if (toStage === 'arrange') upd.push([COL.ADMIN, 'Pending']);
   await updateCells(rec.__row, upd);
   const fresh = { ...rec, [COL.TOKEN]: token, [COL.STAGE]: toStage };
-  if (['dept', 'ceo', 'finance'].includes(toStage)) { try { await emailApprover(toStage, fresh, baseUrl); } catch (e) { /* non-fatal */ } }
+  if (['dept', 'ceo', 'finance', 'events'].includes(toStage)) { try { await emailApprover(toStage, fresh, baseUrl); } catch (e) { /* non-fatal */ } }
   try { await notifyRecall(rec, info, email, baseUrl); } catch (e) { /* non-fatal */ }
   return { ok: true, id, title: 'Recalled', msg: `${id} recalled from ${humanStage(info.fromStage)} — back with ${humanStage(toStage)} for re-review.` };
 }
@@ -932,7 +950,7 @@ export async function approverData({ email, roles }) {
     const awaitingMe = stage === myStage;
     // Recallable: I approved my step and it's now sitting at the very next step, still pending there
     // (once that person acts, the record advances and this window closes).
-    const _chain = chainFor(rec[COL.TYPE], broken, ceoIsRequester(rec));
+    const _chain = chainFor(rec[COL.TYPE], broken, ceoIsRequester(rec), isEventReq(rec));
     const _mi = _chain.indexOf(myStage);
     const _next = _mi !== -1 ? ((_mi + 1 < _chain.length) ? _chain[_mi + 1] : 'arrange') : null;
     const recallable = !!_next && stage === _next;
@@ -1002,6 +1020,7 @@ export async function notifications({ email, roles }) {
     if (!onHold) {
       if (stage === 'dept' && (amHOD || amDelegate)) add(rec, 'approval', 'Approval needed — Department Head', '/hod');
       else if (stage === 'dept' && escCEO) add(rec, 'approval', 'Approval needed — CEO (dept-head request)', '/hod');
+      else if (stage === 'events' && r.includes('events')) add(rec, 'events', 'Approval needed — Conference / Event', '/events');
       else if (stage === 'ceo' && intl && (isCEO || amDelegate)) add(rec, 'approval', 'Approval needed — CEO', '/hod');
       else if (stage === 'finance' && broken && (isFin || amDelegate)) add(rec, 'approval', 'Approval needed — Finance', '/hod');
     }
@@ -1011,7 +1030,7 @@ export async function notifications({ email, roles }) {
     if (isFin && astatus === 'HOD Approved') add(rec, 'finance', 'Reimbursement to settle', '/finance');
   }
   const by = (k) => items.filter((i) => i.kind === k).length;
-  return { approvals: by('approval'), department: by('reimburse'), finance: by('finance'), admin: by('admin'), forex: by('forex'), items };
+  return { approvals: by('approval'), department: by('reimburse'), finance: by('finance'), admin: by('admin'), forex: by('forex'), events: by('events'), items };
 }
 
 // ---- requester self-service: my own requests + where each one is ----
@@ -1471,8 +1490,10 @@ export async function financeData() {
       advDeposit: Number(r[COL.C_DEPOSIT] || 0),
       advance: Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0) + Number(r[COL.C_DEPOSIT] || 0),
       hodStatus, hodDate: fmtDate(r[COL.DEPT_TIME]),
+      eventStatus: isEventReq(r) ? (decStatus(r[COL.EVENTS_DEC]) || 'Pending') : 'N/A', eventDate: fmtDate(r[COL.EVENTS_TIME]),
       ceoStatus, ceoDate: fmtDate(r[COL.CEO_TIME]),
       financeStatus, financeDate: fmtDate(r[COL.FIN_TIME]),
+      isEvent: isEventReq(r), approvals: approvalTrail(r),
       bookingStatus: r[COL.ADMIN] || 'Pending', bookingDate: fmtDate(r[COL.BOOKING_DATE]),
       pnr: r[COL.TICKET_INFO] || '', ticketUploadDate: fmtDate(r[COL.TICKET_UPLOAD_DATE]),
       forexStatus, forexIssueDate: fmtDate(r[COL.FOREX_ISSUE_DATE]),
@@ -1555,7 +1576,7 @@ export async function adminData() {
       docPassport: r[COL.DOC_PASSPORT] || '', docVisa: r[COL.DOC_VISA] || '', docPanAadhaar: r[COL.DOC_PANAADHAAR] || '',
       status: r[COL.STATUS], adminStatus: r[COL.ADMIN] || 'Pending',
       upcoming: ['dept', 'ceo', 'finance', 'clarify'].includes(String(r[COL.STAGE])),
-      approval: approvalProgress(r), pendingClarify: String(r[COL.STAGE]) === 'clarify',
+      approval: approvalProgress(r), approvals: approvalTrail(r), isEvent: isEventReq(r), pendingClarify: String(r[COL.STAGE]) === 'clarify',
       // Admin can recall a booking: while it's with the Forex officer (card not issued), or a completed
       // booking (redo) — by stage OR admin status (some completed trips sit at 'arrange' with Admin=Completed).
       // Blocked once the forex card is issued or Finance has closed the reimbursement.
@@ -1755,6 +1776,31 @@ async function emailCeoFyi(rec, baseUrl) {
 
 // Notify the Conference / Event watcher(s) when such a request is raised. Notification only — no
 // approval, no cost shown.
+// Cost-free approval email for the Conference/Event approver (Anurag). Same trip summary as the
+// notification, but WITH Approve / Reject buttons and NO cost breakdown of any kind.
+function eventsApprovalHtml(rec, approveUrl, rejectUrl) {
+  const id = rec[COL.ID];
+  const kv = [
+    ['Traveller', rec[COL.NAME]],
+    ['Department', rec[COL.DEPT]],
+    ['Purpose', rec[COL.PURPOSE] || ''],
+    ['Route', String(rec[COL.FROM]) + ' → ' + String(rec[COL.TO])],
+    ['Dates', fmtDate(rec[COL.START]) + (rec[COL.RET] ? ' → ' + fmtDate(rec[COL.RET]) : '')],
+    ['Trip type', rec[COL.TYPE]],
+  ];
+  const tbl = '<table style="border-collapse:collapse;width:100%;font-size:14px;font-family:Arial,sans-serif;">' +
+    kv.map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #eee;color:#667;">${k}</td><td style="padding:6px 10px;border:1px solid #eee;font-weight:600;">${String(v == null ? '' : v)}</td></tr>`).join('') +
+    '</table>';
+  return emailShell({
+    title: 'Conference / Event travel — your approval needed 📅',
+    subtitle: `Spyne TravelDesk · ${id}`,
+    statusText: 'Awaiting Event Approver',
+    statusColor: '#F59E0B',
+    body: `<p style="color:#3D506A;margin:0 0 14px;">This <b>Conference / Event</b> travel request has cleared the HOD and now needs your approval.</p>` + tbl +
+      `<p style="margin:18px 0 6px;">${btn(approveUrl, '✓ Approve', '#0F9D58')} &nbsp; ${btn(rejectUrl, '✕ Reject', '#E8232A')}</p>`,
+    footerNote: 'You approve Conference / Event travel. Cost is handled separately by Finance/Admin and is not shown here.',
+  });
+}
 async function emailEventsWatcher(rec, baseUrl) {
   const to = (AUTH.EVENTS_EMAILS || []).filter(Boolean);
   if (!to.length) return;
@@ -2025,6 +2071,7 @@ export async function sendReminders(baseUrl) {
 
     let since, to, label, kind = 'approval', link;
     if (stage === 'dept')         { since = rec[COL.TS];                                                          to = rec[COL.HOD] || CONFIG.FINANCE_SPOC; label = 'HOD'; }
+    else if (stage === 'events')  { since = rec[COL.EVENTS_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS];            to = eventsTo();          label = 'Event Approver'; }
     else if (stage === 'ceo')     { since = rec[COL.CEO_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS];               to = CONFIG.CEO_EMAIL;    label = 'CEO'; }
     else if (stage === 'finance') { since = rec[COL.FIN_TIME] || rec[COL.CEO_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS]; to = CONFIG.FINANCE_SPOC; label = 'Finance'; }
     else if (stage === 'admin')   { since = rec[COL.FIN_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS];               to = adminTo();   label = 'Admin'; }
@@ -2033,7 +2080,7 @@ export async function sendReminders(baseUrl) {
     else continue;
 
     // OOO delegation: route approval reminders to the delegate instead of the default approver.
-    if (rec[COL.DELEGATE_EMAIL] && ['dept', 'ceo', 'finance'].includes(stage)) { to = rec[COL.DELEGATE_EMAIL]; label += ' (delegated)'; }
+    if (rec[COL.DELEGATE_EMAIL] && ['dept', 'ceo', 'finance', 'events'].includes(stage)) { to = rec[COL.DELEGATE_EMAIL]; label += ' (delegated)'; }
 
     pending++;
     const waitedMs = now - Date.parse(since);
@@ -2053,9 +2100,14 @@ export async function sendReminders(baseUrl) {
     const sub = (escalated ? '[Escalated] ' : prefix + ' ');
     if (kind === 'approval') {
       const token = rec[COL.TOKEN];
-      const html = reminderEmailHtml(rec, label,
-        actionUrl(base, rec[COL.ID], stage, 'approve', token),
-        actionUrl(base, rec[COL.ID], stage, 'reject', token), hours);
+      // The Event Approver reminder must stay cost-free (no breakdown), like their approval email.
+      const html = stage === 'events'
+        ? eventsApprovalHtml(rec,
+            actionUrl(base, rec[COL.ID], stage, 'approve', token),
+            actionUrl(base, rec[COL.ID], stage, 'reject', token))
+        : reminderEmailHtml(rec, label,
+            actionUrl(base, rec[COL.ID], stage, 'approve', token),
+            actionUrl(base, rec[COL.ID], stage, 'reject', token), hours);
       await sendEmail({ to, subject: `${sub}${rec[COL.ID]} — ${label} approval pending ${hours}h`, html, cc: reminderCc(rec, to, escCc) });
     } else {
       await sendEmail({ to, subject: `${sub}${rec[COL.ID]} — ${label} pending ${hours}h`, html: taskReminderEmailHtml(rec, label, link, hours), cc: reminderCc(rec, to, escCc) });
@@ -2149,4 +2201,20 @@ function fmtDateTime(v) {
   const d = new Date(v);
   if (isNaN(d)) return String(v);
   return d.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }).replace(',', '');
+}
+// "Who approved and when" trail for a record — one entry per approval stage that has a decision,
+// so Admin + Finance can see who signed off (name/email) and the timestamp. Cost is never included.
+function approvalTrail(rec) {
+  const rows = [];
+  const who = (v) => { const s = String(v || '').trim(); return s ? (s.includes('@') ? s.split('@')[0] : s) : ''; };
+  const push = (label, dec, by, time) => {
+    const d = String(dec || '').trim();
+    if (!d) return; // stage not yet acted on / not in this chain
+    rows.push({ stage: label, decision: d, by: who(by), time: time ? fmtDateTime(time) : '' });
+  };
+  push('HOD', rec[COL.DEPT_DEC], rec[COL.DEPT_BY], rec[COL.DEPT_TIME]);
+  if (isEventReq(rec)) push('Event Approver', rec[COL.EVENTS_DEC], rec[COL.EVENTS_BY], rec[COL.EVENTS_TIME]);
+  push('CEO', rec[COL.CEO_DEC], rec[COL.CEO_BY], rec[COL.CEO_TIME]);
+  push('Finance', rec[COL.FIN_DEC], rec[COL.FIN_BY], rec[COL.FIN_TIME]);
+  return rows;
 }
