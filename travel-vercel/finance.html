@@ -638,6 +638,47 @@ function itineraryHtml(r){
   if(ht.length) h+='<div class="bd-sec" style="color:#0077CC;">🏨 Hotels'+(ht.length>1?(' · '+ht.length):'')+'</div>'+ht.map(function(hh){ return irow((hh.label||'Stay')+(hh.city?(' — '+hh.city):''),((hh.checkIn||'')+(hh.checkOut?(' → '+hh.checkOut):''))+(hh.nights?('  ·  '+hh.nights+' night(s)'):'')); }).join('');
   return h;
 }
+// ---- Approval trail + "where pending" panels (same as the Admin dashboard) ----
+function finStepper(r){
+  var a=r.approval||[]; if(!a.length) return '';
+  return '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-top:6px;">'+a.map(function(s){
+    var bg,fg,ic;
+    if(s.state==='done'){bg='#E6F4EA';fg='#0F766E';ic='✓';}
+    else if(s.state==='current'){bg='#FEF3C7';fg='#B45309';ic='⏳';}
+    else{bg='#EEF1F5';fg='#8A97AA';ic='○';}
+    return '<span style="background:'+bg+';color:'+fg+';border-radius:5px;padding:2px 8px;font-size:10.5px;font-weight:800;white-space:nowrap;">'+ic+' '+esc(s.label)+(s.state==='current'?' · pending':'')+'</span>';
+  }).join('<span style="color:#CBD5E1;">→</span>')+'</div>';
+}
+function finPending(r){
+  var a=r.approval||[];
+  var cur=a.filter(function(s){return s.state==='current';})[0];
+  var banner,col;
+  if(cur){ banner='⏳ Currently pending at: <b>'+esc(cur.label)+'</b> approval'; col='#B45309'; }
+  else {
+    var st=String(r.stage||''); var status=String(r.status||'');
+    var where=/reject/i.test(status)?'Rejected':(/forex/.test(st)?'With Forex officer — card issuance':(/arrange|admin/.test(st)?'Approved — with Admin for booking':((/done/.test(st)||/completed|confirmed|issued/i.test(status))?'Completed':'Fully approved')));
+    banner=(/reject/i.test(status)?'✕ ':'✓ ')+esc(where); col=/reject/i.test(status)?'#DC2626':'#0F766E';
+  }
+  return '<div style="background:#F7F9FC;border:1px solid #E2E8F0;border-radius:8px;padding:9px 12px;margin-bottom:8px;">'
+    +'<div style="font-size:12px;font-weight:800;color:'+col+';">'+banner+'</div>'+finStepper(r)+'</div>';
+}
+function finTrail(r){
+  var a=r.approvals||[]; if(!a.length) return '';
+  var items=a.map(function(s){
+    var isRej=/reject/i.test(s.decision||''), isAppr=/^approved/i.test(s.decision||'');
+    var col=isRej?'#DC2626':(isAppr?'#0F766E':'#8A97AA');
+    var label=(isRej?'✕ ':(isAppr?'✓ ':''))+esc(s.decision);
+    return '<div style="display:flex;gap:6px;align-items:baseline;font-size:11.5px;margin:2px 0;flex-wrap:wrap;">'
+      +'<span style="min-width:96px;color:#8A97AA;font-weight:700;">'+esc(s.stage)+'</span>'
+      +'<span style="color:'+col+';font-weight:800;">'+label+'</span>'
+      +(s.by?'<span style="color:#3D506A;">by '+esc(s.by)+'</span>':'')
+      +(s.time?'<span style="color:#8A97AA;">· '+esc(s.time)+'</span>':'')
+    +'</div>';
+  }).join('');
+  return '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:9px 12px;margin-bottom:10px;">'
+    +'<div style="font-size:10px;font-weight:800;color:#8A97AA;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;">Approval trail — who &amp; when</div>'
+    +items+'</div>';
+}
 function openCost(i){
   var r=VIEW[i]; if(!r) return;
   var b=r.breakdown||{}; var cur=r.currency||'INR';
@@ -732,7 +773,8 @@ function openCost(i){
     +'<div class="bd-note">Figures are computed automatically from the travel policy (hotel caps, meal per-diem, transport &amp; local-conveyance estimates) at the time of submission. Amounts are shown to approvers only — not to the traveller.</div>'
     +'<div style="margin-top:10px;color:#8B0000;font-weight:700;font-size:12px;">Note: Actual expense reimbursement or Forex allocation will be done as per Travel Policy limits.</div>'
     +amendHtml;
-  html = itineraryHtml(r) + html; // flight/hotel routing at the top — where→where before deciding
+  // Approval trail (who & when) + where it's currently pending — same as the Admin dashboard, at the very top.
+  html = finPending(r) + finTrail(r) + itineraryHtml(r) + html; // flight/hotel routing at the top — where→where before deciding
   document.getElementById('cd-body').innerHTML=html;
   document.getElementById('cost-drawer').classList.add('open');
   document.getElementById('cost-drawer').setAttribute('aria-hidden','false');
