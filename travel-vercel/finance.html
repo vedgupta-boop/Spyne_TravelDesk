@@ -584,7 +584,7 @@ function render(){
   tbody.innerHTML = rows.map(function(r,i){
     var dates=esc(r.start)+(r.end&&r.end!=='One-way'?(' → '+esc(r.end)):(r.end==='One-way'?' (one-way)':''));
     return '<tr onclick="openCost('+i+')" style="cursor:pointer;" title="Open details &amp; actions">'
-      +'<td class="r muted">'+(i+1)+'</td>'
+      +'<td class="r muted"><span class="fcev" id="fcev-'+i+'" onclick="event.stopPropagation();toggleFinDetail('+i+')" style="cursor:pointer;user-select:none;font-weight:800;" title="Show approval trail — who approved &amp; where it\'s pending">▸</span> '+(i+1)+'</td>'
       +'<td class="id">'+esc(r.id)+' <span class="caret">▸</span></td>'
       +'<td>'+esc(r.name)+(r.pax>1?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">+'+(r.pax-1)+' pax</span>':'')+'</td>'
       +'<td class="muted">'+esc(r.dept)+'</td>'
@@ -595,7 +595,9 @@ function render(){
       +'<td class="r amt">'+(r.advance>0?fmt(r.currency,r.advance):'<span class="muted">—</span>')+'</td>'
       +'<td>'+breakCell(r,i)+'</td>'
       +'<td>'+stPill(shortStatus(r.finalStatus))+'</td>'
-    +'</tr>';
+    +'</tr>'
+    // Inline approval panel (who approved & when + where it's pending) — same as the Admin dashboard.
+    +'<tr class="fin-det hidden" id="findet-'+i+'"><td colspan="11" style="background:#FAFBFD;border-bottom:1px solid var(--gray-2);padding:12px 18px;">'+finPending(r)+finTrail(r)+'</td></tr>';
   }).join('');
 
   // footer: count + estimated total per currency (11 columns)
@@ -607,6 +609,13 @@ function render(){
   }).join('');
 }
 
+// Expand/collapse the inline approval panel for a Finance row (does NOT open the cost drawer).
+function toggleFinDetail(i){
+  var row=document.getElementById('findet-'+i), cev=document.getElementById('fcev-'+i);
+  if(!row) return;
+  var nowHidden=row.classList.toggle('hidden');
+  if(cev) cev.textContent = nowHidden ? '▸' : '▾';
+}
 // ---- policy breach column + reasons slide-out (server flag value is still "POLICY BREAK:") ----
 function isBroken(r){ return /^POLICY BREAK/i.test(String(r&&r.flag||'')); }
 function breakCell(r,i){
