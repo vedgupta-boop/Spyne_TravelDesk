@@ -1,4 +1,4 @@
-import { adminData, setAdminStatus, saveTicket, saveBookings, sendToForex, recallRequest, sendBackForAmendment, requestForexTopup } from '../lib/workflow.js';
+import { adminData, setAdminStatus, saveTicket, saveBookings, sendToForex, recallRequest, sendBackForAmendment, requestForexTopup, requestStandaloneForex } from '../lib/workflow.js';
 import { requireRole, baseUrl } from '../lib/auth.js';
 import { applyRoleOverrides } from '../lib/rolesstore.js';
 
@@ -8,6 +8,8 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
       const b = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      // Standalone forex request creates a NEW row (no id yet) — handle before the id check.
+      if (b.action === 'forex-standalone') { res.status(200).json(await requestStandaloneForex({ name: b.name, email: b.email, dept: b.dept, amount: b.amount, reason: b.reason, note: b.note, existingCard: b.existingCard, destination: b.destination, startDate: b.startDate, currency: b.currency, by: s.email, roles: s.roles }, baseUrl(req))); return; }
       if (!b.id) throw new Error('id is required');
       if (b.action === 'ticket') { res.status(200).json(await saveTicket(b.id, b.ticketInfo, b.ticketDoc)); return; }
       if (b.action === 'bookings') { res.status(200).json(await saveBookings(b.id, b.bookings)); return; }

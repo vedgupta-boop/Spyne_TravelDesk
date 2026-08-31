@@ -14,6 +14,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .logo-sq{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;}
 .logo-txt{font-size:15px;font-weight:900;color:#fff;}.logo-sub{font-size:11px;color:var(--gray-5);}
 .btn-refresh{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.sfx-l{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:700;color:#4C1D95;}
+.sfx-i{padding:8px 10px;border:1.5px solid var(--gray-3,#D6DCE8);border-radius:8px;font-size:13px;font-family:inherit;color:var(--ink,#1A2332);}
 .wrap{max-width:1400px;margin:0 auto;padding:22px 20px 60px;}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px;}
 .kpi{background:#fff;border:1px solid var(--gray-3);border-radius:12px;padding:16px 18px;}
@@ -69,8 +71,37 @@ tr:hover td{background:var(--gray-1);}
     <div><div class="logo-txt">Spyne TravelDesk</div><div class="logo-sub">Admin — Arrangements</div></div></div>
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
     <div id="trf-userbar"></div>
+    <button class="btn-refresh" style="background:rgba(124,58,237,.25);border-color:rgba(196,181,253,.5);" onclick="openStandaloneForex()" title="Raise a forex load for a trip that is NOT in TravelDesk">💱 Forex load (no trip)</button>
     <button class="btn-refresh" onclick="downloadCSV()">⬇ CSV</button>
     <button class="btn-refresh" onclick="load()">↻ Refresh</button>
+  </div>
+</div>
+<!-- Standalone forex request modal (trip not in TravelDesk) -->
+<div id="sfx-ov" onclick="closeStandaloneForex()" style="display:none;position:fixed;inset:0;background:rgba(13,27,42,.5);z-index:60;"></div>
+<div id="sfx-modal" style="display:none;position:fixed;z-index:61;top:50%;left:50%;transform:translate(-50%,-50%);width:460px;max-width:94vw;max-height:92vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(13,27,42,.35);">
+  <div style="background:#4C1D95;color:#fff;padding:16px 20px;border-radius:14px 14px 0 0;">
+    <div style="font-size:15px;font-weight:900;">💱 Standalone forex request</div>
+    <div style="font-size:12px;color:#D8B4FE;margin-top:2px;">Load a forex card for a trip that isn’t in TravelDesk</div>
+  </div>
+  <div style="padding:18px 20px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <label class="sfx-l">Traveller name*<input id="sfx-name" class="sfx-i" type="text" placeholder="Full name"></label>
+      <label class="sfx-l">Traveller email<input id="sfx-email" class="sfx-i" type="email" placeholder="name@spyne.ai"></label>
+      <label class="sfx-l">Department<input id="sfx-dept" class="sfx-i" type="text" placeholder="e.g. GTM Sales"></label>
+      <label class="sfx-l">Destination (optional)<input id="sfx-dest" class="sfx-i" type="text" placeholder="e.g. Dubai"></label>
+      <label class="sfx-l">Amount (USD)*<input id="sfx-amt" class="sfx-i" type="number" min="1" placeholder="e.g. 800"></label>
+      <label class="sfx-l">Travel date (optional)<input id="sfx-date" class="sfx-i" type="date"></label>
+    </div>
+    <label class="sfx-l" style="margin-top:10px;">Reason*
+      <select id="sfx-reason" class="sfx-i"><option>Trip not in TravelDesk</option><option>Trip extended</option><option>Extra stay</option><option>Higher on-ground costs</option><option>Other</option></select></label>
+    <label class="sfx-l" style="margin-top:10px;">Note (optional)<input id="sfx-note" class="sfx-i" type="text" placeholder="context for Finance / Forex"></label>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--ink);font-weight:600;"><input id="sfx-existing" type="checkbox" checked> Load onto an existing company card (no new card / KYC)</label>
+    <div id="sfx-route" style="font-size:11.5px;color:#7C3AED;margin-top:10px;"></div>
+    <div id="sfx-msg" style="font-size:12px;font-weight:700;margin-top:8px;"></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-book" onclick="submitStandaloneForex()">Send forex request</button>
+      <button class="btn btn-clear" onclick="closeStandaloneForex()">Cancel</button>
+    </div>
   </div>
 </div>
 <script src="/auth-guard.js"></script>
@@ -208,6 +239,40 @@ function toggleDetail(i){
   var nowHidden=row.classList.toggle('hidden');
   if(btn) btn.innerHTML = nowHidden ? '🔎 View details' : '▴ Hide details';
   if(cev) cev.textContent = nowHidden ? '▸' : '▾';
+}
+// ---- Standalone forex request (trip NOT in TravelDesk) ----
+var SFX_THR=1000;
+function openStandaloneForex(){
+  try{ if(DATA&&DATA.rows){ var r=DATA.rows.find(function(x){return x.topupApproveUsd;}); if(r) SFX_THR=r.topupApproveUsd; } }catch(e){}
+  ['sfx-name','sfx-email','sfx-dept','sfx-dest','sfx-amt','sfx-date','sfx-note'].forEach(function(id){var el=document.getElementById(id); if(el) el.value='';});
+  document.getElementById('sfx-existing').checked=true;
+  document.getElementById('sfx-msg').textContent=''; sfxRoute();
+  document.getElementById('sfx-ov').style.display='block'; document.getElementById('sfx-modal').style.display='block';
+  var a=document.getElementById('sfx-amt'); if(a) a.oninput=sfxRoute;
+}
+function closeStandaloneForex(){ document.getElementById('sfx-ov').style.display='none'; document.getElementById('sfx-modal').style.display='none'; }
+function sfxRoute(){
+  var amt=Number((document.getElementById('sfx-amt')||{}).value||0);
+  var el=document.getElementById('sfx-route'); if(!el) return;
+  if(amt>0) el.innerHTML = amt>SFX_THR ? ('Above USD '+SFX_THR+' → <b>Finance approves first</b>, then Forex loads it.') : ('At/below USD '+SFX_THR+' → sent <b>straight to the Forex officer</b> to load.');
+  else el.innerHTML='';
+}
+function submitStandaloneForex(){
+  var name=(document.getElementById('sfx-name').value||'').trim();
+  var amt=Number(document.getElementById('sfx-amt').value||0);
+  var msg=document.getElementById('sfx-msg');
+  if(!name){ msg.style.color='#DC2626'; msg.textContent='Enter the traveller name.'; return; }
+  if(!(amt>0)){ msg.style.color='#DC2626'; msg.textContent='Enter an amount greater than 0.'; return; }
+  var payload={ action:'forex-standalone', name:name, email:(document.getElementById('sfx-email').value||'').trim(),
+    dept:(document.getElementById('sfx-dept').value||'').trim(), destination:(document.getElementById('sfx-dest').value||'').trim(),
+    amount:amt, startDate:(document.getElementById('sfx-date').value||''), reason:document.getElementById('sfx-reason').value,
+    note:(document.getElementById('sfx-note').value||'').trim(), existingCard:document.getElementById('sfx-existing').checked };
+  msg.style.color='#6D28D9'; msg.textContent='Sending…';
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ closeStandaloneForex(); toast('Forex request USD '+res.amount+' raised ('+(res.needsFinance?'awaiting Finance':'sent to Forex')+')'); load(); }
+      else { msg.style.color='#DC2626'; msg.textContent=(res&&res.error)||'Failed.'; } })
+    .catch(function(e){ msg.style.color='#DC2626'; msg.textContent=(e.message||e); });
 }
 var UP={}; // upload cache: UP[id] = { f:{idx:link}, h:{idx:link} }
 function legLabel(kind,leg){

@@ -301,22 +301,21 @@ function onData(d){
 // ---- Forex top-up approvals (Admin requests above the USD threshold) ----
 function renderTopupApprovals(){
   var panel=document.getElementById('tua-panel'), body=document.getElementById('tua-body'), cnt=document.getElementById('tua-count');
-  var items=[];
-  (DATA.rows||[]).forEach(function(r){ (r.topupsToApprove||[]).forEach(function(t){ items.push({r:r,t:t}); }); });
+  var items=DATA.topupApprovals||[];
   if(!items.length){ panel.style.display='none'; return; }
   panel.style.display='';
   cnt.textContent='('+items.length+')';
   body.classList.remove('hidden'); document.getElementById('tua-toggle').textContent='Hide ▴'; // expanded by default — Finance should see pending approvals
-  body.innerHTML=items.map(function(x){
-    var r=x.r, t=x.t;
+  body.innerHTML=items.map(function(t){
+    var tag=t.standalone?' <span style="background:#EDE9FE;color:#5B21B6;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:800;">STANDALONE — no trip</span>':'';
     return '<div style="border:1px solid var(--gray-3);border-radius:8px;padding:10px 12px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">'
       +'<div style="font-size:12.5px;color:var(--gray-7);">'
-        +'<b style="color:var(--navy);">USD '+t.amount+'</b> · '+esc(r.id)+' · '+esc(r.name||'')+' ('+esc(r.dept||'')+')<br>'
+        +'<b style="color:var(--navy);">USD '+t.amount+'</b> · '+esc(t.id)+' · '+esc(t.name||'')+' ('+esc(t.dept||'')+')'+tag+'<br>'
         +'<span class="muted">Reason: '+esc(t.reason||'Other')+(t.extraDays?(' · '+t.extraDays+' extra day(s)'):'')+(t.newReturn?(' · new return '+esc(t.newReturn)):'')+(t.requestedBy?(' · requested by '+esc(t.requestedBy)):'')+(t.note?(' · '+esc(t.note)):'')+'</span>'
       +'</div>'
       +'<div style="display:flex;gap:8px;">'
-        +'<button class="pol-edit" style="background:var(--green);color:#fff;border:none;" onclick="decideTopup(\''+esc(r.id)+'\','+t.idx+',\'approve\')">✓ Approve</button>'
-        +'<button class="pol-edit" style="background:#fff;color:#DC2626;border:1px solid #DC2626;" onclick="decideTopup(\''+esc(r.id)+'\','+t.idx+',\'reject\')">✕ Reject</button>'
+        +'<button class="pol-edit" style="background:var(--green);color:#fff;border:none;" onclick="decideTopup(\''+esc(t.id)+'\','+t.idx+',\'approve\')">✓ Approve</button>'
+        +'<button class="pol-edit" style="background:#fff;color:#DC2626;border:1px solid #DC2626;" onclick="decideTopup(\''+esc(t.id)+'\','+t.idx+',\'reject\')">✕ Reject</button>'
       +'</div></div>';
   }).join('');
 }

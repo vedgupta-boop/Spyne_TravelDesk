@@ -200,6 +200,9 @@ export const COL = {
   // Traveller already holds a company forex card → the Forex officer only LOADS the amount onto the
   // existing card (no new card / KYC / passport handover). 'Yes' when set.
   FOREX_EXISTING:'Existing Forex Card',
+  // Standalone forex request (Admin loads a card for a trip NOT in TravelDesk) — 'Yes' marks these rows;
+  // they show only on the Forex dashboard + Finance top-up approvals, never in the normal travel lists.
+  FOREX_STANDALONE:'Standalone Forex',
   // Post-approval amendment: when an approved request is sent back to the requester to amend, we store
   // the approved total here. On resubmit, re-approval is required ONLY if the new total exceeds it.
   AMEND_BASE:'Amend Base Total',
@@ -232,7 +235,7 @@ export const HEADERS = [
   COL.DOC_FOREX_CARD,
   COL.CLARIFY_NOTE,
   COL.ADVANCE_REMINDER,
-  COL.FOREX_EXISTING,
+  COL.FOREX_EXISTING, COL.FOREX_STANDALONE,
   COL.AMEND_BASE,
   COL.EVENTS_DEC, COL.EVENTS_TIME, COL.EVENTS_BY, COL.DEPT_BY, COL.CEO_BY, COL.FIN_BY,
 ];
