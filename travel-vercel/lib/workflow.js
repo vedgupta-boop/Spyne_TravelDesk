@@ -1054,9 +1054,9 @@ export async function myData(email) {
     booking: r[COL.ADMIN] || (['arrange', 'admin'].includes(String(r[COL.STAGE])) ? 'Pending' : ''),
     forexIssued: r[COL.FOREX_ISSUE_DATE] ? 'Issued' : (String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0 ? 'Pending' : 'N/A'),
     // Who the request is currently pending with (the live stage approver/owner) — email + label.
-    pendingWith: ['dept', 'ceo', 'finance', 'arrange', 'admin', 'forex'].includes(String(r[COL.STAGE]))
+    pendingWith: ['dept', 'events', 'ceo', 'finance', 'arrange', 'admin', 'forex'].includes(String(r[COL.STAGE]))
       ? ((String(r[COL.STAGE]) === 'dept' && deptHeadIsRequester(r)) ? CONFIG.CEO_EMAIL : ownerForStage(r, String(r[COL.STAGE]))) : '',
-    pendingStage: { dept: 'Department Head', ceo: 'CEO', finance: 'Finance', arrange: 'Admin (booking)', admin: 'Admin', forex: 'Forex officer' }[String(r[COL.STAGE])] || '',
+    pendingStage: { dept: 'Department Head', events: 'Event Approver', ceo: 'CEO', finance: 'Finance', arrange: 'Admin (booking)', admin: 'Admin', forex: 'Forex officer' }[String(r[COL.STAGE])] || '',
     // Self-service flags: both edit & withdraw are allowed ONLY before the first (HOD) approval.
     // (Edit additionally needs the request not to be on hold.)
     canEdit: ['dept', 'clarify'].includes(String(r[COL.STAGE])) && !r[COL.HOLD],
@@ -1559,7 +1559,7 @@ export async function adminData() {
       // arranged/approved trips (Admin's queue, incl. completed/booked/forex-routed) + UPCOMING:
       // still-in-approval trips, so Admin can anticipate the flight/booking cost and arrange funds early.
       const arranged = ['admin', 'arrange', 'forex', 'done'].includes(st) || /admin|confirmed|completed|booking|forex/i.test(status);
-      const upcoming = ['dept', 'ceo', 'finance', 'clarify'].includes(st);
+      const upcoming = ['dept', 'events', 'ceo', 'finance', 'clarify'].includes(st); // incl. 'events' (Conference/Event awaiting Anurag)
       return arranged || upcoming;
     })
     .map((r) => ({
@@ -1575,7 +1575,7 @@ export async function adminData() {
       ticketInfo: r[COL.TICKET_INFO] || '', docTicket: r[COL.DOC_TICKET] || '',
       docPassport: r[COL.DOC_PASSPORT] || '', docVisa: r[COL.DOC_VISA] || '', docPanAadhaar: r[COL.DOC_PANAADHAAR] || '',
       status: r[COL.STATUS], adminStatus: r[COL.ADMIN] || 'Pending',
-      upcoming: ['dept', 'ceo', 'finance', 'clarify'].includes(String(r[COL.STAGE])),
+      upcoming: ['dept', 'events', 'ceo', 'finance', 'clarify'].includes(String(r[COL.STAGE])),
       approval: approvalProgress(r), approvals: approvalTrail(r), isEvent: isEventReq(r), pendingClarify: String(r[COL.STAGE]) === 'clarify',
       // Admin can recall a booking: while it's with the Forex officer (card not issued), or a completed
       // booking (redo) — by stage OR admin status (some completed trips sit at 'arrange' with Admin=Completed).
