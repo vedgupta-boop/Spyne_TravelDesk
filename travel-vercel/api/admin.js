@@ -1,4 +1,4 @@
-import { adminData, setAdminStatus, saveTicket, saveBookings, sendToForex, recallRequest, sendBackForAmendment } from '../lib/workflow.js';
+import { adminData, setAdminStatus, saveTicket, saveBookings, sendToForex, recallRequest, sendBackForAmendment, requestForexTopup } from '../lib/workflow.js';
 import { requireRole, baseUrl } from '../lib/auth.js';
 import { applyRoleOverrides } from '../lib/rolesstore.js';
 
@@ -14,6 +14,7 @@ export default async function handler(req, res) {
       if (b.action === 'tofx') { res.status(200).json(await sendToForex(b.id, s.email, s.roles, baseUrl(req))); return; }
       if (b.action === 'recall') { res.status(200).json(await recallRequest({ id: b.id, email: s.email, roles: s.roles }, baseUrl(req))); return; }
       if (b.action === 'amend-back') { res.status(200).json(await sendBackForAmendment({ id: b.id, comment: b.comment, email: s.email, roles: s.roles }, baseUrl(req))); return; }
+      if (b.action === 'forex-topup-request') { res.status(200).json(await requestForexTopup({ id: b.id, amount: b.amount, reason: b.reason, note: b.note, extraDays: b.extraDays, newReturn: b.newReturn, doc: b.doc, email: s.email, roles: s.roles }, baseUrl(req))); return; }
       if (!b.status) throw new Error('status is required');
       res.status(200).json(await setAdminStatus(b.id, b.status, baseUrl(req)));
       return;

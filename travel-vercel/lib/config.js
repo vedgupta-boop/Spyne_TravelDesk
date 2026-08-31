@@ -30,6 +30,10 @@ export const CONFIG = {
   // Auto-escalate a stuck approval after this many unanswered 24h reminders (cron) → CC the CEO + admin.
   ESCALATE_AFTER_REMINDERS: 3,
 
+  // Forex top-up requests (Admin → Forex) for trip extensions etc.: at/below this USD amount the
+  // request goes straight to the Forex officer to load; ABOVE it, Finance must approve first.
+  FOREX_TOPUP_APPROVAL_USD: Number(process.env.FOREX_TOPUP_APPROVAL_USD || 1000),
+
   // Reporting: normalise mixed INR/USD totals to one currency for the Finance analytics tab.
   REPORTING_CURRENCY: 'INR',
   FX: { USD_INR: Number(process.env.USD_INR_RATE) || 92 }, // 1 USD = ₹92 (override via USD_INR_RATE env)

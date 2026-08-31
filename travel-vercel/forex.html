@@ -211,21 +211,41 @@ function toggleDetail(i){
   if(btn) btn.innerHTML = nowHidden ? '🔎 View details' : '▴ Hide details';
   if(cev) cev.textContent = nowHidden ? '▸' : '▾';
 }
+// Top-up list with per-item status. Admin-requested & Finance-cleared items ('Requested') get a
+// prominent "Load onto card" button; others show their state (Loaded / Pending Finance / Rejected).
+function topupList(r){
+  var letterLink=function(t){ return ' <a class="lnk" href="/api/forex?download=letter&id='+encodeURIComponent(r.id)+'&amount='+encodeURIComponent(t.amount)+'" title="Forex letter for this top-up amount only">⬇ Letter</a>'; };
+  return (r.topups||[]).map(function(t){
+    if(t.status==='Requested') return '<div class="hint" style="color:#6D28D9;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:6px;padding:5px 8px;">💳 <b>To load: USD '+t.amount+'</b> · '+esc(t.reason||'Top-up')+(t.requestedBy?' · by '+esc(t.requestedBy):'')+(t.note?' ('+esc(t.note)+')':'')+' <button class="btn btn-done" style="padding:3px 10px;font-size:11px;margin-left:4px;" onclick="loadTopup(\''+esc(r.id)+'\','+t.idx+')">Load onto card</button>'+letterLink(t)+'</div>';
+    if(t.status==='Pending Finance') return '<div class="hint" style="color:#B45309;">⏳ USD '+t.amount+' · '+esc(t.reason||'Top-up')+' — awaiting Finance approval'+(t.requestedBy?' · by '+esc(t.requestedBy):'')+'</div>';
+    if(t.status==='Rejected') return '<div class="hint" style="color:#DC2626;">✕ USD '+t.amount+' · rejected'+(t.note?' ('+esc(t.note)+')':'')+'</div>';
+    return '<div class="hint">✓ '+fmt('USD',t.amount)+(t.note?' ('+esc(t.note)+')':'')+' · '+esc(t.loadedBy||t.by||'')+' · '+esc(t.date)+letterLink(t)+'</div>';
+  }).join('');
+}
 function topupBlock(r){
-  var list=(r.topups||[]).map(function(t){return '<div class="hint">+ '+fmt('USD',t.amount)+(t.note?' ('+esc(t.note)+')':'')+' · '+esc(t.by)+' · '+esc(t.date)+' <a class="lnk" href="/api/forex?download=letter&id='+encodeURIComponent(r.id)+'&amount='+encodeURIComponent(t.amount)+'" title="Forex letter for this top-up amount only">⬇ Letter</a></div>';}).join('');
+  var list=topupList(r);
   var added=(r.forexTotal!=null&&r.forexBase!=null)?(r.forexTotal-r.forexBase):0;
   return '<div class="act-row" style="flex-direction:column;align-items:flex-start;gap:4px;">'
-    +(list?('<div style="font-size:11px;font-weight:700;color:var(--gray-7);">Top-ups (added '+fmt('USD',added)+'):</div>'+list):'')
+    +(list?('<div style="font-size:11px;font-weight:700;color:var(--gray-7);">Top-ups (loaded '+fmt('USD',added)+'):</div>'+list):'')
     +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:2px;">'
       +'<input id="tu-'+esc(r.id)+'" type="number" min="1" placeholder="USD amount" style="width:110px;padding:6px 9px;border:1.5px solid var(--gray-3);border-radius:7px;font-size:12px;font-family:inherit;">'
       +'<input id="tn-'+esc(r.id)+'" placeholder="note (optional)" style="width:140px;padding:6px 9px;border:1.5px solid var(--gray-3);border-radius:7px;font-size:12px;font-family:inherit;">'
-      +'<button class="btn btn-letter" onclick="addTopup(\''+esc(r.id)+'\')">+ Top-up</button>'
+      +'<button class="btn btn-letter" onclick="addTopup(\''+esc(r.id)+'\')" title="Load an extra amount directly (officer-initiated)">+ Top-up</button>'
       +'<span class="hint" id="tust-'+esc(r.id)+'"></span>'
     +'</div></div>';
 }
+function loadTopup(id,idx){
+  if(!confirm('Load this requested top-up onto the card for '+id+'?')) return;
+  fetch('/api/forex',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'topup-load',idx:idx})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast('Loaded USD '+res.amount+' · card total '+fmt('USD',res.total)); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(){ toast('Error'); });
+}
 function actions(r){
   if(r.upcoming){
-    return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">⏳ <b>Not ready to issue yet.</b> Current status: <b>'+esc(r.status||'in progress')+'</b>. The formal issue request arrives once Admin finishes booking. This is early notice so you can prepare KYC / any extra paperwork in advance.</div>';
+    var tl=topupList(r);
+    return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">⏳ <b>Not ready to issue yet.</b> Current status: <b>'+esc(r.status||'in progress')+'</b>. The formal issue request arrives once Admin finishes booking. This is early notice so you can prepare KYC / any extra paperwork in advance.</div>'
+      +(tl?'<div class="act-row" style="flex-direction:column;align-items:flex-start;gap:4px;margin-top:8px;"><div style="font-size:11px;font-weight:700;color:var(--gray-7);">Forex top-up requests:</div>'+tl+'</div>':'');
   }
   var letter='<div class="act-row"><a class="btn btn-letter" href="/api/forex?download=letter&id='+encodeURIComponent(r.id)+'">⬇ Forex Letter</a></div>';
   var exNote=r.existingCard?'<div style="background:#E0F2FE;border:1px solid #7DD3FC;color:#075985;padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:8px;">💳 <b>Existing card — load amount only.</b> The traveller already holds a company forex card. No new card / KYC / passport handover — just load the amount and upload the confirmation.</div>':'';

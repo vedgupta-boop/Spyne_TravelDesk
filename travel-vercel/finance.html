@@ -199,6 +199,14 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
       </div>
     </div>
   </div>
+  <!-- FOREX TOP-UP APPROVALS — Admin-requested top-ups above the auto-approve limit -->
+  <div class="panel" id="tua-panel" style="margin-bottom:18px;display:none;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleTopupApprovals()">
+      <div style="font-weight:800;color:var(--navy);">💱 Forex top-up approvals <span id="tua-count" style="font-weight:800;font-size:11px;color:#B45309;"></span> <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— Admin top-up requests above the auto-approve limit, awaiting your approval</span></div>
+      <span id="tua-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
+    </div>
+    <div id="tua-body" class="hidden" style="padding:0 18px 16px;"></div>
+  </div>
 
   <div class="panel" style="margin-bottom:16px;">
     <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleAnalytics()">
@@ -287,8 +295,40 @@ function onData(d){
   document.getElementById('loading').classList.add('hidden');
   REM_ON = !!DATA.remindersOn; paintRemToggle();
   REM_HOUR = (typeof DATA.reminderHour==='number') ? DATA.reminderHour : 9; paintRemHour();
-  renderExec(); renderKpis(); render(); renderAnalytics();
+  renderExec(); renderKpis(); render(); renderAnalytics(); renderTopupApprovals();
   renderPolicy(PCFG); // (re)render policy panel — editor shows from DATA even if config (PCFG) isn't in yet
+}
+// ---- Forex top-up approvals (Admin requests above the USD threshold) ----
+function renderTopupApprovals(){
+  var panel=document.getElementById('tua-panel'), body=document.getElementById('tua-body'), cnt=document.getElementById('tua-count');
+  var items=[];
+  (DATA.rows||[]).forEach(function(r){ (r.topupsToApprove||[]).forEach(function(t){ items.push({r:r,t:t}); }); });
+  if(!items.length){ panel.style.display='none'; return; }
+  panel.style.display='';
+  cnt.textContent='('+items.length+')';
+  body.classList.remove('hidden'); document.getElementById('tua-toggle').textContent='Hide ▴'; // expanded by default — Finance should see pending approvals
+  body.innerHTML=items.map(function(x){
+    var r=x.r, t=x.t;
+    return '<div style="border:1px solid var(--gray-3);border-radius:8px;padding:10px 12px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">'
+      +'<div style="font-size:12.5px;color:var(--gray-7);">'
+        +'<b style="color:var(--navy);">USD '+t.amount+'</b> · '+esc(r.id)+' · '+esc(r.name||'')+' ('+esc(r.dept||'')+')<br>'
+        +'<span class="muted">Reason: '+esc(t.reason||'Other')+(t.extraDays?(' · '+t.extraDays+' extra day(s)'):'')+(t.newReturn?(' · new return '+esc(t.newReturn)):'')+(t.requestedBy?(' · requested by '+esc(t.requestedBy)):'')+(t.note?(' · '+esc(t.note)):'')+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;">'
+        +'<button class="pol-edit" style="background:var(--green);color:#fff;border:none;" onclick="decideTopup(\''+esc(r.id)+'\','+t.idx+',\'approve\')">✓ Approve</button>'
+        +'<button class="pol-edit" style="background:#fff;color:#DC2626;border:1px solid #DC2626;" onclick="decideTopup(\''+esc(r.id)+'\','+t.idx+',\'reject\')">✕ Reject</button>'
+      +'</div></div>';
+  }).join('');
+}
+function toggleTopupApprovals(){ var b=document.getElementById('tua-body'), t=document.getElementById('tua-toggle'); var h=b.classList.toggle('hidden'); t.textContent=h?'Show ▾':'Hide ▴'; }
+function decideTopup(id,idx,decision){
+  var comment='';
+  if(decision==='reject'){ comment=prompt('Reason for rejecting this top-up (optional):','')||''; }
+  else if(!confirm('Approve this forex top-up? It will be sent to the Forex officer to load.')) return;
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'forex-topup-decide',id:id,idx:idx,decision:decision,comment:comment})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast('Top-up '+(decision==='approve'?'approved → sent to Forex':'rejected')); load(); } else toast('Error: '+((res&&res.error)||'failed')); })
+    .catch(function(){ toast('Error'); });
 }
 // ---- Executive summary: Today's Action + KPI row + Finance Alerts (CFO view, from existing data) ----
 function dmy(s){ var p=String(s||'').split('/'); return (p.length===3)?new Date(+p[2],+p[1]-1,+p[0]):null; }

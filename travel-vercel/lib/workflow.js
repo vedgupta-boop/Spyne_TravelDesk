@@ -46,6 +46,17 @@ function requesterEmail(rec) {
 }
 // A Conference / Event trip → Anurag (events approver) is inserted into the chain after HOD.
 function isEventReq(rec) { return /^Conference \/ Event/i.test(String(rec[COL.PURPOSE] || '')); }
+
+// ---- forex top-ups ----
+// The FOREX_TOPUPS cell holds a JSON array. Legacy entries (added directly by the Forex officer)
+// have no `status` and count as LOADED. New Admin-requested top-ups carry a status through their
+// lifecycle: 'Pending Finance' (> threshold, awaiting Finance) → 'Requested' (with Forex to load) →
+// 'Loaded' (money on the card) — or 'Rejected'. Only LOADED top-ups count toward the card/advance total.
+function topupsOf(rec) { return parseJSON(rec[COL.FOREX_TOPUPS], []) || []; }
+function topupIsLoaded(t) { return !t || !t.status || t.status === 'Loaded'; }
+function loadedTopupTotal(rec) { return topupsOf(rec).filter(topupIsLoaded).reduce((a, t) => a + (Number(t.amount) || 0), 0); }
+// Advance actually committed = base forex + LOADED top-ups + hotel deposit (excludes not-yet-loaded requests).
+function committedAdvance(rec) { return Number(rec[COL.FOREX] || 0) + loadedTopupTotal(rec) + Number(rec[COL.C_DEPOSIT] || 0); }
 // Conference/Event approver recipients (Anurag).
 function eventsTo() { const list = (AUTH.EVENTS_EMAILS || []).filter(Boolean); return list.length ? list.join(',') : ''; }
 
@@ -957,7 +968,7 @@ export async function approverData({ email, roles }) {
     const held = awaitingMe && !!rec[COL.HOLD];
     const cur = String(rec[COL.CURRENCY] || 'INR');
     const total = Number(rec[COL.C_TOTAL] || 0);
-    const advTot = Number(rec[COL.FOREX] || 0) + (parseJSON(rec[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0) + Number(rec[COL.C_DEPOSIT] || 0);
+    const advTot = committedAdvance(rec);
     const estINR = cur === 'USD' ? total * fxr : total;
     const advINR = cur === 'USD' ? advTot * fxr : advTot;
     const ex = byTrf[String(rec[COL.ID]).toUpperCase()];
@@ -971,9 +982,9 @@ export async function approverData({ email, roles }) {
       route: `${rec[COL.FROM]} → ${rec[COL.TO]}`,
       start: fmtDate(rec[COL.START]), end: fmtDate(rec[COL.RET]), submission: fmtDate(rec[COL.TS]),
       currency: cur, total, estimatedCost: cur + ' ' + Number(total).toLocaleString(cur === 'USD' ? 'en-US' : 'en-IN', { maximumFractionDigits: 0 }),
-      advForex: Number(rec[COL.FOREX] || 0) + (parseJSON(rec[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0),
+      advForex: Number(rec[COL.FOREX] || 0) + loadedTopupTotal(rec),
       advDeposit: Number(rec[COL.C_DEPOSIT] || 0),
-      advance: Number(rec[COL.FOREX] || 0) + (parseJSON(rec[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0) + Number(rec[COL.C_DEPOSIT] || 0),
+      advance: committedAdvance(rec),
       flag: String(rec[COL.FLAG] || ''), breakdown: costBreakdown(rec), actuals: actualsData(rec),
       // Full flight/hotel routing so approvers see where→where (esp. multi-city) before approving.
       flights: itineraryFor(rec).flights, hotels: itineraryFor(rec).hotels,
@@ -1176,7 +1187,7 @@ function actualsData(r) {
   const actualTotal = ACT_LINES.reduce((s, k) => s + amt(k), 0) + customActual;
   const reimbursable = ACT_LINES.reduce((s, k) => s + (((a[k] && a[k].paidBy) || defaultPaid(k)) === 'own' ? amt(k) : 0), 0) + customReimb;
   const estTotal = Number(r[COL.C_TOTAL] || 0);
-  const advance = Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((x, t) => x + (Number(t.amount) || 0), 0) + Number(r[COL.C_DEPOSIT] || 0);
+  const advance = committedAdvance(r);
   const status = String(r[COL.ACTUALS_STATUS] || 'Pending');
   return {
     status, currency: cur, items, estTotal, actualTotal, variance: estTotal - actualTotal,
@@ -1464,7 +1475,7 @@ export async function financeData() {
 
     // Reconciliation: estimate (normalised to INR) vs ACTUAL claimed in ExpenseDesk (INR).
     const estimateINR = toINR(total, cur);
-    const advanceINR = toINR(Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0) + Number(r[COL.C_DEPOSIT] || 0), cur);
+    const advanceINR = toINR(committedAdvance(r), cur);
     const ex = byTrf[String(r[COL.ID]).toUpperCase()];
     let recon = { available: reconAvailable, linked: 0, estimateINR, actualINR: 0, paidINR: 0, varianceINR: estimateINR, settlementINR: advanceINR, items: [] };
     if (ex) {
@@ -1486,15 +1497,18 @@ export async function financeData() {
       start: fmtDate(r[COL.START]), end: fmtDate(r[COL.RET]) || (r[COL.TRIP] === 'One-way' ? 'One-way' : ''),
       submission: fmtDate(r[COL.TS]), currency: cur, total, estimatedCost: cur + ' ' + Number(total).toLocaleString(cur === 'USD' ? 'en-US' : 'en-IN', { maximumFractionDigits: 0 }),
       // Advance = forex advance (meals & local; base + top-ups) + hotel security deposit. NOT an expense.
-      advForex: Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0),
+      advForex: Number(r[COL.FOREX] || 0) + loadedTopupTotal(r),
       advDeposit: Number(r[COL.C_DEPOSIT] || 0),
-      advance: Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0) + Number(r[COL.C_DEPOSIT] || 0),
+      advance: committedAdvance(r),
       hodStatus, hodDate: fmtDate(r[COL.DEPT_TIME]),
       eventStatus: isEventReq(r) ? (decStatus(r[COL.EVENTS_DEC]) || 'Pending') : 'N/A', eventDate: fmtDate(r[COL.EVENTS_TIME]),
       ceoStatus, ceoDate: fmtDate(r[COL.CEO_TIME]),
       financeStatus, financeDate: fmtDate(r[COL.FIN_TIME]),
       isEvent: isEventReq(r), approvals: approvalTrail(r), approval: approvalProgress(r),
       stage: String(r[COL.STAGE] || ''), pendingHuman: humanStage(String(r[COL.STAGE] || '')),
+      // Forex top-up requests on this trip + any awaiting Finance approval (> threshold).
+      topups: topupsOf(r).map((t, idx) => ({ idx, amount: Number(t.amount) || 0, reason: t.reason || '', note: t.note || '', status: t.status || 'Loaded', requestedBy: t.requestedBy || '', by: t.by || '', approvedBy: t.approvedBy || '', date: fmtDate(t.date) })),
+      topupsToApprove: topupsOf(r).map((t, idx) => ({ idx, amount: Number(t.amount) || 0, reason: t.reason || '', note: t.note || '', requestedBy: t.requestedBy || '', extraDays: Number(t.extraDays || 0), newReturn: t.newReturn || '', status: t.status || 'Loaded' })).filter((t) => t.status === 'Pending Finance'),
       bookingStatus: r[COL.ADMIN] || 'Pending', bookingDate: fmtDate(r[COL.BOOKING_DATE]),
       pnr: r[COL.TICKET_INFO] || '', ticketUploadDate: fmtDate(r[COL.TICKET_UPLOAD_DATE]),
       forexStatus, forexIssueDate: fmtDate(r[COL.FOREX_ISSUE_DATE]),
@@ -1573,6 +1587,11 @@ export async function adminData() {
       hotelReq: r[COL.HOTEL_REQ], hotelRate: Number(r[COL.HOTEL_RATE] || 0), hotelNights: Number(r[COL.HOTEL_NIGHTS] || 0),
       total: Number(r[COL.C_TOTAL] || 0), forex: Number(r[COL.FOREX] || 0), notes: r[COL.NOTES],
       isForex: (String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0), ...paxInfo(r),
+      // Forex top-up (trip extension etc.): Admin can request more forex on any intl trip that has a forex advance.
+      canTopup: (String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0),
+      forexBase: Number(r[COL.FOREX] || 0), forexLoaded: Number(r[COL.FOREX] || 0) + loadedTopupTotal(r),
+      topups: topupsOf(r).map((t, idx) => ({ idx, amount: Number(t.amount) || 0, reason: t.reason || '', note: t.note || '', status: t.status || 'Loaded', requestedBy: t.requestedBy || '', by: t.by || '', date: fmtDate(t.date) })),
+      topupApproveUsd: Number(CONFIG.FOREX_TOPUP_APPROVAL_USD || 1000),
       ticketInfo: r[COL.TICKET_INFO] || '', docTicket: r[COL.DOC_TICKET] || '',
       docPassport: r[COL.DOC_PASSPORT] || '', docVisa: r[COL.DOC_VISA] || '', docPanAadhaar: r[COL.DOC_PANAADHAAR] || '',
       status: r[COL.STATUS], adminStatus: r[COL.ADMIN] || 'Pending',
@@ -1913,8 +1932,13 @@ export async function forexData() {
     // Traveller already holds a company forex card → load the amount onto it (no new card / KYC).
     existingCard: String(r[COL.FOREX_EXISTING]) === 'Yes',
     forexBase: Number(r[COL.FOREX] || 0),
-    topups: (parseJSON(r[COL.FOREX_TOPUPS], []) || []).map((t) => ({ amount: Number(t.amount) || 0, note: t.note || '', by: t.by || '', date: fmtDate(t.date) })),
-    forexTotal: Number(r[COL.FOREX] || 0) + (parseJSON(r[COL.FOREX_TOPUPS], []) || []).reduce((a, t) => a + (Number(t.amount) || 0), 0),
+    topups: topupsOf(r).map((t, idx) => ({ idx, amount: Number(t.amount) || 0, note: t.note || '', reason: t.reason || '', by: t.by || '', date: fmtDate(t.date),
+      status: t.status || 'Loaded', requestedBy: t.requestedBy || '', loadedBy: t.loadedBy || '', doc: t.doc || '' })),
+    // Top-ups the Forex officer still has to load (Admin-requested & Finance-cleared, not yet on the card).
+    topupsToLoad: topupsOf(r).map((t, idx) => ({ idx, amount: Number(t.amount) || 0, note: t.note || '', reason: t.reason || '', requestedBy: t.requestedBy || '', doc: t.doc || '', status: t.status || 'Loaded' }))
+      .filter((t) => t.status === 'Requested'),
+    forexTotal: Number(r[COL.FOREX] || 0) + loadedTopupTotal(r), // LOADED only (excludes pending requests)
+    topupPendingTotal: topupsOf(r).filter((t) => t.status === 'Requested' || t.status === 'Pending Finance').reduce((a, t) => a + (Number(t.amount) || 0), 0),
     docForexCard: r[COL.DOC_FOREX_CARD] || '', // card back snapshot (for top-ups)
   }));
   rows.reverse();
@@ -1928,23 +1952,138 @@ export async function saveForexConfirm(id, confirmDoc) {
   return { ok: true, id };
 }
 
-// Forex officer adds an additional advance / top-up against a trip. Each top-up is logged
-// (amount + note + who + date); the card's total = base forex + sum of top-ups.
+// Forex officer adds an additional advance / top-up against a trip and loads it immediately. Each
+// top-up is logged (amount + note + who + date, status 'Loaded'); the card total = base + loaded top-ups.
 export async function saveForexTopup(id, amount, note, byEmail) {
   await ensureHeaders();
   const rec = await findById(id);
   if (!rec) throw new Error('Request not found: ' + id);
   const amt = Number(amount) || 0;
   if (amt <= 0) return { ok: false, error: 'Enter a top-up amount greater than 0' };
-  const list = parseJSON(rec[COL.FOREX_TOPUPS], []) || [];
-  list.push({ amount: amt, note: String(note || ''), by: String(byEmail || '').split('@')[0], date: new Date().toISOString() });
+  const list = topupsOf(rec);
+  list.push({ amount: amt, note: String(note || ''), by: String(byEmail || '').split('@')[0], date: new Date().toISOString(),
+    status: 'Loaded', loadedBy: String(byEmail || '').split('@')[0] });
   await updateCells(rec.__row, [[COL.FOREX_TOPUPS, JSON.stringify(list)]]);
-  const total = Number(rec[COL.FOREX] || 0) + list.reduce((a, t) => a + (Number(t.amount) || 0), 0);
+  const total = Number(rec[COL.FOREX] || 0) + list.filter(topupIsLoaded).reduce((a, t) => a + (Number(t.amount) || 0), 0);
   if (CONFIG.CC_REQUESTER_ON_UPDATES && rec[COL.EMAIL]) {
     await sendEmail({ to: rec[COL.EMAIL], subject: `Travel Request ${id} — Forex top-up of USD ${amt}`,
       html: `<p>An additional forex top-up of <b>USD ${amt}</b> has been loaded for trip <b>${id}</b>${note ? ' (' + String(note) + ')' : ''}. Total forex on the card is now <b>USD ${total}</b>.</p>` });
   }
   return { ok: true, id, amount: amt, total };
+}
+
+// ---- Admin → Forex top-up request (trip extension etc.) ----
+// Admin raises a request for an ADDITIONAL forex amount on an existing international/forex trip.
+// Routing: amount <= CONFIG.FOREX_TOPUP_APPROVAL_USD → straight to the Forex officer ('Requested');
+// above it → Finance must approve first ('Pending Finance'). Attaches to the trip's top-ups list.
+export async function requestForexTopup({ id, amount, reason, note, extraDays, newReturn, doc, email, roles }, baseUrl) {
+  await ensureHeaders();
+  const r = roles || [];
+  if (!(r.includes('admin') || r.includes('finance'))) return { ok: false, error: 'Only Admin (or Finance) can request a forex top-up.' };
+  const rec = await findById(id);
+  if (!rec) return { ok: false, error: 'Request not found' };
+  if (String(rec[COL.TYPE]) !== 'international' || Number(rec[COL.FOREX] || 0) <= 0)
+    return { ok: false, error: 'Forex top-ups apply only to international trips that have a forex advance.' };
+  const amt = Number(amount) || 0;
+  if (amt <= 0) return { ok: false, error: 'Enter a top-up amount greater than 0.' };
+  const threshold = Number(CONFIG.FOREX_TOPUP_APPROVAL_USD || 1000);
+  const needsFinance = amt > threshold;
+  const status = needsFinance ? 'Pending Finance' : 'Requested';
+  const who = String(email || '').split('@')[0];
+  const entry = {
+    amount: amt, reason: String(reason || 'Other'), note: String(note || ''),
+    extraDays: Number(extraDays || 0) || 0, newReturn: String(newReturn || ''), doc: String(doc || ''),
+    status, requestedBy: who, date: new Date().toISOString(),
+  };
+  const list = topupsOf(rec);
+  const idx = list.length;
+  list.push(entry);
+  await updateCells(rec.__row, [[COL.FOREX_TOPUPS, JSON.stringify(list)]]);
+  // Notify the next actor: Finance (if > threshold) or the Forex officer (if within threshold).
+  const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+  const summ = topupSummaryHtml(rec, entry);
+  if (needsFinance) {
+    await sendEmail({ to: CONFIG.FINANCE_SPOC, subject: `[Approval needed] Forex top-up USD ${amt} — ${id} (${rec[COL.NAME]})`,
+      html: emailShell({ title: 'Forex top-up needs your approval 💱', subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: `USD ${amt} · above USD ${threshold} threshold`, statusColor: '#B45309',
+        body: `<p style="color:#3D506A;margin:0 0 12px;">Admin (<b>${who}</b>) has requested an additional forex top-up. As it exceeds USD ${threshold}, it needs Finance approval before the Forex officer loads it.</p>${summ}<p style="margin:14px 0 0;">${btn(base + '/finance', 'Review on the Finance dashboard', '#0F9D58')}</p>` }) });
+  } else {
+    await sendEmail({ to: CONFIG.FOREX_OFFICER, subject: `[Forex top-up to load] USD ${amt} — ${id} (${rec[COL.NAME]})`,
+      html: emailShell({ title: 'New forex top-up to load 💱', subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: `USD ${amt} · ready to load`, statusColor: '#2563EB',
+        body: `<p style="color:#3D506A;margin:0 0 12px;">Admin (<b>${who}</b>) has requested an additional forex top-up (within the USD ${threshold} auto-approve limit). Please load it onto the card.</p>${summ}<p style="margin:14px 0 0;">${btn(base + '/forex', 'Open the Forex dashboard', '#2563EB')}</p>` }) });
+  }
+  return { ok: true, id, idx, amount: amt, status, needsFinance };
+}
+
+// Finance approves / rejects an above-threshold forex top-up request. Approve → 'Requested' (to Forex);
+// Reject → 'Rejected'. Idempotent on the target index.
+export async function decideForexTopup({ id, idx, decision, comment, email, roles }, baseUrl) {
+  await ensureHeaders();
+  if (!(roles || []).includes('finance')) return { ok: false, error: 'Finance approval required.' };
+  const rec = await findById(id);
+  if (!rec) return { ok: false, error: 'Request not found' };
+  const list = topupsOf(rec);
+  const t = list[Number(idx)];
+  if (!t) return { ok: false, error: 'Top-up request not found.' };
+  if (t.status !== 'Pending Finance') return { ok: false, error: `This top-up is already "${t.status}".` };
+  const who = String(email || '').split('@')[0];
+  const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+  if (decision === 'approve') {
+    t.status = 'Requested'; t.approvedBy = who; t.approvedDate = new Date().toISOString();
+  } else if (decision === 'reject') {
+    t.status = 'Rejected'; t.approvedBy = who; t.approvedDate = new Date().toISOString(); if (comment) t.note = (t.note ? t.note + ' — ' : '') + 'Rejected: ' + comment;
+  } else return { ok: false, error: 'Unknown decision.' };
+  await updateCells(rec.__row, [[COL.FOREX_TOPUPS, JSON.stringify(list)]]);
+  if (decision === 'approve') {
+    await sendEmail({ to: CONFIG.FOREX_OFFICER, subject: `[Forex top-up to load] USD ${t.amount} — ${id} (${rec[COL.NAME]})`,
+      html: emailShell({ title: 'Forex top-up approved — please load 💱', subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: `USD ${t.amount} · Finance approved`, statusColor: '#0F9D58',
+        body: `<p style="color:#3D506A;margin:0 0 12px;">Finance (<b>${who}</b>) approved the top-up request. Please load it onto the card.</p>${topupSummaryHtml(rec, t)}<p style="margin:14px 0 0;">${btn(base + '/forex', 'Open the Forex dashboard', '#2563EB')}</p>` }) });
+  } else {
+    await sendEmail({ to: adminTo(), subject: `Forex top-up REJECTED — ${id} (${rec[COL.NAME]})`,
+      html: emailShell({ title: 'Forex top-up rejected', subtitle: `Spyne TravelDesk · ${id}`,
+        statusText: `USD ${t.amount} · not approved`, statusColor: '#E8232A',
+        body: `<p style="color:#3D506A;margin:0;">Finance (<b>${who}</b>) rejected the forex top-up request of <b>USD ${t.amount}</b> for ${id}.${comment ? ' Reason: ' + comment : ''}</p>` }) });
+  }
+  return { ok: true, id, idx: Number(idx), status: t.status };
+}
+
+// Forex officer loads a specific Admin-requested (already cleared) top-up onto the card.
+export async function loadForexTopup({ id, idx, email, roles }, baseUrl) {
+  await ensureHeaders();
+  if (!((roles || []).includes('forex') || (roles || []).includes('finance'))) return { ok: false, error: 'Forex officer access required.' };
+  const rec = await findById(id);
+  if (!rec) return { ok: false, error: 'Request not found' };
+  const list = topupsOf(rec);
+  const t = list[Number(idx)];
+  if (!t) return { ok: false, error: 'Top-up not found.' };
+  if (t.status !== 'Requested') return { ok: false, error: `This top-up can't be loaded (status "${t.status}").` };
+  const who = String(email || '').split('@')[0];
+  t.status = 'Loaded'; t.loadedBy = who; t.loadedDate = new Date().toISOString();
+  await updateCells(rec.__row, [[COL.FOREX_TOPUPS, JSON.stringify(list)]]);
+  const total = Number(rec[COL.FOREX] || 0) + list.filter(topupIsLoaded).reduce((a, s) => a + (Number(s.amount) || 0), 0);
+  if (CONFIG.CC_REQUESTER_ON_UPDATES && rec[COL.EMAIL]) {
+    await sendEmail({ to: rec[COL.EMAIL], subject: `Travel Request ${id} — Forex top-up of USD ${t.amount} loaded`,
+      html: `<p>An additional forex top-up of <b>USD ${t.amount}</b> has been loaded for trip <b>${id}</b>${t.note ? ' (' + String(t.note) + ')' : ''}. Total forex on the card is now <b>USD ${total}</b>.</p>` });
+  }
+  return { ok: true, id, idx: Number(idx), amount: t.amount, total };
+}
+
+// Small HTML summary block for a top-up request (used in Finance/Forex emails). No cost of the trip itself.
+function topupSummaryHtml(rec, t) {
+  const kv = [
+    ['Traveller', rec[COL.NAME]],
+    ['Trip', String(rec[COL.FROM]) + ' → ' + String(rec[COL.TO])],
+    ['Reason', t.reason || 'Other'],
+    ['Extra amount', 'USD ' + (Number(t.amount) || 0)],
+  ];
+  if (Number(t.extraDays) > 0) kv.push(['Extra days', String(t.extraDays)]);
+  if (t.newReturn) kv.push(['New return', t.newReturn]);
+  if (t.note) kv.push(['Note', t.note]);
+  return '<table style="border-collapse:collapse;width:100%;font-size:14px;font-family:Arial,sans-serif;">' +
+    kv.map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #eee;color:#667;">${k}</td><td style="padding:6px 10px;border:1px solid #eee;font-weight:600;">${String(v == null ? '' : v)}</td></tr>`).join('') +
+    '</table>';
 }
 
 export async function completeForex(id, baseUrl) {
@@ -2162,7 +2301,7 @@ export async function sendReminders(baseUrl) {
     if (String(rec[COL.ACTUALS_STATUS]) === 'Closed' || rec[COL.CLOSURE_DATE]) continue; // already settled/closed by Finance
     const done = String(rec[COL.STAGE]) === 'done' || /completed|forex card issued|trip closed/i.test(status);
     if (!done) continue;
-    const advAmt = Number(rec[COL.FOREX] || 0) + (parseJSON(rec[COL.FOREX_TOPUPS], []) || []).reduce((x, t) => x + (Number(t.amount) || 0), 0) + Number(rec[COL.C_DEPOSIT] || 0);
+    const advAmt = committedAdvance(rec);
     if (advAmt <= 0) continue; // no advance to settle
     const baseTime = Date.parse(rec[COL.RET] || rec[COL.START]);
     if (!baseTime || now < baseTime) continue;

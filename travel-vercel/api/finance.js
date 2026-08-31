@@ -1,4 +1,4 @@
-import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch, undismissCurrencyMismatch, migrateCeoStageTickets } from '../lib/workflow.js';
+import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch, undismissCurrencyMismatch, migrateCeoStageTickets, decideForexTopup } from '../lib/workflow.js';
 import { recordPolicyChange } from '../lib/policystore.js';
 import { addPolicyVersion, deletePolicyVersion } from '../lib/policyversionsstore.js';
 import { readEmailLog } from '../lib/emaillogstore.js';
@@ -49,6 +49,11 @@ export default async function handler(req, res) {
       }
       if (b.action === 'audit-restore') {
         res.status(200).json(await undismissCurrencyMismatch(b.ids, session.roles));
+        return;
+      }
+      // Finance approves / rejects an above-threshold Admin forex top-up request.
+      if (b.action === 'forex-topup-decide') {
+        res.status(200).json(await decideForexTopup({ id: b.id, idx: b.idx, decision: b.decision, comment: b.comment, email: session.email, roles: session.roles }, baseUrl(req)));
         return;
       }
       // Advance any international tickets still parked at the removed CEO approval step.

@@ -297,6 +297,7 @@ function actions(r,done){
     if(r.type==='international' && !/forex|jasvinder|issued/i.test(r.status||'')){
       h+='<div class="act-row" style="margin-top:8px;"><button class="btn btn-book" onclick="sendForex(\''+esc(r.id)+'\')">💱 Send to Forex officer</button></div>';
     }
+    h+=topupSection(r);
     return h;
   }
   UP[r.id]={f:{},h:{}};
@@ -312,7 +313,64 @@ function actions(r,done){
       +'<button class="btn btn-done" onclick="mark(\''+esc(r.id)+'\',\'Completed\')">✓ Mark Booking Completed</button>'
       +'<button class="btn btn-clear" style="border-color:#F59E0B;color:#B45309;" onclick="amendBack(\''+esc(r.id)+'\')" title="Send back to the requester to correct/amend (days, stay, flight, traveller) before booking">✏️ Send back to amend</button>'
     +'</div>';
+  html+=topupSection(r);
   return html;
+}
+// ---- Forex top-up request (Admin → Forex, for trip extension / extra costs) ----
+var TUP={}; // per-trip suggest data: TUP[id] = { perDay, base, loaded }
+function topupSection(r){
+  if(!r.canTopup) return '';
+  var b=r.breakdown||{}; var days=Math.max(1, b.days||r.days||1);
+  TUP[r.id]={ perDay: Math.max(0, Math.round(((b.meals||0)+(b.local||0))/days)), thr:(r.topupApproveUsd||1000) };
+  var tps=(r.topups||[]);
+  var badge=function(s){ if(s==='Loaded')return '<span style="color:#0F766E;font-weight:800;">✓ Loaded</span>'; if(s==='Rejected')return '<span style="color:#DC2626;font-weight:800;">✕ Rejected</span>'; if(s==='Pending Finance')return '<span style="color:#B45309;font-weight:800;">⏳ Pending Finance</span>'; return '<span style="color:#B45309;font-weight:800;">⏳ To load by Forex</span>'; };
+  var listHtml=tps.length?('<div style="margin:6px 0 4px;">'+tps.map(function(t){ return '<div style="font-size:11.5px;color:#3D506A;">💱 USD '+t.amount+' · '+esc(t.reason||'Top-up')+' — '+badge(t.status)+(t.requestedBy?' · by '+esc(t.requestedBy):'')+(t.note?' <span class="muted">('+esc(t.note)+')</span>':'')+'</div>'; }).join('')+'</div>'):'';
+  var fld='width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-family:inherit;font-size:12px;';
+  var lbl='font-size:11px;font-weight:700;color:#4C1D95;display:block;';
+  return '<div class="fx-note" style="background:#F5F3FF;border-color:#C4B5FD;color:#4C1D95;margin-top:10px;">'
+    +'<b>💱 Forex top-up</b> — base USD '+(r.forexBase||0)+', loaded USD '+(r.forexLoaded||0)+(r.forexLoaded>r.forexBase?' (incl. top-ups)':'')+'.'
+    +listHtml
+    +'<button class="btn btn-clear" style="margin-top:6px;border-color:#7C3AED;color:#6D28D9;" onclick="toggleTopupForm(\''+esc(r.id)+'\')">➕ Request forex top-up</button>'
+    +'<div id="tuf-'+esc(r.id)+'" class="hidden" style="margin-top:8px;background:#fff;border:1px solid #E9D5FF;border-radius:8px;padding:10px;">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+        +'<label style="'+lbl+'">Reason<select id="tu-reason-'+esc(r.id)+'" onchange="tuReasonChange(\''+esc(r.id)+'\')" style="'+fld+'"><option>Trip extended</option><option>Extra stay</option><option>Higher on-ground costs</option><option>Other</option></select></label>'
+        +'<label style="'+lbl+'">Extra amount (USD)<input id="tu-amt-'+esc(r.id)+'" type="number" min="0" style="'+fld+'"></label>'
+      +'</div>'
+      +'<div id="tu-ext-'+esc(r.id)+'" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">'
+        +'<label style="'+lbl+'">Extra days<input id="tu-days-'+esc(r.id)+'" type="number" min="0" oninput="tuSuggest(\''+esc(r.id)+'\')" style="'+fld+'"></label>'
+        +'<label style="'+lbl+'">New return date<input id="tu-ret-'+esc(r.id)+'" type="date" style="'+fld+'"></label>'
+      +'</div>'
+      +'<label style="'+lbl+'margin-top:6px;">Note (optional)<input id="tu-note-'+esc(r.id)+'" type="text" placeholder="e.g. client asked to stay 2 more days" style="'+fld+'"></label>'
+      +'<div id="tu-suggest-'+esc(r.id)+'" style="font-size:11px;color:#6D28D9;margin-top:6px;"></div>'
+      +'<div style="font-size:11px;color:#7C3AED;margin-top:4px;">Above USD '+(r.topupApproveUsd||1000)+' → Finance approves first; at/below → sent straight to Forex.</div>'
+      +'<div class="act-row" style="margin-top:8px;"><button class="btn btn-book" onclick="reqTopup(\''+esc(r.id)+'\')">Send top-up request</button>'
+        +'<button class="btn btn-clear" onclick="toggleTopupForm(\''+esc(r.id)+'\')">Cancel</button></div>'
+      +'<div id="tu-msg-'+esc(r.id)+'" style="font-size:11.5px;font-weight:700;margin-top:6px;"></div>'
+    +'</div></div>';
+}
+function toggleTopupForm(id){ var el=document.getElementById('tuf-'+id); if(el){ el.classList.toggle('hidden'); tuReasonChange(id); } }
+function tuReasonChange(id){ var reason=(document.getElementById('tu-reason-'+id)||{}).value||''; var ext=document.getElementById('tu-ext-'+id); if(ext) ext.style.display=(reason==='Trip extended'||reason==='Extra stay')?'grid':'none'; tuSuggest(id); }
+function tuSuggest(id){
+  var d=TUP[id]||{}; var days=Number((document.getElementById('tu-days-'+id)||{}).value||0);
+  var out=document.getElementById('tu-suggest-'+id); var amt=document.getElementById('tu-amt-'+id);
+  if(days>0 && d.perDay>0){ var sug=days*d.perDay; if(out) out.innerHTML='💡 Suggested: <b>USD '+sug+'</b> ('+days+' extra day(s) × USD '+d.perDay+'/day meals+local). You can override.'; if(amt && !amt.value) amt.value=sug; }
+  else if(out) out.innerHTML='';
+}
+function reqTopup(id){
+  var amt=Number((document.getElementById('tu-amt-'+id)||{}).value||0);
+  var reason=(document.getElementById('tu-reason-'+id)||{}).value||'Other';
+  var note=(document.getElementById('tu-note-'+id)||{}).value||'';
+  var days=Number((document.getElementById('tu-days-'+id)||{}).value||0);
+  var ret=(document.getElementById('tu-ret-'+id)||{}).value||'';
+  var msg=document.getElementById('tu-msg-'+id);
+  if(!(amt>0)){ if(msg){msg.style.color='#DC2626';msg.textContent='Enter an amount greater than 0.';} return; }
+  var thr=(TUP[id]||{}).thr||1000;
+  if(!confirm('Request a forex top-up of USD '+amt+' for '+id+'?\n'+(amt>thr?('This is above USD '+thr+' → Finance will approve first.'):('This is within USD '+thr+' → goes straight to the Forex officer.')))) return;
+  if(msg){msg.style.color='#6D28D9';msg.textContent='Sending…';}
+  fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({id:id,action:'forex-topup-request',amount:amt,reason:reason,note:note,extraDays:days,newReturn:ret})})
+    .then(function(r){return r.json();})
+    .then(function(res){ if(res&&res.ok){ toast('Top-up USD '+res.amount+' requested ('+(res.needsFinance?'awaiting Finance':'sent to Forex')+')'); load(); } else { if(msg){msg.style.color='#DC2626';msg.textContent=(res&&res.error)||'Failed.';} } })
+    .catch(function(e){ if(msg){msg.style.color='#DC2626';msg.textContent=(e.message||e);} });
 }
 function amendBack(id){
   var note=prompt('Send '+id+' back to the requester to amend (fix traveller, change days, add stay/flight)?\n\nOptional note for the requester:','');
