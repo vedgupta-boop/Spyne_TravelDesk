@@ -13,8 +13,8 @@ export const CONFIG = {
     'Technology':            { head: 'Jatin Jain',       email: 'jatin@spyne.ai' },
     'HR, IT & Admin':        { head: 'Sangeetha Swamy',  email: 'sangeetha@spyne.ai' },
     "CEO's Office":          { head: 'Sanjay Varnwal',   email: 'sanjay@spyne.ai' },
-    'Post-Sales Studio':     { head: 'Madhav Uppal',     email: 'madhav.uppal@spyne.ai' }, // renamed from 'Customer Success'
-    'Post-Sales Vini':       { head: 'Jagrit Sawhney',   email: 'jagrit@spyne.ai' },       // renamed from 'Onboarding'
+    'Post-Sales Studio':     { head: 'Anshuman Kukreti',  email: 'anshuman.kukreti@spyne.ai' }, // renamed from 'Customer Success'
+    'Post-Sales Vini':       { head: 'Krittivas',         email: 'krittivas@spyne.ai' },        // renamed from 'Onboarding'
   },
 
   CEO_EMAIL:    process.env.CEO_EMAIL    || 'sanjay@spyne.ai',   // Sanjay Varnwal
@@ -282,7 +282,6 @@ function nameFromEmail(email) {
 // name) and historical requests (DEPT = old name) keep resolving to the renamed department, so a
 // rename never drops an HOD assignment or orphans an in-flight request.
 const DEPT_RENAMES = { 'Customer Success': 'Post-Sales Studio', 'Onboarding': 'Post-Sales Vini' };
-const DEPT_RENAMES_REV = Object.fromEntries(Object.entries(DEPT_RENAMES).map(([o, n]) => [n, o]));
 // Resolve any old department name to its current key (identity for names that weren't renamed).
 export function canonicalDept(name) { return DEPT_RENAMES[String(name || '')] || String(name || ''); }
 
@@ -304,8 +303,10 @@ export function setRoleOverrides(map) {
   CONFIG.ADMIN_TEAM   = AUTH.ADMIN_EMAILS[0]   || ROLE_DEFAULTS.admin[0]   || CONFIG.ADMIN_TEAM;
   CONFIG.FOREX_OFFICER = AUTH.FOREX_EMAILS[0]  || ROLE_DEFAULTS.forex[0]   || CONFIG.FOREX_OFFICER;
   Object.keys(CONFIG.DEPARTMENTS).forEach((d) => {
-    // Honour an override saved under the current name OR the pre-rename name (so a rename keeps the HOD).
-    const ov = map['dept:' + d] || (DEPT_RENAMES_REV[d] ? map['dept:' + DEPT_RENAMES_REV[d]] : undefined);
+    // Only a Roles-panel override saved under the CURRENT name applies (the code default holds otherwise).
+    // Old-name overrides are intentionally NOT aliased here, so a stale pre-rename assignment can't mask
+    // the current head. (canonicalDept still resolves old names for historical requests' head lookup.)
+    const ov = map['dept:' + d];
     // A department can have ONE OR MORE heads (co-HODs). When several emails are entered, ANY of them
     // can approve. `.emails` holds them all; `.email` is the primary (first) for display / forex letter.
     const emails = ov ? String(ov).split(',').map((x) => x.trim().toLowerCase()).filter(Boolean) : [ROLE_DEFAULTS.depts[d]];
