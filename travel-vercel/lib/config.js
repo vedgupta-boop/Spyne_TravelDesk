@@ -13,8 +13,8 @@ export const CONFIG = {
     'Technology':            { head: 'Jatin Jain',       email: 'jatin@spyne.ai' },
     'HR, IT & Admin':        { head: 'Sangeetha Swamy',  email: 'sangeetha@spyne.ai' },
     "CEO's Office":          { head: 'Sanjay Varnwal',   email: 'sanjay@spyne.ai' },
-    'Customer Success':      { head: 'Madhav Uppal',     email: 'madhav.uppal@spyne.ai' },
-    'Onboarding':            { head: 'Jagrit Sawhney',   email: 'jagrit@spyne.ai' },
+    'Post-Sales Studio':     { head: 'Madhav Uppal',     email: 'madhav.uppal@spyne.ai' }, // renamed from 'Customer Success'
+    'Post-Sales Vini':       { head: 'Jagrit Sawhney',   email: 'jagrit@spyne.ai' },       // renamed from 'Onboarding'
   },
 
   CEO_EMAIL:    process.env.CEO_EMAIL    || 'sanjay@spyne.ai',   // Sanjay Varnwal
@@ -47,8 +47,8 @@ export const CONFIG = {
     'Technology':            3000000,
     'HR, IT & Admin':        1200000,
     "CEO's Office":          2000000,
-    'Customer Success':      2500000,
-    'Onboarding':            800000,
+    'Post-Sales Studio':     2500000,
+    'Post-Sales Vini':       800000,
   },
 };
 
@@ -278,6 +278,14 @@ function nameFromEmail(email) {
   if (!local) return String(email || '');
   return local.split(/[._-]+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
+// Departments renamed in the UI — OLD name → NEW name. Lets stored role overrides (keyed by the old
+// name) and historical requests (DEPT = old name) keep resolving to the renamed department, so a
+// rename never drops an HOD assignment or orphans an in-flight request.
+const DEPT_RENAMES = { 'Customer Success': 'Post-Sales Studio', 'Onboarding': 'Post-Sales Vini' };
+const DEPT_RENAMES_REV = Object.fromEntries(Object.entries(DEPT_RENAMES).map(([o, n]) => [n, o]));
+// Resolve any old department name to its current key (identity for names that weren't renamed).
+export function canonicalDept(name) { return DEPT_RENAMES[String(name || '')] || String(name || ''); }
+
 // The role names a person can be assigned, plus the live list of departments (for the Users UI).
 export const ROLE_KINDS = ['ceo', 'finance', 'admin', 'forex'];
 export function departmentNames() { return Object.keys(CONFIG.DEPARTMENTS); }
@@ -296,7 +304,8 @@ export function setRoleOverrides(map) {
   CONFIG.ADMIN_TEAM   = AUTH.ADMIN_EMAILS[0]   || ROLE_DEFAULTS.admin[0]   || CONFIG.ADMIN_TEAM;
   CONFIG.FOREX_OFFICER = AUTH.FOREX_EMAILS[0]  || ROLE_DEFAULTS.forex[0]   || CONFIG.FOREX_OFFICER;
   Object.keys(CONFIG.DEPARTMENTS).forEach((d) => {
-    const ov = map['dept:' + d];
+    // Honour an override saved under the current name OR the pre-rename name (so a rename keeps the HOD).
+    const ov = map['dept:' + d] || (DEPT_RENAMES_REV[d] ? map['dept:' + DEPT_RENAMES_REV[d]] : undefined);
     // A department can have ONE OR MORE heads (co-HODs). When several emails are entered, ANY of them
     // can approve. `.emails` holds them all; `.email` is the primary (first) for display / forex letter.
     const emails = ov ? String(ov).split(',').map((x) => x.trim().toLowerCase()).filter(Boolean) : [ROLE_DEFAULTS.depts[d]];
@@ -329,7 +338,7 @@ export function deptsForHod(email) {
 }
 // All head emails for a department (co-HODs supported). Falls back to the single `.email`.
 export function deptHeadEmails(dept) {
-  const info = CONFIG.DEPARTMENTS[String(dept || '')] || {};
+  const info = CONFIG.DEPARTMENTS[canonicalDept(dept)] || {};
   const list = (info.emails && info.emails.length ? info.emails : [info.email]).map((x) => String(x || '').toLowerCase()).filter(Boolean);
   return list;
 }

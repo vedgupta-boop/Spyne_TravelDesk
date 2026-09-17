@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { CONFIG, COL, deptsForHod, deptHeadEmails, isDeptHead, AUTH } from './config.js';
+import { CONFIG, COL, deptsForHod, deptHeadEmails, isDeptHead, canonicalDept, AUTH } from './config.js';
 import { computeCosts, duration, hotelNights, isUsRegion } from './costs.js';
 import { searchFlights, flightsAvailable } from './flights.js';
 import { flightPrice, hotelNightlyRate, amadeusAvailable } from './amadeus.js';
@@ -683,7 +683,7 @@ function myStageFor(rec, email, roles) {
   // Delegated to me (OOO cover) → I own whatever approval stage it's currently at.
   const curStage = String(rec[COL.STAGE]);
   if (rec[COL.DELEGATE_EMAIL] && String(rec[COL.DELEGATE_EMAIL]).toLowerCase() === e && ['dept', 'ceo', 'finance', 'events'].includes(curStage)) return curStage;
-  const dept = String(rec[COL.DEPT] || '');
+  const dept = canonicalDept(String(rec[COL.DEPT] || ''));
   const isCEO = r.includes('ceo') || e === String(CONFIG.CEO_EMAIL).toLowerCase();
   // A dept head's OWN trip escalates to the CEO for the HOD (dept) stage.
   if (deptHeadIsRequester(rec) && isCEO) return 'dept';
@@ -771,7 +771,7 @@ function recallInfo(rec) {
 function ownsStage(rec, email, roles, stage) {
   const e = String(email || '').toLowerCase();
   const r = roles || [];
-  const dept = String(rec[COL.DEPT] || '');
+  const dept = canonicalDept(String(rec[COL.DEPT] || ''));
   const isCEO = r.includes('ceo') || e === String(CONFIG.CEO_EMAIL).toLowerCase();
   if (stage === 'dept') { if (deptHeadIsRequester(rec) && isCEO) return true; return r.includes('hod') && (isDeptHead(dept, e) || String(rec[COL.HOD] || '').toLowerCase() === e); }
   if (stage === 'ceo') return isCEO;
@@ -945,7 +945,7 @@ export async function approverData({ email, roles }) {
   const scopes = new Set();
   for (const rec of all) {
     if (isStandaloneForex(rec)) continue; // standalone forex loads aren't approval-chain requests
-    const dept = String(rec[COL.DEPT] || '');
+    const dept = canonicalDept(String(rec[COL.DEPT] || ''));
     const deptHead = String((CONFIG.DEPARTMENTS[dept] || {}).email || '').toLowerCase();
     const own = ownsRequest(rec, email); // you can't approve your own request
     const amHOD = !own && r.includes('hod') && (myDepts.has(dept.toLowerCase()) || deptHead === e || String(rec[COL.HOD] || '').toLowerCase() === e);
@@ -1029,7 +1029,7 @@ export async function notifications({ email, roles }) {
     const stage = String(rec[COL.STAGE] || '');
     if (/reject/i.test(String(rec[COL.STATUS] || '')) || stage === 'rejected') continue;
     const onHold = !!rec[COL.HOLD];
-    const dept = String(rec[COL.DEPT] || '');
+    const dept = canonicalDept(String(rec[COL.DEPT] || ''));
     const deptHead = String((CONFIG.DEPARTMENTS[dept] || {}).email || '').toLowerCase();
     const own = ownsRequest(rec, email); // never notify someone to approve their own request
     const amHOD = !own && r.includes('hod') && (myDepts.has(dept.toLowerCase()) || deptHead === e || String(rec[COL.HOD] || '').toLowerCase() === e);
@@ -1275,7 +1275,7 @@ export async function approveReimbursement(id, email, roles) {
   await ensureHeaders();
   const rec = await findById(id);
   if (!rec) return { ok: false, error: 'Request not found' };
-  const dept = String(rec[COL.DEPT] || '');
+  const dept = canonicalDept(String(rec[COL.DEPT] || ''));
   const e = String(email || '').toLowerCase();
   const deptHead = String((CONFIG.DEPARTMENTS[dept] || {}).email || '').toLowerCase();
   const myDepts = new Set(deptsForHod(email).map((d) => d.toLowerCase()));
