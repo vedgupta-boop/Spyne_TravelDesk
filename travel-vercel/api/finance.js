@@ -1,4 +1,4 @@
-import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch, undismissCurrencyMismatch, migrateCeoStageTickets, decideForexTopup } from '../lib/workflow.js';
+import { financeData, closeTrip, scrapRequests, currencyAudit, recomputeCurrencyFixes, dismissCurrencyMismatch, undismissCurrencyMismatch, migrateCeoStageTickets, decideForexTopup, notifyAllPending } from '../lib/workflow.js';
 import { recordPolicyChange } from '../lib/policystore.js';
 import { addPolicyVersion, deletePolicyVersion } from '../lib/policyversionsstore.js';
 import { readEmailLog } from '../lib/emaillogstore.js';
@@ -54,6 +54,11 @@ export default async function handler(req, res) {
       // Finance approves / rejects an above-threshold Admin forex top-up request.
       if (b.action === 'forex-topup-decide') {
         res.status(200).json(await decideForexTopup({ id: b.id, idx: b.idx, decision: b.decision, comment: b.comment, email: session.email, roles: session.roles }, baseUrl(req)));
+        return;
+      }
+      // Re-notify the current owner of every pending request (nudge all; also re-notifies new approvers).
+      if (b.action === 'notify-pending') {
+        res.status(200).json(await notifyAllPending({ email: session.email, roles: session.roles }, baseUrl(req)));
         return;
       }
       // Advance any international tickets still parked at the removed CEO approval step.

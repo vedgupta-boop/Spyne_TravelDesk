@@ -1753,6 +1753,33 @@ async function emailForexOfficer(rec, baseUrl) {
   await sendEmail({ to: CONFIG.FOREX_OFFICER, subject: `[Forex Card] Issue card — ${rec[COL.ID]} (${rec[COL.NAME]})`, html });
 }
 
+// One-shot "nudge everything": email the CURRENT owner of EVERY pending request (the person who must
+// act next) so nothing sits silently — and, after an HOD/approver change, pending items re-notify the
+// NEW approver. Finance/Admin superuser only. This ONLY re-sends the email; it never advances or
+// auto-approves anything, and standalone forex loads keep their own stage handling.
+export async function notifyAllPending({ email, roles }, baseUrl) {
+  if (!((roles || []).includes('finance') || (roles || []).includes('admin'))) return { ok: false, error: 'Finance or Admin access required.' };
+  await ensureHeaders();
+  const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
+  const all = await readAll();
+  const byStage = {}; let sent = 0; const skipped = { hold: 0, clarify: 0, terminal: 0 };
+  for (const rec of all) {
+    const stage = String(rec[COL.STAGE] || '');
+    const status = String(rec[COL.STATUS] || '');
+    if (['rejected', 'withdrawn', 'scrapped', 'done'].includes(stage) || /reject|withdraw/i.test(status)) { skipped.terminal++; continue; }
+    if (rec[COL.HOLD]) { skipped.hold++; continue; }          // deliberately paused → leave it
+    if (stage === 'clarify') { skipped.clarify++; continue; } // waiting on the requester, not an approver
+    try {
+      if (['dept', 'ceo', 'finance', 'events'].includes(stage)) { await emailApprover(stage, rec, base); } // → current approver(s), incl. new co-HODs
+      else if (stage === 'arrange' || stage === 'admin') { await sendEmail({ to: adminTo(), subject: `[Reminder — for arrangements] ${rec[COL.ID]} (${rec[COL.NAME]})`, html: adminEmailHtml(rec, base) }); }
+      else if (stage === 'forex') { await emailForexOfficer(rec, base); }
+      else { skipped.terminal++; continue; }
+      sent++; byStage[stage] = (byStage[stage] || 0) + 1;
+    } catch (e) { /* skip this row, keep going */ }
+  }
+  return { ok: true, sent, byStage, skipped };
+}
+
 // Early heads-up to the Forex officer the moment an international + forex trip is fully approved,
 // so they can prepare (KYC / paperwork) in advance — before Admin finishes booking and the formal
 // issue request arrives. Informational only; no action required yet.

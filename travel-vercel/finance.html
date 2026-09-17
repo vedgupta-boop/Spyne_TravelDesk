@@ -199,6 +199,16 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
       </div>
     </div>
   </div>
+  <!-- NUDGE: re-send the pending email to the current owner of every pending request -->
+  <div class="panel" style="margin-bottom:18px;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="font-weight:800;color:var(--navy);">📨 Nudge all pending <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— re-send the approval/task email to whoever must act next on every pending request (also re-notifies new approvers after an HOD change). Does not approve anything.</span></div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span id="nudge-msg" style="font-size:12px;font-weight:700;"></span>
+        <button onclick="runNudgeAll(this)" style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:800;cursor:pointer;font-family:inherit;">📨 Send now</button>
+      </div>
+    </div>
+  </div>
   <!-- FOREX TOP-UP APPROVALS — Admin-requested top-ups above the auto-approve limit -->
   <div class="panel" id="tua-panel" style="margin-bottom:18px;display:none;">
     <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleTopupApprovals()">
@@ -1214,6 +1224,17 @@ function runCeoMigrate(btn){
     .then(function(d){ if(btn) btn.disabled=false;
       if(msg){ if(d&&d.ok){ msg.style.color='#0F9D58'; msg.textContent=(d.migrated||0)+' of '+(d.found||0)+' advanced'; } else { msg.style.color='#E8232A'; msg.textContent='Error: '+((d&&d.error)||'failed'); } }
       if(d&&d.ok) load(); })
+    .catch(function(){ if(btn) btn.disabled=false; if(msg){ msg.style.color='#E8232A'; msg.textContent='Error'; } });
+}
+function runNudgeAll(btn){
+  var msg=document.getElementById('nudge-msg');
+  if(!confirm('Re-send the pending email to whoever must act next on EVERY pending request?\n\nThis emails the current approver / admin / forex officer for each pending trip (and re-notifies new approvers after an HOD change). It does NOT approve or advance anything. On-hold and clarification items are skipped.')) return;
+  if(btn) btn.disabled=true;
+  if(msg){ msg.style.color='#667'; msg.textContent='Sending…'; }
+  fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({action:'notify-pending'})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(btn) btn.disabled=false;
+      if(msg){ if(d&&d.ok){ var parts=Object.keys(d.byStage||{}).map(function(k){return d.byStage[k]+' '+k;}); msg.style.color='#0F9D58'; msg.textContent='Sent '+(d.sent||0)+' email(s)'+(parts.length?' ('+parts.join(', ')+')':''); } else { msg.style.color='#E8232A'; msg.textContent='Error: '+((d&&d.error)||'failed'); } } })
     .catch(function(){ if(btn) btn.disabled=false; if(msg){ msg.style.color='#E8232A'; msg.textContent='Error'; } });
 }
 requireView('finance', function(me){ renderUserbar(me); load(); fetch('/api/config').then(function(r){return r.json();}).then(function(c){ CFG=c; PCFG=c&&c.policy; if(PCFG) renderPolicy(PCFG); renderAnalytics(); renderExec(); }).catch(function(){}); });
