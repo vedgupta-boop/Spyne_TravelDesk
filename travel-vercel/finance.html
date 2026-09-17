@@ -293,7 +293,9 @@ function load(){
 }
 function onFail(err){ document.getElementById('loading').textContent='Could not load: '+(err&&err.message||err); }
 
-function statusClass(s){ if(/reject/i.test(s)) return 'rejected'; if(/approved|admin|confirmed/i.test(s)) return 'approved'; return 'pending'; }
+// PENDING = still awaiting someone's action (approval / on hold / recalled / clarification).
+// Anything approved, with admin, booked, forex-issued or completed counts as APPROVED (not pending).
+function statusClass(s){ s=String(s||''); if(/reject|withdraw/i.test(s)) return 'rejected'; if(/pending|awaiting|on hold|recall|clarif/i.test(s)) return 'pending'; return 'approved'; }
 
 function fmt(cur,x){ return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-US':'en-IN',{maximumFractionDigits:0}); }
 
