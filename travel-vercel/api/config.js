@@ -1,10 +1,14 @@
 import { CONFIG, POLICY, POLICY_VERSIONS } from '../lib/config.js';
 import { applyPolicyOverrides } from '../lib/policystore.js';
+import { applyRoleOverrides } from '../lib/rolesstore.js';
 import { mergedVersions } from '../lib/policyversionsstore.js';
 import { flightsAvailable } from '../lib/flights.js';
 import { amadeusAvailable } from '../lib/amadeus.js';
 
 export default async function handler(req, res) {
+  // Apply the Finance-assigned role/HOD overrides so the form's auto-filled Approving HOD reflects
+  // the current department heads (Roles panel), not the code defaults. Best-effort → defaults on error.
+  try { await applyRoleOverrides(); } catch (e) { /* best-effort */ }
   try { await applyPolicyOverrides(); } catch (e) { /* best-effort: fall back to code defaults */ }
   let policyVersions = POLICY_VERSIONS;
   try { policyVersions = await mergedVersions(); } catch (e) { /* best-effort: fall back to the code registry */ }

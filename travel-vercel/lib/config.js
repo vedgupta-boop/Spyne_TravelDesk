@@ -270,7 +270,14 @@ const ROLE_DEFAULTS = {
   admin: AUTH.ADMIN_EMAILS.slice(),
   forex: AUTH.FOREX_EMAILS.slice(),
   depts: Object.fromEntries(Object.keys(CONFIG.DEPARTMENTS).map((d) => [d, String(CONFIG.DEPARTMENTS[d].email || '').toLowerCase()])),
+  deptHeads: Object.fromEntries(Object.keys(CONFIG.DEPARTMENTS).map((d) => [d, CONFIG.DEPARTMENTS[d].head || ''])), // default display names
 };
+// "anshuman.kukreti@spyne.ai" → "Anshuman Kukreti" (readable HOD name derived from an override email).
+function nameFromEmail(email) {
+  const local = String(email || '').split('@')[0];
+  if (!local) return String(email || '');
+  return local.split(/[._-]+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
 // The role names a person can be assigned, plus the live list of departments (for the Users UI).
 export const ROLE_KINDS = ['ceo', 'finance', 'admin', 'forex'];
 export function departmentNames() { return Object.keys(CONFIG.DEPARTMENTS); }
@@ -290,7 +297,13 @@ export function setRoleOverrides(map) {
   CONFIG.FOREX_OFFICER = AUTH.FOREX_EMAILS[0]  || ROLE_DEFAULTS.forex[0]   || CONFIG.FOREX_OFFICER;
   Object.keys(CONFIG.DEPARTMENTS).forEach((d) => {
     const ov = map['dept:' + d];
-    CONFIG.DEPARTMENTS[d].email = ov ? String(ov).toLowerCase() : ROLE_DEFAULTS.depts[d];
+    // A department head is a SINGLE email — if more than one was entered, use the first.
+    const email = ov ? String(ov).split(',')[0].trim().toLowerCase() : ROLE_DEFAULTS.depts[d];
+    CONFIG.DEPARTMENTS[d].email = email;
+    // Keep the code default's display name when the email is unchanged; otherwise derive a readable
+    // name from the override email's local part (e.g. anshuman.kukreti → "Anshuman Kukreti") so the
+    // form's auto-filled "Approving HOD" shows the right person, not the old default name.
+    CONFIG.DEPARTMENTS[d].head = (email === ROLE_DEFAULTS.depts[d]) ? ROLE_DEFAULTS.deptHeads[d] : nameFromEmail(email);
   });
   HOD_EMAILS = Object.values(CONFIG.DEPARTMENTS).map((d) => String(d.email).toLowerCase());
 }
