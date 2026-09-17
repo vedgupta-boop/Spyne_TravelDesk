@@ -477,7 +477,12 @@ function fmt(cur,x){ return cur+' '+Number(x||0).toLocaleString(cur==='USD'?'en-
 function onDept(){
   var d = val('f-dept');
   var info = CFG.departments[d];
-  $('f-hod').value = info ? (info.head + ' <' + info.email + '>') : '';
+  if(!info){ $('f-hod').value=''; return; }
+  var emails = (info.emails && info.emails.length) ? info.emails : [info.email];
+  // Co-HODs: list every approver (any one can approve). Single head → "Name <email>".
+  $('f-hod').value = (emails.length>1)
+    ? (info.head + ' — ' + emails.join(', ') + '  (any one can approve)')
+    : (info.head + ' <' + emails[0] + '>');
 }
 function onBookFor(mode){
   state.bookFor = (mode==='other') ? 'other' : 'self';

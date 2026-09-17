@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { CONFIG, COL, deptsForHod, AUTH } from './config.js';
+import { CONFIG, COL, deptsForHod, deptHeadEmails, isDeptHead, AUTH } from './config.js';
 import { computeCosts, duration, hotelNights, isUsRegion } from './costs.js';
 import { searchFlights, flightsAvailable } from './flights.js';
 import { flightPrice, hotelNightlyRate, amadeusAvailable } from './amadeus.js';
@@ -108,7 +108,9 @@ function adminTo() {
 }
 function approverEmailFor(stage, rec) {
   if (rec[COL.DELEGATE_EMAIL]) return rec[COL.DELEGATE_EMAIL]; // OOO delegation overrides the default approver for this stage
-  if (stage === 'dept')    return deptHeadIsRequester(rec) ? CONFIG.CEO_EMAIL : (rec[COL.HOD] || CONFIG.FINANCE_SPOC); // dept head's own trip → CEO approves
+  // Send the HOD approval email to ALL co-heads of the department so any one of them can act.
+  // (Dept head's own trip with no other co-head → CEO approves.)
+  if (stage === 'dept') { if (deptHeadIsRequester(rec)) return CONFIG.CEO_EMAIL; const heads = deptHeadEmails(rec[COL.DEPT]); return heads.length ? heads.join(',') : (rec[COL.HOD] || CONFIG.FINANCE_SPOC); }
   if (stage === 'events')  return eventsTo();
   if (stage === 'ceo')     return CONFIG.CEO_EMAIL;
   if (stage === 'finance') return CONFIG.FINANCE_SPOC;
@@ -380,11 +382,15 @@ function ownsRequest(rec, email) {
 // True when the request's own Department Head is the person who raised it / is travelling.
 // A dept head can't approve their own trip, so its HOD stage escalates to the CEO instead.
 function deptHeadIsRequester(rec) {
-  const head = String((CONFIG.DEPARTMENTS[String(rec[COL.DEPT] || '')] || {}).email || '').toLowerCase();
-  if (!head) return false;
+  const heads = deptHeadEmails(String(rec[COL.DEPT] || ''));
+  if (!heads.length) return false;
   const filer = String(rec[COL.REQUESTED_BY] || rec[COL.EMAIL] || '').toLowerCase();
   const traveller = String(rec[COL.EMAIL] || '').toLowerCase();
-  return head === filer || head === traveller;
+  // With co-HODs, escalate to the CEO ONLY when the requester is a head AND no OTHER head exists to
+  // approve it. If a co-head remains, that co-head approves (normal HOD stage) — no CEO escalation.
+  const requesterIsAHead = heads.includes(filer) || heads.includes(traveller);
+  const anotherHeadExists = heads.some((h) => h !== filer && h !== traveller);
+  return requesterIsAHead && !anotherHeadExists;
 }
 // True when the CEO is the traveller / raised the request. The CEO can't approve their own
 // trip (and has no one above them), so it routes straight to Finance for approval.
@@ -678,11 +684,11 @@ function myStageFor(rec, email, roles) {
   const curStage = String(rec[COL.STAGE]);
   if (rec[COL.DELEGATE_EMAIL] && String(rec[COL.DELEGATE_EMAIL]).toLowerCase() === e && ['dept', 'ceo', 'finance', 'events'].includes(curStage)) return curStage;
   const dept = String(rec[COL.DEPT] || '');
-  const deptHead = String((CONFIG.DEPARTMENTS[dept] || {}).email || '').toLowerCase();
   const isCEO = r.includes('ceo') || e === String(CONFIG.CEO_EMAIL).toLowerCase();
   // A dept head's OWN trip escalates to the CEO for the HOD (dept) stage.
   if (deptHeadIsRequester(rec) && isCEO) return 'dept';
-  if ((r.includes('hod')) && (deptHead === e || String(rec[COL.HOD] || '').toLowerCase() === e)) return 'dept';
+  // Any co-HOD of the department (or the stored HOD) owns the dept stage.
+  if ((r.includes('hod')) && (isDeptHead(dept, e) || String(rec[COL.HOD] || '').toLowerCase() === e)) return 'dept';
   if (isCEO) { if (String(rec[COL.TYPE]) === 'international') return 'ceo'; }
   // Conference/Event approver (Anurag) owns the 'events' stage for event trips.
   if (r.includes('events') && isEventReq(rec)) return 'events';
@@ -766,9 +772,8 @@ function ownsStage(rec, email, roles, stage) {
   const e = String(email || '').toLowerCase();
   const r = roles || [];
   const dept = String(rec[COL.DEPT] || '');
-  const deptHead = String((CONFIG.DEPARTMENTS[dept] || {}).email || '').toLowerCase();
   const isCEO = r.includes('ceo') || e === String(CONFIG.CEO_EMAIL).toLowerCase();
-  if (stage === 'dept') { if (deptHeadIsRequester(rec) && isCEO) return true; return r.includes('hod') && (deptHead === e || String(rec[COL.HOD] || '').toLowerCase() === e); }
+  if (stage === 'dept') { if (deptHeadIsRequester(rec) && isCEO) return true; return r.includes('hod') && (isDeptHead(dept, e) || String(rec[COL.HOD] || '').toLowerCase() === e); }
   if (stage === 'ceo') return isCEO;
   if (stage === 'events') return r.includes('events');
   if (stage === 'finance') return r.includes('finance');
@@ -2277,7 +2282,7 @@ export async function sendReminders(baseUrl) {
     if (rec[COL.HOLD]) continue; // on-hold requests are paused — no reminders
 
     let since, to, label, kind = 'approval', link;
-    if (stage === 'dept')         { since = rec[COL.TS];                                                          to = rec[COL.HOD] || CONFIG.FINANCE_SPOC; label = 'HOD'; }
+    if (stage === 'dept')         { since = rec[COL.TS];                                                          to = (deptHeadEmails(rec[COL.DEPT]).join(',') || rec[COL.HOD] || CONFIG.FINANCE_SPOC); label = 'HOD'; }
     else if (stage === 'events')  { since = rec[COL.EVENTS_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS];            to = eventsTo();          label = 'Event Approver'; }
     else if (stage === 'ceo')     { since = rec[COL.CEO_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS];               to = CONFIG.CEO_EMAIL;    label = 'CEO'; }
     else if (stage === 'finance') { since = rec[COL.FIN_TIME] || rec[COL.CEO_TIME] || rec[COL.DEPT_TIME] || rec[COL.TS]; to = CONFIG.FINANCE_SPOC; label = 'Finance'; }

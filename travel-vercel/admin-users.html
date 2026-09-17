@@ -197,7 +197,7 @@ function renderRoles(d){
   html+=roleRow('forex','Forex officer', (a.forex||[]).join(', '), true);
   html+='<div style="font-weight:800;margin:14px 0 9px;color:#0D1B2A;border-top:1px solid #EDF1F7;padding-top:12px;">Department heads (HOD)</div>';
   (d.departments||[]).forEach(function(dep){ html+=roleRow('dept:'+dep, dep, (a.depts||{})[dep], false); });
-  html+='<div class="note" style="margin-top:8px;color:#8A97AA;">CEO &amp; each department head take a single email. Finance / Admin / Forex accept multiple, comma-separated. Leave blank to revert to the default.</div>';
+  html+='<div class="note" style="margin-top:8px;color:#8A97AA;">CEO takes a single email. Finance / Admin / Forex / department heads accept multiple, comma-separated — for a department, <b>any one of the listed heads can approve</b> (co-HODs). Leave blank to revert to the default.</div>';
   body.innerHTML=html;
 }
 function saveRole(key){

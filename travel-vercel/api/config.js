@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   try { policyVersions = await mergedVersions(); } catch (e) { /* best-effort: fall back to the code registry */ }
   const departments = {};
   Object.keys(CONFIG.DEPARTMENTS).forEach((d) => {
-    departments[d] = { head: CONFIG.DEPARTMENTS[d].head, email: CONFIG.DEPARTMENTS[d].email };
+    departments[d] = { head: CONFIG.DEPARTMENTS[d].head, email: CONFIG.DEPARTMENTS[d].email, emails: (CONFIG.DEPARTMENTS[d].emails || [CONFIG.DEPARTMENTS[d].email]) };
   });
   res.status(200).json({
     company: CONFIG.COMPANY_NAME,

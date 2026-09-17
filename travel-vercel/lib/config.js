@@ -297,15 +297,18 @@ export function setRoleOverrides(map) {
   CONFIG.FOREX_OFFICER = AUTH.FOREX_EMAILS[0]  || ROLE_DEFAULTS.forex[0]   || CONFIG.FOREX_OFFICER;
   Object.keys(CONFIG.DEPARTMENTS).forEach((d) => {
     const ov = map['dept:' + d];
-    // A department head is a SINGLE email — if more than one was entered, use the first.
-    const email = ov ? String(ov).split(',')[0].trim().toLowerCase() : ROLE_DEFAULTS.depts[d];
-    CONFIG.DEPARTMENTS[d].email = email;
-    // Keep the code default's display name when the email is unchanged; otherwise derive a readable
-    // name from the override email's local part (e.g. anshuman.kukreti → "Anshuman Kukreti") so the
-    // form's auto-filled "Approving HOD" shows the right person, not the old default name.
-    CONFIG.DEPARTMENTS[d].head = (email === ROLE_DEFAULTS.depts[d]) ? ROLE_DEFAULTS.deptHeads[d] : nameFromEmail(email);
+    // A department can have ONE OR MORE heads (co-HODs). When several emails are entered, ANY of them
+    // can approve. `.emails` holds them all; `.email` is the primary (first) for display / forex letter.
+    const emails = ov ? String(ov).split(',').map((x) => x.trim().toLowerCase()).filter(Boolean) : [ROLE_DEFAULTS.depts[d]];
+    CONFIG.DEPARTMENTS[d].emails = emails.length ? emails : [ROLE_DEFAULTS.depts[d]];
+    CONFIG.DEPARTMENTS[d].email = CONFIG.DEPARTMENTS[d].emails[0];
+    // Keep the code default's display name when unchanged; otherwise derive readable names from the
+    // override emails (anshuman.kukreti → "Anshuman Kukreti") so the form's Approving HOD is correct.
+    const isDefault = CONFIG.DEPARTMENTS[d].emails.length === 1 && CONFIG.DEPARTMENTS[d].emails[0] === ROLE_DEFAULTS.depts[d];
+    CONFIG.DEPARTMENTS[d].head = isDefault ? ROLE_DEFAULTS.deptHeads[d] : CONFIG.DEPARTMENTS[d].emails.map(nameFromEmail).join(', ');
   });
-  HOD_EMAILS = Object.values(CONFIG.DEPARTMENTS).map((d) => String(d.email).toLowerCase());
+  // Every co-head gets the 'hod' role (so any of them can act).
+  HOD_EMAILS = Object.values(CONFIG.DEPARTMENTS).flatMap((d) => (d.emails || [d.email]).map((x) => String(x).toLowerCase()));
 }
 // Current effective assignments (for the Users UI to show who holds what).
 export function roleAssignments() {
@@ -322,7 +325,18 @@ export function roleAssignments() {
 // so each HOD sees ONLY their own department's requests.
 export function deptsForHod(email) {
   const e = String(email || '').toLowerCase();
-  return Object.keys(CONFIG.DEPARTMENTS).filter((d) => String(CONFIG.DEPARTMENTS[d].email).toLowerCase() === e);
+  return Object.keys(CONFIG.DEPARTMENTS).filter((d) => deptHeadEmails(d).includes(e));
+}
+// All head emails for a department (co-HODs supported). Falls back to the single `.email`.
+export function deptHeadEmails(dept) {
+  const info = CONFIG.DEPARTMENTS[String(dept || '')] || {};
+  const list = (info.emails && info.emails.length ? info.emails : [info.email]).map((x) => String(x || '').toLowerCase()).filter(Boolean);
+  return list;
+}
+// Is this email one of the department's heads?
+export function isDeptHead(dept, email) {
+  const e = String(email || '').toLowerCase();
+  return !!e && deptHeadEmails(dept).includes(e);
 }
 
 export function rolesFor(email) {
