@@ -1618,6 +1618,10 @@ export async function adminData() {
       status: r[COL.STATUS], adminStatus: r[COL.ADMIN] || 'Pending',
       upcoming: ['dept', 'events', 'ceo', 'finance', 'clarify'].includes(String(r[COL.STAGE])),
       approval: approvalProgress(r), approvals: approvalTrail(r), isEvent: isEventReq(r), pendingClarify: String(r[COL.STAGE]) === 'clarify',
+      // Who the request is currently pending WITH (the approver to follow up) + a readable stage label.
+      pendingWith: ['dept', 'events', 'ceo', 'finance'].includes(String(r[COL.STAGE]))
+        ? ((String(r[COL.STAGE]) === 'dept' && deptHeadIsRequester(r)) ? CONFIG.CEO_EMAIL : ownerForStage(r, String(r[COL.STAGE]))) : '',
+      pendingStage: humanStage(String(r[COL.STAGE] || '')),
       // Admin can recall a booking: while it's with the Forex officer (card not issued), or a completed
       // booking (redo) — by stage OR admin status (some completed trips sit at 'arrange' with Admin=Completed).
       // Blocked once the forex card is issued or Finance has closed the reimbursement.

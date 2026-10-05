@@ -336,12 +336,15 @@ function actions(r,done){
     var b=r.breakdown||{}; var est=(b.transport||0)+(b.hotel||0);
     var pend=(r.approval||[]).filter(function(s){return s.state==='current';})[0];
     var pendTxt=r.pendingClarify?'Sent back to requester for clarification':(pend?('Pending at '+esc(pend.label)+' approval'):esc(r.status||'in approval'));
+    // Who to chase so the ticket gets approved (shown even before anyone has approved yet).
+    var followUp=(r.pendingWith && !r.pendingClarify)?('<br>📞 <b>Follow up with '+esc(r.pendingStage||'the approver')+':</b> '+esc(r.pendingWith)):'';
     return '<div style="background:#F5F0FF;border:1px solid #C4B5FD;color:#5B21B6;padding:10px 12px;border-radius:8px;font-size:12px;">'
       +'<div style="margin-bottom:7px;">'+chainHtml(r)+'</div>'
       +trailHtml(r)
-      +'⏳ <b>'+pendTxt+'</b> — not ready to book yet.<br>'
+      +'⏳ <b>'+pendTxt+'</b> — not ready to book yet.'+followUp+'<br>'
       +'Estimated booking cost (flight + hotel): <b>'+fmt(r.currency,est)+'</b>'+(r.forex>0?' · forex advance <b>'+fmt('USD',r.forex)+'</b>':'')+'.<br>'
-      +'Shown early so you can arrange funds in advance — booking controls appear once it\'s fully approved.</div>';
+      +'Shown early so you can arrange funds in advance — booking controls appear once it\'s fully approved.</div>'
+      +prefFlightHtml(r); // traveller's preferred flight — visible in Upcoming too, not just once approved
   }
   var flights=r.flights||[], hotels=r.hotels||[];
   var bk=r.bookings||{flights:[],hotels:[]};
