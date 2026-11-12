@@ -95,7 +95,25 @@ tr:hover td{background:var(--gray-1);}
     <label class="sfx-l" style="margin-top:10px;">Reason*
       <select id="sfx-reason" class="sfx-i"><option>Trip not in TravelDesk</option><option>Trip extended</option><option>Extra stay</option><option>Higher on-ground costs</option><option>Other</option></select></label>
     <label class="sfx-l" style="margin-top:10px;">Note (optional)<input id="sfx-note" class="sfx-i" type="text" placeholder="context for Finance / Forex"></label>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--ink);font-weight:600;"><input id="sfx-existing" type="checkbox" checked> Load onto an existing company card (no new card / KYC)</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;color:var(--ink);font-weight:600;"><input id="sfx-existing" type="checkbox" checked onchange="sfxToggleKyc()"> Load onto an existing company card (no new card / KYC)</label>
+    <!-- KYC + documents — needed by the Forex officer to issue a NEW card (hidden when loading an existing card) -->
+    <div id="sfx-kyc" style="margin-top:12px;border-top:1px solid #EDE9FE;padding-top:12px;display:none;">
+      <div style="font-size:11px;font-weight:800;color:#4C1D95;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;">New-card KYC &amp; documents <span style="font-weight:600;color:#8A97AA;text-transform:none;">— the Forex officer needs these to issue a new card</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <label class="sfx-l">Passport no.<input id="sfx-ppno" class="sfx-i" type="text"></label>
+        <label class="sfx-l">Nationality<input id="sfx-nat" class="sfx-i" type="text" placeholder="e.g. Indian"></label>
+        <label class="sfx-l">Designation<input id="sfx-desig" class="sfx-i" type="text"></label>
+        <label class="sfx-l">Mobile<input id="sfx-mob" class="sfx-i" type="text"></label>
+      </div>
+      <label class="sfx-l" style="margin-top:8px;">Residential address<input id="sfx-addr" class="sfx-i" type="text"></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+        <label class="sfx-l">✈️ Air ticket<input id="sfx-doc-ticket" type="file" accept="image/*,.pdf" onchange="sfxUpload('ticket',this)" style="font-size:11px;"><span id="sfx-st-ticket" style="font-size:10.5px;font-weight:700;"></span></label>
+        <label class="sfx-l">🛂 Passport<input id="sfx-doc-passport" type="file" accept="image/*,.pdf" onchange="sfxUpload('passport',this)" style="font-size:11px;"><span id="sfx-st-passport" style="font-size:10.5px;font-weight:700;"></span></label>
+        <label class="sfx-l">Visa (if any)<input id="sfx-doc-visa" type="file" accept="image/*,.pdf" onchange="sfxUpload('visa',this)" style="font-size:11px;"><span id="sfx-st-visa" style="font-size:10.5px;font-weight:700;"></span></label>
+        <label class="sfx-l">ID — PAN / Aadhaar<input id="sfx-doc-id" type="file" accept="image/*,.pdf" onchange="sfxUpload('id',this)" style="font-size:11px;"><span id="sfx-st-id" style="font-size:10.5px;font-weight:700;"></span></label>
+      </div>
+      <div style="font-size:10.5px;color:#8A97AA;margin-top:6px;">Attach what you have now; the air ticket can be added later from the Forex view too.</div>
+    </div>
     <div id="sfx-route" style="font-size:11.5px;color:#7C3AED;margin-top:10px;"></div>
     <div id="sfx-msg" style="font-size:12px;font-weight:700;margin-top:8px;"></div>
     <div style="display:flex;gap:10px;margin-top:14px;">
@@ -131,6 +149,16 @@ tr:hover td{background:var(--gray-1);}
       </table>
     </div>
     <div id="empty" class="empty hidden">Nothing here.</div>
+  </div>
+  <!-- Standalone forex requests this Admin raised (not in the normal travel list) -->
+  <div class="panel" id="sfx-panel" style="margin-top:18px;display:none;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-weight:800;color:var(--navy);">💱 My forex requests <span id="sfx-count" style="font-weight:600;font-size:11px;color:#8A97AA;"></span> <span style="font-weight:600;font-size:11px;color:#8A97AA;">— card loads you raised for trips not in TravelDesk</span></div>
+    </div>
+    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+      <thead><tr style="background:var(--navy,#0D1B2A);color:#fff;text-align:left;">
+        <th style="padding:9px 12px;">Request</th><th style="padding:9px 12px;">Traveller</th><th style="padding:9px 12px;">Dept</th><th style="padding:9px 12px;">Destination</th><th style="padding:9px 12px;text-align:right;">Amount</th><th style="padding:9px 12px;">Reason</th><th style="padding:9px 12px;">Docs</th><th style="padding:9px 12px;">Status</th>
+      </tr></thead><tbody id="sfx-rows"></tbody></table></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -175,7 +203,29 @@ function onFail(e){ document.getElementById('loading').textContent='Could not lo
 function onData(d){
   DATA = d || {rows:[]};
   document.getElementById('loading').classList.add('hidden');
-  renderKpis(); render();
+  renderKpis(); render(); renderStandaloneForex();
+}
+// "My forex requests" — standalone card loads Admin raised (status + attached docs).
+function renderStandaloneForex(){
+  var list=(DATA.standaloneForex||[]); var panel=document.getElementById('sfx-panel'); if(!panel) return;
+  if(!list.length){ panel.style.display='none'; return; }
+  panel.style.display='';
+  document.getElementById('sfx-count').textContent='('+list.length+')';
+  var stColor=function(s){ s=String(s||''); if(/reject/i.test(s))return '#DC2626'; if(/completed|loaded/i.test(s))return '#0F766E'; if(/with forex/i.test(s))return '#2563EB'; return '#B45309'; };
+  var docLink=function(u,lbl){ return u?('<a class="lnk" href="'+esc(u)+'" target="_blank">📎'+lbl+'</a>'):''; };
+  document.getElementById('sfx-rows').innerHTML=list.map(function(r){
+    var docs=[docLink(r.docTicket,'Ticket'),docLink(r.docPassport,'Passport'),docLink(r.docVisa,'Visa'),docLink(r.docId,'ID')].filter(Boolean).join(' ')||'<span class="muted">—</span>';
+    return '<tr style="border-bottom:1px solid #EDF1F7;">'
+      +'<td style="padding:9px 12px;font-weight:800;color:var(--navy);">'+esc(r.id)+'</td>'
+      +'<td style="padding:9px 12px;">'+esc(r.name||'')+'<div class="muted" style="font-size:10.5px;">'+esc(r.email||'')+'</div></td>'
+      +'<td style="padding:9px 12px;" class="muted">'+esc(r.dept||'')+'</td>'
+      +'<td style="padding:9px 12px;" class="muted">'+esc(r.destination||'—')+(r.existingCard?' <span style="font-size:10px;color:#5B21B6;">· existing card</span>':'')+'</td>'
+      +'<td style="padding:9px 12px;text-align:right;font-weight:700;">'+fmt(r.currency,r.amount)+'</td>'
+      +'<td style="padding:9px 12px;" class="muted">'+esc(r.reason||'')+(r.note?('<div class="muted" style="font-size:10.5px;">'+esc(r.note)+'</div>'):'')+'</td>'
+      +'<td style="padding:9px 12px;">'+docs+'</td>'
+      +'<td style="padding:9px 12px;font-weight:700;color:'+stColor(r.status)+';">'+esc(r.status||'')+'</td>'
+    +'</tr>';
+  }).join('');
 }
 function renderKpis(){
   var rows=DATA.rows||[];
@@ -241,21 +291,34 @@ function toggleDetail(i){
   if(cev) cev.textContent = nowHidden ? '▸' : '▾';
 }
 // ---- Standalone forex request (trip NOT in TravelDesk) ----
-var SFX_THR=1000;
+var SFXDOCS={}; // uploaded doc links: {ticket, passport, visa, id}
 function openStandaloneForex(){
-  try{ if(DATA&&DATA.rows){ var r=DATA.rows.find(function(x){return x.topupApproveUsd;}); if(r) SFX_THR=r.topupApproveUsd; } }catch(e){}
-  ['sfx-name','sfx-email','sfx-dept','sfx-dest','sfx-amt','sfx-date','sfx-note'].forEach(function(id){var el=document.getElementById(id); if(el) el.value='';});
-  document.getElementById('sfx-existing').checked=true;
+  SFXDOCS={};
+  ['sfx-name','sfx-email','sfx-dept','sfx-dest','sfx-amt','sfx-date','sfx-note','sfx-ppno','sfx-nat','sfx-desig','sfx-mob','sfx-addr','sfx-doc-ticket','sfx-doc-passport','sfx-doc-visa','sfx-doc-id'].forEach(function(id){var el=document.getElementById(id); if(el) el.value='';});
+  ['ticket','passport','visa','id'].forEach(function(k){var s=document.getElementById('sfx-st-'+k); if(s) s.textContent='';});
+  document.getElementById('sfx-existing').checked=true; sfxToggleKyc();
   document.getElementById('sfx-msg').textContent=''; sfxRoute();
   document.getElementById('sfx-ov').style.display='block'; document.getElementById('sfx-modal').style.display='block';
-  var a=document.getElementById('sfx-amt'); if(a) a.oninput=sfxRoute;
 }
 function closeStandaloneForex(){ document.getElementById('sfx-ov').style.display='none'; document.getElementById('sfx-modal').style.display='none'; }
+function sfxToggleKyc(){ var existing=document.getElementById('sfx-existing').checked; var k=document.getElementById('sfx-kyc'); if(k) k.style.display=existing?'none':'block'; }
 function sfxRoute(){
-  var amt=Number((document.getElementById('sfx-amt')||{}).value||0);
   var el=document.getElementById('sfx-route'); if(!el) return;
-  if(amt>0) el.innerHTML = amt>SFX_THR ? ('Above USD '+SFX_THR+' → <b>Finance approves first</b>, then Forex loads it.') : ('At/below USD '+SFX_THR+' → sent <b>straight to the Forex officer</b> to load.');
-  else el.innerHTML='';
+  el.innerHTML='Every forex request goes to <b>Finance for approval first</b>, then to the Forex officer to issue/load.';
+}
+function sfxUpload(key,inp){
+  var f=(inp.files||[])[0]; if(!f) return;
+  var st=document.getElementById('sfx-st-'+key); if(st){ st.style.color='#6D28D9'; st.textContent='Uploading…'; }
+  if(f.size>3*1024*1024){ if(st){ st.style.color='#DC2626'; st.textContent='Max 3 MB'; } inp.value=''; return; }
+  var reader=new FileReader();
+  reader.onload=function(){
+    var base64=String(reader.result).split(',')[1];
+    fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({filename:f.name,mimeType:f.type,base64:base64})})
+      .then(function(r){return r.json();})
+      .then(function(d){ if(d.ok){ SFXDOCS[key]=d.link; if(st){ st.style.color='#0F766E'; st.textContent='✓ attached'; } } else { if(st){ st.style.color='#DC2626'; st.textContent=(d&&d.error)||'failed'; } } })
+      .catch(function(){ if(st){ st.style.color='#DC2626'; st.textContent='error'; } });
+  };
+  reader.readAsDataURL(f);
 }
 function submitStandaloneForex(){
   var name=(document.getElementById('sfx-name').value||'').trim();
@@ -266,11 +329,15 @@ function submitStandaloneForex(){
   var payload={ action:'forex-standalone', name:name, email:(document.getElementById('sfx-email').value||'').trim(),
     dept:(document.getElementById('sfx-dept').value||'').trim(), destination:(document.getElementById('sfx-dest').value||'').trim(),
     amount:amt, startDate:(document.getElementById('sfx-date').value||''), reason:document.getElementById('sfx-reason').value,
-    note:(document.getElementById('sfx-note').value||'').trim(), existingCard:document.getElementById('sfx-existing').checked };
+    note:(document.getElementById('sfx-note').value||'').trim(), existingCard:document.getElementById('sfx-existing').checked,
+    docTicket:SFXDOCS.ticket||'', docPassport:SFXDOCS.passport||'', docVisa:SFXDOCS.visa||'', docId:SFXDOCS.id||'',
+    passportNo:(document.getElementById('sfx-ppno').value||'').trim(), nationality:(document.getElementById('sfx-nat').value||'').trim(),
+    designation:(document.getElementById('sfx-desig').value||'').trim(), mobile:(document.getElementById('sfx-mob').value||'').trim(),
+    address:(document.getElementById('sfx-addr').value||'').trim() };
   msg.style.color='#6D28D9'; msg.textContent='Sending…';
   fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)})
     .then(function(r){return r.json();})
-    .then(function(res){ if(res&&res.ok){ closeStandaloneForex(); toast('Forex request USD '+res.amount+' raised ('+(res.needsFinance?'awaiting Finance':'sent to Forex')+')'); load(); }
+    .then(function(res){ if(res&&res.ok){ closeStandaloneForex(); toast('Forex request '+fmt('USD',res.amount)+' raised — sent to Finance for approval'); load(); }
       else { msg.style.color='#DC2626'; msg.textContent=(res&&res.error)||'Failed.'; } })
     .catch(function(e){ msg.style.color='#DC2626'; msg.textContent=(e.message||e); });
 }

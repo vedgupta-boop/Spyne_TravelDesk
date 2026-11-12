@@ -1632,7 +1632,25 @@ export async function adminData() {
       ...itineraryFor(r), bookings: parseJSON(r[COL.BOOKINGS], { flights: [], hotels: [] }) || { flights: [], hotels: [] },
     }));
   rows.reverse();
-  return { rows };
+  // Standalone forex requests Admin raised (hidden from the normal travel list) — surfaced so Admin
+  // can see each one and where it is (awaiting Finance / with Forex / loaded / rejected).
+  const standaloneForex = all.filter(isStandaloneForex).map((r) => {
+    const t = topupsOf(r)[0] || {};
+    return {
+      id: r[COL.ID], date: fmtDate(r[COL.TS]), name: r[COL.NAME], email: r[COL.EMAIL], dept: r[COL.DEPT],
+      destination: r[COL.TO] || '', currency: r[COL.CURRENCY] || 'USD', amount: Number(t.amount) || 0,
+      reason: t.reason || '', note: t.note || '', requestedBy: t.requestedBy || '',
+      existingCard: String(r[COL.FOREX_EXISTING]) === 'Yes', status: standaloneForexStatus(r), topupStatus: String(t.status || ''),
+      docTicket: r[COL.DOC_TICKET] || '', docPassport: r[COL.DOC_PASSPORT] || '', docVisa: r[COL.DOC_VISA] || '', docId: r[COL.DOC_PANAADHAAR] || '',
+    };
+  }).reverse();
+  return { rows, standaloneForex };
+}
+// Human status of a standalone forex request (from its single top-up's lifecycle).
+function standaloneForexStatus(rec) {
+  if (rec[COL.FOREX_ISSUE_DATE]) return 'Completed — loaded';
+  const s = String((topupsOf(rec)[0] || {}).status || '');
+  return { 'Pending Finance': 'Awaiting Finance approval', 'Requested': 'Finance approved — with Forex officer', 'Loaded': 'Completed — loaded', 'Rejected': 'Rejected by Finance' }[s] || (rec[COL.STATUS] || '');
 }
 
 export async function saveTicket(id, ticketInfo, ticketDocLink) {
@@ -1957,6 +1975,8 @@ export async function forexData() {
   const rows = all.filter((r) => {
     const st = String(r[COL.STAGE]);
     const status = String(r[COL.STATUS]);
+    // A standalone forex load stays OFF the Forex view until Finance approves it (top-up → 'Requested').
+    if (isStandaloneForex(r) && topupsOf(r).some((t) => String(t.status || '') === 'Pending Finance')) return false;
     const isForex = String(r[COL.TYPE]) === 'international' && Number(r[COL.FOREX] || 0) > 0;
     const done = !!(r[COL.FOREX_ISSUE_DATE]) || /forex card issued/i.test(status);
     // pending (stage 'forex') + already-issued (Done/All) + UPCOMING: approved / in-progress intl+forex
@@ -2145,7 +2165,8 @@ function topupSummaryHtml(rec, t) {
 // ---- Standalone forex request (Admin loads a card for a trip NOT in TravelDesk) ----
 // Creates a minimal forex-only row (no trip approval chain). The amount rides as a top-up so it reuses
 // the exact same routing: <= threshold → straight to Forex to load; > threshold → Finance approves first.
-export async function requestStandaloneForex({ name, email, dept, amount, reason, note, existingCard, destination, startDate, currency, by, roles }, baseUrl) {
+export async function requestStandaloneForex(p, baseUrl) {
+  const { name, email, dept, amount, reason, note, existingCard, destination, startDate, currency, by, roles } = p || {};
   await ensureHeaders();
   const r = roles || [];
   if (!(r.includes('admin') || r.includes('finance'))) return { ok: false, error: 'Only Admin (or Finance) can raise a forex request.' };
@@ -2153,13 +2174,13 @@ export async function requestStandaloneForex({ name, email, dept, amount, reason
   if (amt <= 0) return { ok: false, error: 'Enter a forex amount greater than 0.' };
   if (!String(name || '').trim()) return { ok: false, error: 'Enter the traveller name.' };
   const cur = String(currency || 'USD').toUpperCase();
-  const threshold = Number(CONFIG.FOREX_TOPUP_APPROVAL_USD || 1000);
-  const needsFinance = amt > threshold;
   const who = String(by || '').split('@')[0];
   const id = 'FXR-' + stamp() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+  // A standalone forex load has NO trip and NO approval chain behind it → Finance ALWAYS approves first,
+  // then the Forex officer loads it. (The USD threshold only applies to top-ups on already-approved trips.)
   const topup = {
     amount: amt, reason: String(reason || 'Standalone forex load'), note: String(note || ''),
-    status: needsFinance ? 'Pending Finance' : 'Requested', requestedBy: who, date: new Date().toISOString(), standalone: true,
+    status: 'Pending Finance', requestedBy: who, date: new Date().toISOString(), standalone: true,
   };
   const rec = {
     [COL.ID]: id, [COL.TS]: new Date().toISOString(),
@@ -2168,25 +2189,29 @@ export async function requestStandaloneForex({ name, email, dept, amount, reason
     [COL.PURPOSE]: 'Forex load (standalone)', [COL.TO]: String(destination || ''), [COL.FROM]: '', [COL.START]: String(startDate || ''),
     [COL.FOREX]: 0, [COL.FOREX_EXISTING]: existingCard === false ? '' : 'Yes', [COL.FOREX_STANDALONE]: 'Yes',
     [COL.FOREX_TOPUPS]: JSON.stringify([topup]),
-    // Sits at the forex stage from the start; the top-up's own status gates Finance→Forex→Loaded.
-    [COL.STAGE]: 'forex', [COL.STATUS]: needsFinance ? 'Forex load — pending Finance approval' : 'Forex load — with Forex officer',
+    // KYC + ticket (attached by Admin) so the Forex officer has what they need to issue/load the card.
+    [COL.DOC_TICKET]: String(p.docTicket || ''), [COL.DOC_PASSPORT]: String(p.docPassport || ''),
+    [COL.DOC_VISA]: String(p.docVisa || ''), [COL.DOC_PANAADHAAR]: String(p.docId || ''),
+    [COL.PASSPORT_NO]: String(p.passportNo || ''), [COL.NATIONALITY]: String(p.nationality || ''),
+    [COL.DESIGNATION]: String(p.designation || ''), [COL.MOBILE]: String(p.mobile || ''), [COL.ADDRESS]: String(p.address || ''),
+    // Parks at the forex stage, but the top-up's 'Pending Finance' status keeps it OFF the Forex
+    // issue-ready view (forexData) until Finance approves it.
+    [COL.STAGE]: 'forex', [COL.STATUS]: 'Forex load — pending Finance approval',
     [COL.TOKEN]: randomUUID(), [COL.ACTUALS_STATUS]: 'N/A',
   };
   await appendRecord(rec);
   const base = String(baseUrl || process.env.APP_BASE_URL || '').replace(/\/$/, '');
   const summ = topupSummaryHtml(rec, topup);
-  if (needsFinance) {
-    await sendEmail({ to: CONFIG.FINANCE_SPOC, subject: `[Approval needed] Standalone forex USD ${amt} — ${name}`,
-      html: emailShell({ title: 'Standalone forex request needs approval 💱', subtitle: `Spyne TravelDesk · ${id}`,
-        statusText: `USD ${amt} · above USD ${threshold} threshold`, statusColor: '#B45309',
-        body: `<p style="color:#3D506A;margin:0 0 12px;">Admin (<b>${who}</b>) has raised a <b>standalone forex request</b> (a card load for a trip not in TravelDesk). As it exceeds USD ${threshold}, it needs Finance approval before the Forex officer loads it.</p>${summ}<p style="margin:14px 0 0;">${btn(base + '/finance', 'Review on the Finance dashboard', '#0F9D58')}</p>` }) });
-  } else {
-    await sendEmail({ to: CONFIG.FOREX_OFFICER, subject: `[Forex to load] Standalone USD ${amt} — ${name}`,
-      html: emailShell({ title: 'Standalone forex request to load 💱', subtitle: `Spyne TravelDesk · ${id}`,
-        statusText: `USD ${amt} · ready to load`, statusColor: '#2563EB',
-        body: `<p style="color:#3D506A;margin:0 0 12px;">Admin (<b>${who}</b>) has raised a <b>standalone forex request</b> (within the USD ${threshold} auto-approve limit). Please load it onto the card.</p>${summ}<p style="margin:14px 0 0;">${btn(base + '/forex', 'Open the Forex dashboard', '#2563EB')}</p>` }) });
-  }
-  return { ok: true, id, amount: amt, needsFinance };
+  const docLine = [p.docTicket && 'air ticket', p.docPassport && 'passport', p.docVisa && 'visa', p.docId && 'ID/PAN'].filter(Boolean).join(', ');
+  // Notify the WHOLE Finance team (not just the SPOC) so the request can't be missed, plus a link + details.
+  const financeTo = (AUTH.FINANCE_EMAILS || []).filter(Boolean).join(',') || CONFIG.FINANCE_SPOC;
+  await sendEmail({ to: financeTo, subject: `[Approval needed] Forex request ${cur} ${amt} — ${name} (${id})`,
+    html: emailShell({ title: 'Forex request needs your approval 💱', subtitle: `Spyne TravelDesk · ${id}`,
+      statusText: `${cur} ${amt} · awaiting Finance`, statusColor: '#B45309',
+      body: `<p style="color:#3D506A;margin:0 0 12px;">Admin (<b>${who}</b>) has raised a <b>standalone forex request</b> (a card load for a trip not in TravelDesk). It needs Finance approval before the Forex officer issues/loads the card.</p>${summ}`
+        + (docLine ? `<p style="color:#3D506A;margin:10px 0 0;">📎 Attached: ${docLine}.</p>` : `<p style="color:#B45309;margin:10px 0 0;">⚠ No KYC / ticket attached yet.</p>`)
+        + `<p style="margin:14px 0 0;">${btn(base + '/finance', 'Review on the Finance dashboard', '#0F9D58')}</p>` }) });
+  return { ok: true, id, amount: amt, needsFinance: true };
 }
 
 export async function completeForex(id, baseUrl) {
