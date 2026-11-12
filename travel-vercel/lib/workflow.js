@@ -1541,8 +1541,21 @@ export async function financeData() {
     });
   }
   rows.reverse();
+  // Every standalone forex request (card loads for trips not in TravelDesk), so Finance sees them ALL —
+  // and can Approve/Reject any still awaiting them — regardless of the top-up panel.
+  const standaloneForex = all.filter(isStandaloneForex).map((r) => {
+    const t = topupsOf(r)[0] || {};
+    return {
+      id: r[COL.ID], date: fmtDate(r[COL.TS]), name: r[COL.NAME], email: r[COL.EMAIL], dept: r[COL.DEPT],
+      destination: r[COL.TO] || '', currency: r[COL.CURRENCY] || 'USD', amount: Number(t.amount) || 0,
+      reason: t.reason || '', note: t.note || '', requestedBy: t.requestedBy || '', existingCard: String(r[COL.FOREX_EXISTING]) === 'Yes',
+      status: standaloneForexStatus(r), topupStatus: String(t.status || ''), idx: 0,
+      docTicket: r[COL.DOC_TICKET] || '', docPassport: r[COL.DOC_PASSPORT] || '', docVisa: r[COL.DOC_VISA] || '', docId: r[COL.DOC_PANAADHAAR] || '',
+      passportNo: r[COL.PASSPORT_NO] || '', nationality: r[COL.NATIONALITY] || '', designation: r[COL.DESIGNATION] || '', mobile: r[COL.MOBILE] || '',
+    };
+  }).reverse();
   const policyChanges = (await readChanges()).reverse(); // newest first
-  return { currencySummaries: summaries, rows, topupApprovals, reconciliation: { available: reconAvailable, fx, ...reconTotals },
+  return { currencySummaries: summaries, rows, topupApprovals, standaloneForex, reconciliation: { available: reconAvailable, fx, ...reconTotals },
     paymentMethods: pm, policyValues: editableSnapshot(), policyChanges, policyVersions: await mergedVersions() };
 }
 

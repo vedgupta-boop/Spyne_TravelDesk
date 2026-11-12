@@ -217,6 +217,13 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
     </div>
     <div id="tua-body" class="hidden" style="padding:0 18px 16px;"></div>
   </div>
+  <!-- STANDALONE FOREX REQUESTS — card loads Admin raised for trips not in TravelDesk (Finance sees ALL) -->
+  <div class="panel" id="sfxf-panel" style="margin-bottom:18px;display:none;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-weight:800;color:var(--navy);">💱 Standalone forex requests <span id="sfxf-count" style="font-weight:800;font-size:11px;color:#B45309;"></span> <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— card loads for trips not in TravelDesk; approve the ones awaiting you</span></div>
+    </div>
+    <div id="sfxf-body" style="padding:0 18px 16px;"></div>
+  </div>
 
   <div class="panel" style="margin-bottom:16px;">
     <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleAnalytics()">
@@ -307,8 +314,32 @@ function onData(d){
   document.getElementById('loading').classList.add('hidden');
   REM_ON = !!DATA.remindersOn; paintRemToggle();
   REM_HOUR = (typeof DATA.reminderHour==='number') ? DATA.reminderHour : 9; paintRemHour();
-  renderExec(); renderKpis(); render(); renderAnalytics(); renderTopupApprovals();
+  renderExec(); renderKpis(); render(); renderAnalytics(); renderTopupApprovals(); renderStandaloneForexFin();
   renderPolicy(PCFG); // (re)render policy panel — editor shows from DATA even if config (PCFG) isn't in yet
+}
+// Every standalone forex request — Finance sees all, with Approve/Reject on the ones awaiting them.
+function renderStandaloneForexFin(){
+  var list=(DATA.standaloneForex||[]); var panel=document.getElementById('sfxf-panel'); if(!panel) return;
+  if(!list.length){ panel.style.display='none'; return; }
+  panel.style.display='';
+  var pending=list.filter(function(r){return r.topupStatus==='Pending Finance';}).length;
+  document.getElementById('sfxf-count').textContent=pending?('('+pending+' awaiting you)'):('('+list.length+')');
+  var stColor=function(s){ s=String(s||''); if(/reject/i.test(s))return '#DC2626'; if(/completed|loaded/i.test(s))return '#0F766E'; if(/with forex/i.test(s))return '#2563EB'; return '#B45309'; };
+  var docLink=function(u,lbl){ return u?('<a class="cost-link" href="'+esc(u)+'" target="_blank" style="margin-right:6px;">📎'+lbl+'</a>'):''; };
+  document.getElementById('sfxf-body').innerHTML=list.map(function(r){
+    var docs=[docLink(r.docTicket,'Ticket'),docLink(r.docPassport,'Passport'),docLink(r.docVisa,'Visa'),docLink(r.docId,'ID')].filter(Boolean).join('')||'<span class="muted">no docs attached</span>';
+    var act=(r.topupStatus==='Pending Finance')
+      ? ('<div style="display:flex;gap:8px;">'
+          +'<button class="pol-edit" style="background:var(--green);color:#fff;border:none;" onclick="decideTopup(\''+esc(r.id)+'\','+r.idx+',\'approve\')">✓ Approve</button>'
+          +'<button class="pol-edit" style="background:#fff;color:#DC2626;border:1px solid #DC2626;" onclick="decideTopup(\''+esc(r.id)+'\','+r.idx+',\'reject\')">✕ Reject</button></div>')
+      : ('<span style="font-weight:700;font-size:12px;color:'+stColor(r.status)+';">'+esc(r.status)+'</span>');
+    return '<div style="border:1px solid var(--gray-3);border-radius:8px;padding:10px 12px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">'
+      +'<div style="font-size:12.5px;color:var(--gray-7);">'
+        +'<b style="color:var(--navy);">'+fmt(r.currency,r.amount)+'</b> · '+esc(r.id)+' · '+esc(r.name||'')+' ('+esc(r.dept||'')+')'+(r.existingCard?' <span style="font-size:10px;color:#5B21B6;">· existing card</span>':' <span style="font-size:10px;color:#B45309;">· NEW card</span>')+'<br>'
+        +'<span class="muted">'+esc(r.destination||'')+' · '+esc(r.reason||'')+(r.note?(' · '+esc(r.note)):'')+(r.requestedBy?(' · by '+esc(r.requestedBy)):'')+'</span>'
+        +'<div style="margin-top:4px;">'+docs+'</div>'
+      +'</div>'+act+'</div>';
+  }).join('');
 }
 // ---- Forex top-up approvals (Admin requests above the USD threshold) ----
 function renderTopupApprovals(){
