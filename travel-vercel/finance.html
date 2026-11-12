@@ -219,10 +219,11 @@ tfoot td{background:var(--gray-1);font-weight:800;border-top:2px solid var(--gra
   </div>
   <!-- STANDALONE FOREX REQUESTS — card loads Admin raised for trips not in TravelDesk (Finance sees ALL) -->
   <div class="panel" id="sfxf-panel" style="margin-bottom:18px;display:none;">
-    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleSfxf()">
       <div style="font-weight:800;color:var(--navy);">💱 Standalone forex requests <span id="sfxf-count" style="font-weight:800;font-size:11px;color:#B45309;"></span> <span style="font-weight:600;font-size:11px;color:var(--gray-5);">— card loads for trips not in TravelDesk; approve the ones awaiting you</span></div>
+      <span id="sfxf-toggle" style="color:var(--sky);font-size:12px;font-weight:700;">Show ▾</span>
     </div>
-    <div id="sfxf-body" style="padding:0 18px 16px;"></div>
+    <div id="sfxf-body" class="hidden" style="padding:0 18px 16px;"></div>
   </div>
 
   <div class="panel" style="margin-bottom:16px;">
@@ -363,6 +364,7 @@ function renderTopupApprovals(){
   }).join('');
 }
 function toggleTopupApprovals(){ var b=document.getElementById('tua-body'), t=document.getElementById('tua-toggle'); var h=b.classList.toggle('hidden'); t.textContent=h?'Show ▾':'Hide ▴'; }
+function toggleSfxf(){ var b=document.getElementById('sfxf-body'), t=document.getElementById('sfxf-toggle'); var h=b.classList.toggle('hidden'); t.textContent=h?'Show ▾':'Hide ▴'; }
 function decideTopup(id,idx,decision){
   var comment='';
   if(decision==='reject'){ comment=prompt('Reason for rejecting this top-up (optional):','')||''; }
